@@ -1,0 +1,86 @@
+<script lang="ts">
+	import { Category as CategoryClass } from '$lib/core/parameters.js';
+	import type { Category } from 'coveragejson';
+	import * as Table from '$lib/components/ui/table/index.js';
+
+	interface Props {
+		data: (CategoryClass | Category)[];
+		/**
+		 * Extended renders every single locale in the table
+		 * Basic renders only the requested locale or the primary fallback
+		 */
+		mode?: 'extended' | 'basic';
+	}
+
+	let { data = $bindable(), mode = 'basic' }: Props = $props();
+
+	let categories = $derived<CategoryClass[]>(
+		data.map((cat) => {
+			if (cat instanceof CategoryClass) return cat;
+			return new CategoryClass(cat);
+		})
+	);
+</script>
+
+<Table.Root>
+	<Table.Caption>List of Categories and their Localization Values</Table.Caption>
+	<Table.Header>
+		<Table.Row>
+			<!--            <Table.Head>Icon</Table.Head>-->
+			<Table.Head>Category Id</Table.Head>
+			<Table.Head>Scope</Table.Head>
+			<Table.Head>Language</Table.Head>
+			<Table.Head>Value</Table.Head>
+		</Table.Row>
+	</Table.Header>
+	<Table.Body>
+		{#each categories as { id, label, description } (id)}
+			{#if mode === 'basic'}
+				{@const label_value = label.value}
+				{@const desc_value = description.value}
+				<Table.Row>
+					<!--                    <Table.Cell rowspan={2}>-->
+					<!--                        <SwatchComponent fallbackText={id}/>-->
+					<!--                    </Table.Cell>-->
+					<Table.Cell rowspan={2}>
+						{id}
+					</Table.Cell>
+					<Table.Cell>Label</Table.Cell>
+					<Table.Cell>{label.getTagName(label_value?.tag || 'en')}</Table.Cell>
+					<Table.Cell lang={label_value?.tag}>{label_value?.value || '--'}</Table.Cell>
+				</Table.Row>
+				<Table.Row>
+					<Table.Cell>Description</Table.Cell>
+					<Table.Cell>{description.getTagName(label_value?.tag || 'en')}</Table.Cell>
+
+					<Table.Cell lang={desc_value?.tag}>{desc_value?.value || '--'}</Table.Cell>
+				</Table.Row>
+			{:else}
+				{@const rowspan = label.locales.length + description.locales.length}
+
+				{#each label.locales as lang, i (i)}
+					<Table.Row>
+						{#if i === 0}
+							<Table.Cell {rowspan} class="border-r">{id}</Table.Cell>
+							<Table.Cell rowspan={label.locales.length} class="border-r">Label</Table.Cell>
+						{/if}
+						<Table.Cell>{label.getTagName(lang)}</Table.Cell>
+						<Table.Cell {lang}>{label.query(lang)}</Table.Cell>
+					</Table.Row>
+				{/each}
+
+				{#each description.locales as lang, i (lang)}
+					<Table.Row>
+						{#if i === 0}
+							<Table.Cell rowspan={description.locales.length} class="border-r"
+								>Description</Table.Cell
+							>
+						{/if}
+						<Table.Cell>{description.getTagName(lang)}</Table.Cell>
+						<Table.Cell {lang}>{description.query(lang)}</Table.Cell>
+					</Table.Row>
+				{/each}
+			{/if}
+		{/each}
+	</Table.Body>
+</Table.Root>

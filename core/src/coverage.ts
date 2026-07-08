@@ -96,12 +96,11 @@ export class Coverage<T extends Domain = Domain> extends Base<CRG<T>> {
       if (typeof range === "string") range = await load<Nd>(range);
       ranges[id] = range;
     }
-    let domain: T;
     if (typeof coverage.domain === "string")
-      domain = await load<T>(coverage.domain);
-    else domain = coverage.domain as T;
+     coverage.domain = await load<T>(coverage.domain);
+    else coverage.domain = coverage.domain;
 
-    return { ...coverage, domain, ranges };
+    return { ...coverage, ranges };
   }
   static async load<T extends Domain = Domain>(
     coverage: CRG<T | string> | string,
