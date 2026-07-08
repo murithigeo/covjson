@@ -1,0 +1,17 @@
+{
+    "name": "@murithigeo/covjson",
+    "description": "A collection of tools and plugins to process,visualize, share and reproject CoverageJSON documents",
+    "workspaces": [
+        "./core",
+        "./plugin-maplibre",
+        "./plugin-leaflet"
+    ],
+    "devDependencies": {
+        "@types/coveragejson": "^2.0.0",
+        "@types/geojson": "^7946.0.16",
+        "@types/ndarray": "^1.0.14",
+        "@types/ndarray-ops": "^1.2.7",
+        "@types/node": "^26.1.1",
+        "typescript": "^7.0.2"
+    }
+}

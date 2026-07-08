@@ -1,0 +1,20 @@
+{
+  "name": "@murithigeo/covjson-core",
+  "type": "module",
+  "version": "0.1.0",
+  "description": "Util for processing CoverageJSON documents and objects",
+  "scripts": {
+    "test": "vitest"
+  },
+  "dependencies": {
+    "@js-temporal/polyfill": "^0.5.1",
+    "@murithigeo/uriproj": "^1.0.0",
+    "ndarray": "^1.0.19",
+    "ndarray-ops": "^1.2.2",
+    "url-template": "^3.1.1"
+  },
+  "devDependencies": {
+    "@types/ndarray": "^1.0.14",
+    "@types/ndarray-ops": "^1.2.7"
+  }
+}
