@@ -20,7 +20,7 @@ export class CoverageCollection<T extends Domain = Domain> extends Base<
   type: "CoverageCollection";
   coverages: Coverage<T>[];
   #referencing?: ReferenceSystemConnection[] | undefined;
-  domainType?: CoverageJSON.CoverageCollection["domainType"];
+  domainType?: CoverageJSON.CoverageCollection<T>["domainType"];
   parameterGroups: ParameterGroup[];
   constructor(
     doc: Omit<CovColl, "coverages"> & {
