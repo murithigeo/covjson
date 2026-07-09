@@ -4,11 +4,13 @@
   "version": "0.1.0",
   "description": "Util for processing CoverageJSON documents and objects",
   "scripts": {
-    "test": "vitest"
+    "test": "vitest",
+    "build": "tsdown"
   },
-  "exports":{
-    "default":"./src/index.ts"
+  "exports": {
+    "default": "./src/index.ts"
   },
+  "types": "dist/index.d.ts",
   "dependencies": {
     "@js-temporal/polyfill": "^0.5.1",
     "@murithigeo/uriproj": "^1.0.0",
@@ -24,6 +26,8 @@
   "devDependencies": {
     "@types/ndarray": "^1.0.14",
     "@types/ndarray-ops": "^1.2.7",
-    "msw": "^2.15.0"
+    "msw": "^2.15.0",
+    "rollup": "^4.62.2",
+    "tslib": "^2.8.1"
   }
 }

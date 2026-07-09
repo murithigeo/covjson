@@ -7,12 +7,18 @@
         "./plugin-leaflet"
     ],
     "devDependencies": {
+        "@rollup/plugin-babel": "^7.1.0",
+        "@rollup/plugin-node-resolve": "^16.0.3",
+        "@rollup/plugin-terser": "^1.0.0",
+        "@rollup/plugin-typescript": "^12.3.0",
         "@types/coveragejson": "^2.0.0",
         "@types/geojson": "^7946.0.16",
         "@types/ndarray": "^1.0.14",
         "@types/ndarray-ops": "^1.2.7",
         "@types/node": "^26.1.1",
-        "typescript": "^7.0.2",
+        "rollup": "^4.62.2",
+        "tsdown": "^0.22.4",
+        "tslib": "^2.8.1",
         "vite": "^8.1.4",
         "vitest": "^4.1.10"
     },

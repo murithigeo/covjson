@@ -25,9 +25,8 @@ import type {
   RegularlySpacedAxis,
   VerticalProfile as VertProfile,
 } from "../coveragejson.d.ts";
-import type { getDomain } from "./index.ts";
 
-type InferDomainClass<D extends Domain> = D extends Gd
+export type InferDomainClass<D extends Domain> = D extends Gd
   ? Grid
   : D extends Traj
     ? Trajectory

@@ -10,6 +10,9 @@
     "allowImportingTsExtensions": true,
     "verbatimModuleSyntax": true,
     "noEmit": true,
-    "types": ["vite/client"]
+    "types": ["vite/client"],
+    "allowSyntheticDefaultImports": true,
+    "declaration": true,
+    "declarationDir": "./dist"
   }
 }
