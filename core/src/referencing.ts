@@ -5,6 +5,7 @@ import type {
 } from './coveragejson.d.ts';
 import { Temporal } from '@js-temporal/polyfill';
 import { uriproj, load, toURI, proj4 } from '@murithigeo/uriproj';
+
 const CRS84 = toURI('OGC:CRS84');
 
 /**

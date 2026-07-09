@@ -1,10 +1,10 @@
 import { describe, expect, it } from "vitest";
-import { Referencing, type UserReferencingOptions } from "./referencing.ts";
+import { Referencing, type UserReferencingOptions } from "../src/index.ts";
 import { get, toURI, uriproj } from "@murithigeo/uriproj";
 import type {
   ReferenceSystemConnection,
   SpatialReferenceSystem,
-} from "./coveragejson.ts";
+} from "../src/coveragejson.d.ts";
 
 let referencing: Referencing;
 const options: UserReferencingOptions = {};
@@ -100,6 +100,7 @@ describe("load function", async () => {
   });
   it("instantiates vrs,trs,crs connections if none found", () => {
     expect(
+      //@ts-expect-error
       connections.find((e) => e.system.type === "VerticalCRS")?.system.id,
     ).toBe(toURI("EPSG:5773"));
   });

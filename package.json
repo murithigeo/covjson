@@ -12,6 +12,11 @@
         "@types/ndarray": "^1.0.14",
         "@types/ndarray-ops": "^1.2.7",
         "@types/node": "^26.1.1",
-        "typescript": "^7.0.2"
+        "typescript": "^7.0.2",
+        "vite": "^8.1.4",
+        "vitest": "^4.1.10"
+    },
+    "allowScripts": {
+        "msw@2.15.0": true
     }
 }

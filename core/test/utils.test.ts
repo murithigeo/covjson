@@ -9,7 +9,7 @@ import {
 	calcNumAxisBounds,
 	calcStrAxisBounds,
 	tIndicesOfNearest
-} from './utils.ts';
+} from '../src/domain/utils.ts';
 
 describe('#regularNumToValuesAxis', () => {
 	const { values } = regularNumToValuesAxis({ num: 1, start: 0, stop: 0 });

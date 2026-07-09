@@ -9,7 +9,7 @@ import { Parameter, ParameterGroup } from "./parameters.ts";
 import { Coverage } from "./coverage.ts";
 import { Referencing, type UserReferencingOptions } from "./referencing.ts";
 import { Base } from "./base.ts";
-import type { GeoJSON } from "geojson";
+import type { FeatureCollection, Geometry } from "geojson";
 
 export class CoverageCollection<T extends Domain = Domain> extends Base<
   CovColl<T>
@@ -92,7 +92,7 @@ export class CoverageCollection<T extends Domain = Domain> extends Base<
       return this;
     }
     return Promise.all(
-      this.coverages.map((cov) => cov.reproject(referencing, false)),
+      this.coverages.map((cov) => cov.reproject(referencing)),
     ).then((coverages) => {
       this.#referencing = coverages[0].referencing; // Get a copy from the first coverage;
       this.coverages = coverages.map((cov) => {
@@ -119,9 +119,9 @@ export class CoverageCollection<T extends Domain = Domain> extends Base<
       referencing: this.referencing,
     };
   }
-  get featurecollection(): GeoJSON.FeatureCollection<
-    GeoJSON.Geometry,
-    { id: string }
+  get featurecollection(): FeatureCollection<
+    Geometry,
+    { id: string; domainType: T["domainType"] }
   > {
     return {
       type: "FeatureCollection",
@@ -149,10 +149,6 @@ export class CoverageCollection<T extends Domain = Domain> extends Base<
    */
   get parameters(): Map<string, Parameter> {
     const params = new Map<string, Parameter>();
-    // const counts = new Map<string, number>();
-    // for (const cov of this.coverages) {
-    // 	for (const id of cov.parameters.keys()) counts.set(id, (counts.get(id) || 0) + 1);
-    // }
     for (const cov of this.coverages) {
       for (const [id, param] of cov.parameters.entries()) {
         if (params.has(id)) continue;

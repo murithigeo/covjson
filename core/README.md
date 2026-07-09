@@ -1,71 +1,139 @@
 # @murithigeo/covjson-core
 
-## Issues
+## API
+Most of these objects have a  `toPlain` method allowing you to get a plain CoverageJSON document
 
-### Temporal Values
+### Domain
 
-Will only support the `Gregorian` calendar. Developers are advised to transform these values into Gregorian first
-
-### Vertical Values
-
-The `referencing` member allows definition of the semantics of z values. This project uses `proj4` for conversions.
-
-Consider the issue [Getting wrong results for converting to EPSG: EPSG:28992 #417](https://github.com/proj4js/proj4js/issues/417#top).
-
-Thus, a workaround has been implemented. If `id` is missing in the `VerticalRS` system object, or if the system declaring the `z` coordinate is a non-verticalRS, then values are assumed to be in meters. The output will be coerced to `EPSG:5773` (meters).
-
-### Reprojections
-
-~ core/domains/\_reproject
-
-Issues may be noted trying to convert 'Grid' or other domains having unequal lengths of the `x`,`y` values. If the lengths of the values of these axes are unequal then the nearest value will be used as a placeholder to reproject these values. And because the output of reprojections is dependent on relationship between x,y. Conversions to and from may result in errors
-
-### API
-
-#### Cloning
-
-Allows creation of classes with deep copies of the arguments.
+Creating a new Domain class
 
 ```ts
-const original=getDomain(...).clone();
-original instanceof Point;
+const grid=new Grid({...domainType:"Grid",...});
+// or
+ grid=getDomain({...});
 ```
 
-#### Reprojection
-
-Data can be reprojected easily and uses [](https://spatialreference.org) to load OGC WKT 2 definitions. Upon loading, they are cached to reduce network requests. Check out [@murithigeo/uriproj](https://github.com/murithigeo/uriproj) for more info
-
-Modifies the domain/coverage/coveragecollection in place
+Create a copy of the domain's internals and return a new class.
+Useful before calling destructive methods such as [de]normalization
 
 ```ts
-
-let referencing=await Referencing.load({crsId:"EPSG:32737"}); // This also instantiates the source crs as OGC:CRS84
-
-// Synchronously. Because it is destructive pass the `true` option to ignore internal referencing properties
-const domain=domain.reproject(referencing,true); // Pass true to ignore the domain's referencing
-
-// Asynchronously
-// Loads the passed options and infer source definitions from the domain's referencing member. Optimal for remote data sources
-new Grid({...}).reproject({crsId:"EPSG:32737"}).then(domain=>{...});
-new Grid({...}).reproject(referencing).then(domain=>{...})
-
-// For CoverageCollections, run the method asynchronously to ensure that all data has the same referencing
-new CoverageCollection({...}).reproject({crsId:"EPSG:32737"}).then(collection=>{...})
+const clone = grid.clone();
+// Modifying this wont affect the original grid
+clone.axes.x = { values: [20, 30] };
 ```
 
-#### Axis Normalization/Denormalization
-
-For some domains, some axes can be expresssed as regularly spaced axes.
+Reproject the axis coordinates to a different crs
 
 ```ts
-// Attempts to normalize provided that the axes values are regularly spaced
-const grid=new Grid({...,axes:{x:{values:[0,1,2,3,4,5]}}}).normalize()
-grid.axes.x==={start:0,stop:5,num:6}
+const referencing = await Referencing.load({ crsId: "OGC:CRS27" }, []);
 
-// Denormalization works inversely
-const grid=new Grid({...,axes:{x:{values:{start:0,stop:5,num:6}}}}).denormalize()
-grid.axes.x==={values:[0,1,2,3,4,5]}
+// Pass force=true to ignore and overwrite any referencing system connections inside the domain
+// Useful for when the CoverageCollection's domains are in the same CRS
+grid.reproject(referencing, true);
+// Pass false as second argument or ignore to ensure domain's referencing is not ignored
+await grid.reproject(referencing);
 ```
 
-#### GeoJSON Interoperability
-Given that the standard can be considered a subset of GeoJSON, Domain classes provide a getter "geometry" which returns the domain as a geometry, Coverages provide a "feature" getter which wraps the domain's geometry and the Coverage instance itself as the properties object. Finally the CoverageCollection has "featureCollection" which collates the Coverages' "feature" into a list
+Convert any applicable axis objects to and from a RegularlySpacedAxis
+
+```ts
+grid.normalize(); // Resulting axis values become a RegularlySpacedAxis only if they are strictly monotonic
+grid.denormalize(); // Converts any Regularly Spaced Axis objects to a values object
+```
+
+Get the indices of horizontal (x,y) values relative to a reference point i.e. the click point of a map
+
+```ts
+const indices = grid.queryIndices([0, 0]); // {x:0,y:0}  or {composite:0}
+```
+
+//Get the horizontal components of the domain as a GeoJSON geometry
+
+```ts
+const multipolygon = grid.geometry;
+```
+
+### Coverage
+Init a new Coverage Class
+```ts
+// Requires that domains and ranges are objects instead of URLs
+let coverage=new Coverage(...,domain:{...},ranges:{FOO:{}})
+// or use the static load method when unsure
+coverage=await Coverage.load({...,domain:"https://covjson.org/playground/coverages/grid-tiled.covjson"});
+```
+
+Querying data
+```ts
+// If second argument is not provided, then data is fetched for all ranges in coverage
+// All range/parameter keys are in uppercase
+let data=await coverage.getData([0,0]); // calls the domain's queryIndices to get a hashmap of the horizontal components
+// If a non-existent rangeId is included, then it's value is undefined
+{FOO:1,BAR:undefined}
+
+// Alternatively, bypass queryIndices
+data=await coverage.getData({x:0,y:0,t:0});
+
+```
+
+
+### CoverageCollection
+Init
+```ts
+let collection=new CoverageCollection({...});
+// or 
+collection=await CoverageCollection.load({...});
+```
+Querying the data
+```ts
+let data=await collection.getData([x,y],["FOO","BAR"]) // [{"FOO":1,BAR:undefined}]
+```
+
+### NdArray/TiledNdArray
+
+The options
+```ts
+interface Options{
+    // When true, loads the entire tileset on match instead of the relevant tile
+    eagerLoad?:boolean//default: false
+    // Function to transform ndarray values elements. Called once when ndarray is loaded
+    // Useful for converting values between Units of measure
+}
+```
+
+From named indices to ndarray indices
+```ts
+let ndarray=new NdArray({...,shape:[2,5,10],axisNames:["t","x","y"]});
+
+let indices={x:0,y:0};
+const liIndices=ndarray.normalizeNamedIndices(indices);
+liIndices===[0,0,0];
+```
+
+Getting the actual value
+```ts
+let value=ndarray.get(indices);
+// If the ndarray is tiled and the value is undefined, then what slice of data to load is determined and loaded
+// Is not recursive incase the logic to determine and load tile is not robust
+```
+Get the tilesets that intersects with the indices
+```ts
+let tilesets=ndarray.intersects(...);
+```
+
+### Parameters
+I18N
+```ts
+// The second argument is your preferred locale
+let label=new I18N({en:"FOO","en-KE":"BAR"},"en");
+
+// Language Tags in the object
+const langs=label.locales;
+
+// Get the value of a string in the preferred language. If an arg is not provided, falls back to the second argument of the constructor or "en"
+let {value,tag}=label.query(); // tag==="en";value==="FOO"
+```
+
+Parameter
+```ts
+let parameter=new Parameter({...,label:undefined})
+```

@@ -7,7 +7,7 @@ import {
 	Category,
 	I18N,
 	ObservedProperty
-} from './parameters.ts';
+} from '../src/index.ts';
 
 describe('I18N', () => {
 	describe('.query', () => {

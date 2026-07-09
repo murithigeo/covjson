@@ -8,6 +8,8 @@
     "forceConsistentCasingInFileNames": true,
     "strict": true,
     "allowImportingTsExtensions": true,
-    "verbatimModuleSyntax": true,"noEmit": true
+    "verbatimModuleSyntax": true,
+    "noEmit": true,
+    "types": ["vite/client"]
   }
 }

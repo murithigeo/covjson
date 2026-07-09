@@ -5,6 +5,7 @@ import type {
   ParameterGroup as CovPGroup,
   NdArray as Nd,
   Position2D,
+  DomainTypes,
 } from "./coveragejson.d.ts";
 import { Base } from "./base.ts";
 import { Parameter, ParameterGroup } from "./parameters.ts";
@@ -96,11 +97,12 @@ export class Coverage<T extends Domain = Domain> extends Base<CRG<T>> {
       if (typeof range === "string") range = await load<Nd>(range);
       ranges[id] = range;
     }
+    let domain: T;
     if (typeof coverage.domain === "string")
-     coverage.domain = await load<T>(coverage.domain);
-    else coverage.domain = coverage.domain;
+      domain = await load<T>(coverage.domain);
+    else domain = coverage.domain;
 
-    return { ...coverage, ranges };
+    return { ...coverage, domainType: domain.domainType, domain, ranges };
   }
   static async load<T extends Domain = Domain>(
     coverage: CRG<T | string> | string,
@@ -167,7 +169,7 @@ export class Coverage<T extends Domain = Domain> extends Base<CRG<T>> {
     return this;
   }
   toPlain(): CRG<T> {
-    return structuredClone({
+    return structuredClone<CRG<T>>({
       type: this.type,
       domain: this.domain.toPlain() as T,
       ranges: this.ranges
@@ -195,6 +197,7 @@ export class Coverage<T extends Domain = Domain> extends Base<CRG<T>> {
    * @param point The point to get data for
    * @param rangeIds The parameter IDs to get data for. Should be in uppercase
    * @returns {Promise<Record<string,RangeValue|undefined>>} If the range does not exist, the value is undefined
+   * @todo allow 3D Positions so as to query z values
    * @example
    *  const data=await coverage.getData([0,0],["QC","POTM","x"])
    *  data==={"QC":50,"POTM":100,"x":undefined}
@@ -210,6 +213,4 @@ export class Coverage<T extends Domain = Domain> extends Base<CRG<T>> {
     );
     return rangeIds.reduce((l, r, i) => ({ ...l, [r]: data[i] }), {});
   }
-
-  // static collectPoints<T extends Point | PointSeries>(cov1: CRG<T>) {}
 }

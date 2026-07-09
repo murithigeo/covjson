@@ -1,11 +1,17 @@
 import maplibregl from "maplibre-gl";
-import type { Domain, NdArray, CoverageJSON } from "../core/coveragejson.d.ts";
+import type {
+  Domain,
+  NdArray,
+  CoverageJSON,
+} from "../../core/src/coveragejson.js";
 import {
   Coverage,
   CoverageCollection,
+  domainIsInstanceOf,
   getDomain,
   load,
 } from "@murithigeo/covjson-core";
+import type { PluginOptions } from "./types.d.ts";
 type DomainClass = Awaited<ReturnType<typeof getDomain>>;
 /**
  * @see {maplibregl.GeoJSONSourceDiff}
@@ -96,13 +102,18 @@ export function getCoverageId(data: Coverage, promoteId = "uuid"): string {
   return promoteId in data ? data[promoteId] : data.properties[promoteId];
 }
 
-export async function loadCovJson(
-  data: string | Exclude<CoverageJSON, NdArray>,
-) {
+export async function loadCovJson(data: PluginOptions["data"]) {
   if (typeof data === "string") {
     data = await load<Exclude<CoverageJSON, NdArray>>(data);
     if (["TiledNdArray", "NdArray"].includes(data.type))
       throw Error(`Maplibre does not support NdArrays`);
+  }
+  if (
+    data instanceof Coverage ||
+    data instanceof CoverageCollection ||
+    domainIsInstanceOf(data)
+  ) {
+    data = data.toPlain();
   }
   if (data.type === "Domain")
     data = { type: "Coverage", domain: data, ranges: {} };

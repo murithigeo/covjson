@@ -5,7 +5,6 @@ import { Exception } from './error.ts';
  */
 export async function load<T>(url: string, abortController?: AbortController): Promise<T> {
 	const res = await fetch(url, { signal: abortController?.signal });
-	if(res.redirected)console.log(res)
 	if (!res.ok) throw new Exception(res.status, res.url, res.statusText);
 	const data = await res.json();
 	return data;

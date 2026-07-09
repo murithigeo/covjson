@@ -5,11 +5,11 @@ import type {
   Coverage as Cov,
   CoverageCollection as CC,
   Domain as D,
-} from "../core/coveragejson.d.ts";
+} from "../../core/src/coveragejson.d.ts";
 import { loadCovJson } from "./util.ts";
 
 export class MaplibrePlugin extends maplibregl.GeoJSONSource {
-  _layerIds: string[]; // The list of layerIds derived from this source
+  layerIds: string[]; // The list of layerIds derived from this source
   _coverages: Map<string, Coverage>;
   constructor(
     id: string,
@@ -28,16 +28,16 @@ export class MaplibrePlugin extends maplibregl.GeoJSONSource {
       eventedParent,
     );
     this._coverages = new Map();
-    this._layerIds = options.layerIds || [];
+    this.layerIds = options.layerIds || [];
     this.setCovData(options.data, true).then(() => {});
     // const url = new URL('./worker.ts', import.meta.url).href;
     // this.workerSourceURL = url
     // maplibregl.importScriptInWorkers(url);
   }
 
-  setCovData(v: Cov | CC | D | string, waitForCompletion?: false): this;
-  setCovData(v: CC | CC | D | string, waitForCompletion?: true): Promise<void>;
-  setCovData(v: Cov | CC | D | string, waitForCompletion?: boolean) {
+  setCovData(v: PluginOptions["data"], waitForCompletion?: false): this;
+  setCovData(v: PluginOptions["data"], waitForCompletion?: true): Promise<void>;
+  setCovData(v: PluginOptions["data"], waitForCompletion?: boolean) {
     const load = loadCovJson(v).then((covs) => {
       const features: GeoJSON.Feature[] = [];
       for (const cov of covs) {
@@ -58,9 +58,7 @@ export class MaplibrePlugin extends maplibregl.GeoJSONSource {
       type: "CoverageCollection",
       coverages: [],
     });
-    this._coverages
-      .keys()
-      .forEach((v) => coll.coverages.push(this._coverages.get(v)!));
+    this._coverages.values().forEach((cov) => coll.coverages.push(cov));
     return coll;
   }
 
@@ -82,13 +80,13 @@ export class MaplibrePlugin extends maplibregl.GeoJSONSource {
       "touchend",
     ]);
 
-    this._layerIds = this._layerIds.filter((v) =>
+    this.layerIds = this.layerIds.filter((v) =>
       map.getLayersOrder().includes(v),
     );
     for (const event of events) {
-      map.on(event, this._layerIds, (e) => {
+      map.on(event, this.layerIds, (e) => {
         const features = map.queryRenderedFeatures(e.point, {
-          layers: this._layerIds,
+          layers: this.layerIds,
         });
         //@ts-expect-error we are patching the event object before it is used in other listeners
         e.coverages = this.getCoveragesFromFeatureList(features!, [
