@@ -1,0 +1,19 @@
+{
+	"compilerOptions": {
+		"allowJs": false,
+		"sourceMap": true,
+		"resolveJsonModule": true,
+		"forceConsistentCasingInFileNames": true,
+		"module": "nodenext",
+		"moduleResolution": "nodenext",
+		"strict": true,
+		"allowImportingTsExtensions": true,
+		"verbatimModuleSyntax": true,
+		"noEmit": true,
+		"types": ["vite/client"],
+		"allowSyntheticDefaultImports": true,
+		"declaration": true,
+		"declarationDir": "./dist",
+    "strictNullChecks": true
+	},
+}

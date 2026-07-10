@@ -1,0 +1,4 @@
+{
+  "name": "@murithigeo/covjson-plugin-leaflet",
+  "description": "Plugin for rendering CoverageJSON Documents in Leaflet"
+}

@@ -1,0 +1,33 @@
+{
+  "name": "@murithigeo/covjson-core",
+  "type": "module",
+  "version": "0.1.0",
+  "description": "Util for processing CoverageJSON documents and objects",
+  "scripts": {
+    "test": "vitest",
+    "build": "tsdown"
+  },
+  "exports": {
+    "default": "./src/index.ts"
+  },
+  "types": "dist/index.d.ts",
+  "dependencies": {
+    "@js-temporal/polyfill": "^0.5.1",
+    "@murithigeo/uriproj": "^1.0.0",
+    "@turf/bbox-polygon": "^7.3.5",
+    "@turf/combine": "^7.3.5",
+    "@turf/distance": "^7.3.5",
+    "@turf/midpoint": "^7.3.5",
+    "nanoid": "^3.3.15",
+    "ndarray": "^1.0.19",
+    "ndarray-ops": "^1.2.2",
+    "point-in-polygon-hao": "^1.2.4",
+    "url-template": "^3.1.1"
+  },
+  "devDependencies": {
+    "@types/ndarray": "^1.0.14",
+    "@types/ndarray-ops": "^1.2.7",
+    "msw": "^2.15.0",
+    "typescript": "^6.0.3"
+  }
+}

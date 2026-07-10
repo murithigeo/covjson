@@ -1,0 +1,30 @@
+{
+    "name": "@murithigeo/covjson",
+    "description": "A collection of tools and plugins to process,visualize, share and reproject CoverageJSON documents",
+    "type": "module",
+    "workspaces": [
+        "./core",
+        "./plugin-maplibre",
+        "./plugin-leaflet",
+        "./ui"
+    ],
+    "devDependencies": {
+        "@eslint/js": "^10.0.1",
+        "@types/coveragejson": "^2.0.0",
+        "@types/geojson": "^7946.0.16",
+        "@types/ndarray": "^1.0.14",
+        "@types/ndarray-ops": "^1.2.7",
+        "@types/node": "^26.1.1",
+        "eslint": "^10.6.0",
+        "jiti": "^2.7.0",
+        "rollup": "^4.62.2",
+        "tsdown": "^0.22.4",
+        "typescript": "^6.0.3",
+        "typescript-eslint": "^8.63.0",
+        "vite": "^8.1.4",
+        "vitest": "^4.1.10"
+    },
+    "allowScripts": {
+        "msw@2.15.0": true
+    }
+}
