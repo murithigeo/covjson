@@ -53,11 +53,11 @@ abstract class Base<T extends TrajDomain | SectionDomain> extends BaseDomain<T> 
 }
 
 export class Trajectory extends Base<TrajDomain> {
-	queryIndices(point: [number, number]): Record<'composite', number> {
-		const distances = this.axes.composite.values.map(([, lon, lat]) => distance(point, [lon, lat]));
-		const [minD] = minMax(distances);
+	queryIndices(point: Position): Record<'composite', number> {
+		const distances = this.axes.composite.values.map(([, ...pos]) => distance(point, pos));
+		const composite = distances.findIndex((v) => minMax(distances)[0] === v);
 		return {
-			composite: minD === null ? 0 : distances.findIndex((dist) => minD === dist)
+			composite
 		};
 	}
 	get z(): number[] {
@@ -79,7 +79,7 @@ export class Trajectory extends Base<TrajDomain> {
 export class Section extends Base<SectionDomain> {
 	queryIndices(point: Position): Record<'composite' | 'z', number> {
 		const distances = this.axes.composite.values.map(([, x, y]) => distance(point, [x, y]));
-		const composite = distances.findIndex((v) => minMax(distances).at(0) === v);
+		const composite = distances.findIndex((v) => minMax(distances)[0] === v);
 		let z = 0;
 		if (point[2] !== undefined) {
 			z = indexOfNearest(denormalizeNumAxis(this.axes.z).values, point[2]);
@@ -89,6 +89,7 @@ export class Section extends Base<SectionDomain> {
 			z
 		};
 	}
+
 	get z(): number[] {
 		return denormalizeNumAxis(this.axes.z).values;
 	}

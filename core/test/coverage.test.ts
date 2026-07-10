@@ -24,7 +24,7 @@ describe("High load tests", () => {
       "https://covjson.org/playground/coverages/grid-tiled.covjson",
     );
     it(".queryIndices: Fast and accurate", () => {
-      expect(cov.queryIndices([-100, 50])).toEqual({ x: 0, y: 4 });
+      expect(cov.queryIndices([-100, 50])).toEqual({ x: 0, y: 4,z:0 });
     });
     it(".queryData from TileSets", async () => {
       await expect(cov.getData([-100, -50], ["FOO"])).resolves.toEqual({

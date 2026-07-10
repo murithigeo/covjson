@@ -1,34 +1,32 @@
 import type {
-  Coverage as CovCoverage,
-  Domain as CovDomain,
-  CoverageCollection as CovCollection,
-} from "../../core/src/coveragejson.d.ts";
-import {
-  Coverage,
-  CoverageCollection,
-  getDomain,
-} from "@murithigeo/covjson-core";
-import type maplibregl from "maplibre-gl";
+	Coverage as CovCoverage,
+	Domain as CovDomain,
+	CoverageCollection as CovCollection
+} from '../../core/src/coveragejson.d.ts';
+import { Coverage, CoverageCollection, getDomain } from '@murithigeo/covjson-core';
+import type maplibregl from 'maplibre-gl';
 
 type Domain = Awaited<ReturnType<typeof getDomain>>;
-type GeoJSONSourceOptions = ConstructorParameters<
-  typeof maplibregl.GeoJSONSource
->;
-export interface PluginOptions extends Omit<
-  GeoJSONSourceOptions[1],
-  "data" | "type"
-> {
-  data:
-    | string
-    | Coverage
-    | CovCollection
-    | CovDomain
-    | CoverageCollection
-    | Domain
-    | CovCoverage;
-  type: "coveragejson";
-  /**
-   * Will listen on all layer events on these ids and set the e.coverages property
-   */
-  layerIds?: string[];
+type GeoJSONSourceOptions = ConstructorParameters<typeof maplibregl.GeoJSONSource>;
+export interface PluginOptions extends Omit<GeoJSONSourceOptions[1], 'data' | 'type'> {
+	data: string | Coverage | CovCollection | CovDomain | CoverageCollection | Domain | CovCoverage;
+	type: 'coveragejson';
+	/**
+	 * Will listen on all layer events on these ids and set the e.coverages property
+	 */
+	layers?: string[];
+
+	/**
+	 * Callback to get the data on update/set
+	 */
+	onLoad?: (coverages: Map<string, Coverage>) => void;
+	/**
+	 * Events to listen to automatically and determine matching features
+	 */
+	listenTo?: Array<keyof maplibregl.MapLayerEventType>;
+	/**
+	 * Whether to reproject from the CoverageJSON's native CRS to OGC:CRS84
+	 * If you know that data is OGC:CRS84, then pass false
+	 */
+	reproject?: boolean;
 }

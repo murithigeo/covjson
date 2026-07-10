@@ -1,13 +1,8 @@
 <script lang="ts">
-	import type { Grid as G, Coverage as C } from '$lib/core/coveragejson.d.ts';
-	import {
-		cartesianProduct,
-		Coverage,
-		Grid,
-		load,
-		type WithRequiredProperty
-	} from '../core/index.ts';
-	import * as Card from '../components/ui/card/index.js';
+	import type { Grid as G, Coverage as C } from '../../../../core/src/coveragejson.d.ts';
+	import type { DataRow } from './types.d.ts';
+	import { Coverage, load, type WithRequiredProperty } from '@murithigeo/covjson-core';
+	import * as Card from '../components/ui/card/index.ts';
 	import * as Pagination from '../components/ui/pagination/index.ts';
 	import * as Carousel from '../components/ui/carousel/index.ts';
 	import { onMount } from 'svelte';
@@ -16,21 +11,23 @@
 	import TrendingUpIcon from '@lucide/svelte/icons/trending-up';
 	import { scaleUtc } from 'd3-scale';
 	import { curveNatural } from 'd3-shape';
-	import * as Chart from '../components/ui/chart/index.js';
+	import * as Chart from '../components/ui/chart/index.ts';
 	interface Props {
 		parameters?: SvelteSet<string>;
 		styling?: { [paramName: string]: Omit<Chart.ChartConfig[typeof paramName], 'label'> };
-		// coverage?: WithRequiredProperty<Coverage<G>, 'indices'>;
+		/**
+		 * How to tile the data. Means that the each value in the axis IDd by this variable has its own page
+		 */
+		sliceBy?: keyof Pick<G['axes'], 't' | 'z'>;
+		coverage?: WithRequiredProperty<Coverage<G>, 'indices'>;
 	}
 
 	// Also include a callback so that switching carousel item switches the grid cell in focus
-	let { parameters = $bindable(), styling }: Props = $props();
+	let { parameters = $bindable(), styling, sliceBy = $bindable('t'), coverage }: Props = $props();
 
 	let page = $state(1);
 
-	let coverage = $state<WithRequiredProperty<Coverage<G>, 'indices'>>();
-
-	const indices = $derived({ x: 0, y: 0, t: page - 1 });
+	const indices = $derived({ ...coverage?.indices, [sliceBy]: page - 1 });
 
 	onMount(async () => {
 		coverage = await load<C<G>>('https://covjson.org/playground/coverages/grid-tiled.covjson')
@@ -46,27 +43,27 @@
 			});
 	});
 
-	interface DataRow {
-		z?: number;
-		t?: string;
-		[variable: string]: string | number | null | undefined;
-	}
-
 	const promises = $derived.by((): Promise<DataRow[]> => {
-		const z = coverage?.domain.z.length ? coverage?.domain.z : [undefined]; // Make sure we have the data even if theres no z values
 		if (!coverage) return Promise.resolve([]);
+
+		const chartAxis = sliceBy === 't' ? 'z' : 't';
+		const {
+			domain: { [chartAxis]: chartAxisVals }
+		} = coverage;
+
+		const totalPoints = [...Array(chartAxisVals.length || 1).keys()]; // Ensure that even if chartingAxis/sliceBy is undefined, the default axes still get data
 		return Promise.all(
-			[...Array(z.length).keys()]
-				.map((z) => ({ ...indices, z }))
+			totalPoints
+				.map((v) => ({ ...indices, [chartAxis]: v }))
 				.map(async (indices) => {
 					return {
 						...(await coverage?.getData(indices)),
-						z: indices.z !== undefined ? coverage?.domain?.z[indices.z] : undefined
+						[chartAxis]: chartAxisVals[indices[chartAxis]]
 					};
 				})
 		);
 	});
-	
+
 	const chartConfig = $derived<Chart.ChartConfig | undefined>(
 		parameters?.keys().reduce((l: Chart.ChartConfig, r) => {
 			const param = coverage?.parameters.get(r);

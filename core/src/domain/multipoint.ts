@@ -1,11 +1,10 @@
 import { BaseDomain } from './base-domain.ts';
-import type { MultiPointSeries as MpsD, MultiPoint as MpD } from '../coveragejson.d.ts';
+import type { MultiPointSeries as MpsD, MultiPoint as MpD, Position } from '../coveragejson.d.ts';
 import { Referencing } from '../referencing.ts';
 import type { MultiPoint as MultiPointGeometry } from 'geojson';
 import { calcStrAxisBounds, calc2dTupleAxisBounds, calcNumAxisBounds } from './utils.ts';
 import distance from '@turf/distance';
 import { minMax } from '../utils.ts';
-import { Point, PointSeries } from './point.ts';
 
 abstract class Base<T extends MpD | MpsD> extends BaseDomain<T> {
 	constructor(domain: T) {
@@ -13,7 +12,7 @@ abstract class Base<T extends MpD | MpsD> extends BaseDomain<T> {
 	}
 	normalize = undefined;
 	denormalize = undefined;
-	queryIndices(point: [number, number]): Record<'composite', number> {
+	queryIndices(point: Position): Record<'composite', number> {
 		const distances = this.axes.composite.values.map(([lon, lat]) => distance(point, [lon, lat]));
 		const [minD] = minMax(distances);
 		return {
@@ -61,7 +60,6 @@ abstract class Base<T extends MpD | MpsD> extends BaseDomain<T> {
 		if (this.axes.t) this.axes.t.values = this.axes.t.values.map(referencing.trs);
 		return this;
 	}
-	abstract split(compositeIndex: number): T extends MpD ? Point : PointSeries;
 }
 
 export class MultiPoint extends Base<MpD> {
@@ -71,24 +69,6 @@ export class MultiPoint extends Base<MpD> {
 			coordinates: this.axes.composite.values
 		};
 	}
-	split(compositeIndex: number): Point {
-		const domain = this.toPlain();
-		const [x, y, z] = domain.axes.composite.values[compositeIndex];
-		return new Point({
-			...domain,
-			domainType: 'Point',
-			axes: {
-				x: { values: [x] },
-				y: { values: [y] },
-				z: z === undefined ? undefined : { values: [z] },
-				t: domain.axes.t
-			}
-		});
-	}
-
-	constructor(domain: MpD) {
-		super(domain);
-	}
 }
 export class MultiPointSeries extends Base<MpsD> {
 	get geometry(): MultiPointGeometry {
@@ -97,21 +77,7 @@ export class MultiPointSeries extends Base<MpsD> {
 			coordinates: this.axes.composite.values
 		};
 	}
-	split(compositeIndex: number): PointSeries {
-		const domain = this.toPlain();
-		const [x, y, z] = domain.axes.composite.values[compositeIndex];
-		return new PointSeries({
-			...domain,
-			domainType: 'PointSeries',
-			axes: {
-				x: { values: [x] },
-				y: { values: [y] },
-				z: z === undefined ? undefined : { values: [z] },
-				t: domain.axes.t
-			}
-		});
-	}
-	queryIndices(point: [number, number]): Record<'composite', number> {
+	queryIndices(point: Position): Record<'composite', number> {
 		const distances = this.axes.composite.values.map(([lon, lat]) => distance(point, [lon, lat]));
 		const [minD] = minMax(distances);
 		return {

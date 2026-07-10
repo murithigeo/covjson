@@ -1,9 +1,10 @@
 import { BaseDomain } from './base-domain.ts';
-import type { VerticalProfile as VertProfDomain } from '../coveragejson.js';
+import type { Position, VerticalProfile as VertProfDomain } from '../coveragejson.d.ts';
 import type { Referencing } from '../referencing.ts';
 import type { Point } from 'geojson';
 import { denormalizeNumAxis, normalizeNumAxis } from './utils.ts';
 import type { WithoutRegularlySpacedAxis } from './types.js';
+import { indexOfNearest } from '../utils.ts';
 
 export class VerticalProfile extends BaseDomain<VertProfDomain> {
 	calculateAxesBounds(): this {
@@ -52,8 +53,9 @@ export class VerticalProfile extends BaseDomain<VertProfDomain> {
 		this.axes.z = normalizeNumAxis(this.axes.z);
 		return this;
 	};
-	queryIndices() {
-		return { x: 0, y: 0 };
+	queryIndices(pos: Position) {
+		const z = indexOfNearest(denormalizeNumAxis(this.axes.z).values, pos[2] ?? 0);
+		return { x: 0, y: 0, z };
 	}
 	// todo split into point/multipoint
 }

@@ -3,7 +3,8 @@ import type {
 	Polygon as PolygonDomain,
 	PolygonSeries as PolySeriesD,
 	MultiPolygon as MP,
-	MultiPolygonSeries as MPs
+	MultiPolygonSeries as MPs,
+	Position
 } from '../coveragejson.d.ts';
 import type { Referencing } from '../referencing.ts';
 import inside from 'point-in-polygon-hao';
@@ -39,7 +40,7 @@ abstract class Base<T extends PolygonDomain | PolySeriesD | MP | MPs> extends Ba
 	get t(): string[] {
 		return this.axes.t?.values || [];
 	}
-	queryIndices(point: [number, number]): Record<string, number> {
+	queryIndices(point: Position): Record<string, number> {
 		if (this.axes.composite.values.length === 1) return { composite: 0 }; // Its a polygon
 		for (let i = 0; i < this.axes.composite.values.length; i++) {
 			if (inside(point, this.axes.composite.values[i]) === false) continue;

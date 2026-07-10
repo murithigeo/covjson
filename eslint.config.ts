@@ -12,6 +12,7 @@ export default defineConfig({
           project: [
             "./**/*.tsconfig.json"
           ],
+          tsconfigRootDir:import.meta.dirname
         },
       },
     },

@@ -5,7 +5,8 @@
     "workspaces": [
         "./core",
         "./plugin-maplibre",
-        "./plugin-leaflet"
+        "./plugin-leaflet",
+        "./ui"
     ],
     "devDependencies": {
         "@eslint/js": "^10.0.1",

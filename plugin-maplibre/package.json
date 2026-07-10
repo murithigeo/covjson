@@ -1,13 +1,18 @@
 {
-  "name": "@murithigeo/covjson-plugin-maplibre",
+  "name": "@murithigeo/covjson-maplibre",
   "description": "Plugin for rendering CoverageJSON Documents in Maplibre-gl",
   "type": "module",
   "version": "0.1.0",
+  "scripts": {
+    "build":"tsdown"
+  },
   "dependencies": {
     "maplibre-gl": "^5.24.0",
     "@murithigeo/covjson-core":"^0.1.0"
   },
   "exports":{
     "default":"./src/index.ts"
-  }
+  },
+  "main": "./dist/index.mts",
+  "types": "./dist/index.d.mts"
 }

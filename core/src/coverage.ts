@@ -4,7 +4,8 @@ import type {
 	Parameter as CovParam,
 	ParameterGroup as CovPGroup,
 	NdArray as Nd,
-	Position2D
+	Position2D,
+	Position
 } from './coveragejson.d.ts';
 import { Base } from './base.ts';
 import { Parameter, ParameterGroup } from './parameters.ts';
@@ -142,11 +143,11 @@ export class Coverage<T extends Domain = Domain> extends Base<CRG<T>> {
 	 * Indicates whether this coverage satisfies the temporal or spatial conditions
 	 */
 
-	queryIndices(point: [number, number]) {
+	queryIndices(point: Position) {
 		return this.domain.queryIndices(point);
 	}
-	calculateIndices(point: [number, number]): WithRequiredProperty<this, 'indices'> {
-		this.indices = this.domain.queryIndices(point);
+	calculateIndices(point: Position): WithRequiredProperty<this, 'indices'> {
+		this.indices = this.queryIndices(point);
 		return this;
 	}
 	toPlain(): CRG<T> {
