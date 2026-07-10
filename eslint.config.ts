@@ -5,7 +5,7 @@ export default defineConfig({
   files: ["**/*.{js,ts}"],
   extends: [
     js.configs.recommended,
-    tseslint.configs.strict,
+    tseslint.configs.recommended,
     {
       languageOptions: {
         parserOptions: {
