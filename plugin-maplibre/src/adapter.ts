@@ -46,7 +46,6 @@ export class MaplibrePlugin extends maplibregl.GeoJSONSource {
 				this._coverages.set(cov.uuid, cov);
 				features.push(cov.feature);
 			}
-			console.log({ features });
 			this.setData({ type: 'FeatureCollection', features });
 		});
 		if (waitForCompletion) return Promise.resolve(load);
@@ -77,8 +76,9 @@ export class MaplibrePlugin extends maplibregl.GeoJSONSource {
 				const features = map.queryRenderedFeatures(e.point, {
 					layers
 				});
+				const point = e.lngLat.wrap();
 				//@ts-expect-error we are patching the event object before it is used in other listeners
-				e.coverages = this.getCoveragesFromFeatureList(features!, [e.point.x, e.point.y]);
+				e.coverages = this.getCoveragesFromFeatureList(features!, [point.lng, point.lat]);
 			});
 		}
 	}

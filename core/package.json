@@ -10,7 +10,7 @@
   "exports": {
     "default": "./src/index.ts"
   },
-  "types": "dist/index.d.ts",
+  "types": "./src/index.ts",
   "dependencies": {
     "@js-temporal/polyfill": "^0.5.1",
     "@murithigeo/uriproj": "^1.0.0",

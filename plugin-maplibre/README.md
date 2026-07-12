@@ -73,3 +73,17 @@ const coveragecollection=source.getCovData();
 All work is done on the main thread. Working on using `importScriptInWorkers` to mitigate this.
 
 Grids are mapped to MultiPolygons so if you need to style individual grid cells, you have to implement that functionality.
+
+## Workarounds
+In Svelte, note that while each event will recalculate the indices of `x/y` note that this will not trigger reactivity.
+
+So do:
+```ts
+let coverage=$state<Coverage>();
+
+// Assumes that the listenTo includes the "click" listener
+map?.on("click",<layerId>,(e)=>{
+    if(coverage)coverage=undefined;
+    coverage=coverages[0];
+})
+```

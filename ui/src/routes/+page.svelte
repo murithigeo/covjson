@@ -40,7 +40,9 @@
 				paint: { 'line-color': 'red', 'line-width': 0.4 }
 			});
 			map?.on('click', 'grid-layer', (e) => {
+				if(coverage)coverage=undefined;
 				coverage = e.coverages[0];
+				// console.log(e.coverages[0].indices,"checj")
 			});
 			// console.log(map?.getSource<MaplibrePlugin>("cov-load-test"))
 			// map

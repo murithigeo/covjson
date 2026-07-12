@@ -20,15 +20,24 @@
 		 */
 		sliceBy?: keyof Pick<G['axes'], 't' | 'z'>;
 		coverage?: WithRequiredProperty<Coverage<G>, 'indices'>;
+		/**
+		 * Callback to update map focus on changing the x/y axis indices
+		 */
+		// horizontalIndicesChangeCallback?: () => void;
 	}
 
 	// Also include a callback so that switching carousel item switches the grid cell in focus
-	let { parameters = $bindable(), styling, sliceBy = $bindable('t'), coverage }: Props = $props();
+	let {
+		parameters = $bindable(),
+		styling,
+		sliceBy = $bindable('t'),
+		coverage = $bindable()
+	}: Props = $props();
 
 	let page = $state(1);
 
-	const indices = $derived({ ...coverage?.indices, [sliceBy]: page - 1 });
-
+	const indices = $derived(coverage?.indices);
+	let domain = $derived(coverage?.domain);
 	onMount(async () => {
 		coverage = await load<C<G>>('https://covjson.org/playground/coverages/grid-tiled.covjson')
 			.then(Coverage.load)
@@ -43,7 +52,7 @@
 			});
 	});
 
-	const promises = $derived.by((): Promise<DataRow[]> => {
+	const _ = $derived.by((): Promise<DataRow[]> => {
 		if (!coverage) return Promise.resolve([]);
 
 		const chartAxis = sliceBy === 't' ? 'z' : 't';
@@ -64,14 +73,14 @@
 		);
 	});
 
-	const chartConfig = $derived<Chart.ChartConfig | undefined>(
-		parameters?.keys().reduce((l: Chart.ChartConfig, r) => {
-			const param = coverage?.parameters.get(r);
-			l[r] = { label: param?.label.query()?.value ?? r };
-			if (styling?.[r]) l[r] = { ...l[r], ...styling[r] };
-			return l;
-		}, {})
-	);
+	// const chartConfig = $derived<Chart.ChartConfig | undefined>(
+	// 	parameters?.keys().reduce((l: Chart.ChartConfig, r) => {
+	// 		const param = coverage?.parameters.get(r);
+	// 		l[r] = { label: param?.label.query()?.value ?? r };
+	// 		if (styling?.[r]) l[r] = { ...l[r], ...styling[r] };
+	// 		return l;
+	// 	}, {})
+	// );
 </script>
 
 <Card.Root class="mt-2 ml-2 max-w-sm">
@@ -79,7 +88,38 @@
 		<Card.Title>Grid Coverage</Card.Title>
 	</Card.Header>
 	<Card.Content>
-		<Carousel.Root></Carousel.Root>
+		<Carousel.Root orientation="horizontal" align="center" class="w-full max-w-sm">
+			<Carousel.Content>
+				{#each [...Array(domain?.x.length ?? 0).keys()] as xi (xi)}
+					<Carousel.Item>
+						<Card.Root>
+							<Card.Content>
+								<Carousel.Root orientation="vertical" class="h-full max-h-sm oveflow-y-auto">
+									<Carousel.Content>
+										{#each [...Array(domain?.y.length ?? 0).keys()] as yi (yi)}
+											<Carousel.Item>
+												<Card.Root>
+													<Card.Header>
+														<Card.Title>Indices at y:{indices?.y} x:{indices?.x}</Card.Title>
+													</Card.Header>
+													<Card.Content>
+													</Card.Content>
+												</Card.Root>
+											</Carousel.Item>
+										{/each}
+									</Carousel.Content>
+									<Carousel.Previous />
+									<Carousel.Next />
+								</Carousel.Root>
+							</Card.Content>
+						</Card.Root>
+					</Carousel.Item>
+				{/each}
+			</Carousel.Content>
+			<Carousel.Previous />
+			<Carousel.Next />
+			<!-- carousel value above/below ={x,y+-1} to left {x:+-1,y}  -->
+		</Carousel.Root>
 	</Card.Content>
 	<Card.Footer>
 		<Pagination.Root count={coverage?.domain.t.length || 0} bind:page perPage={1}>
