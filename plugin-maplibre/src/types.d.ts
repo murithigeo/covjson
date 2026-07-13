@@ -29,4 +29,9 @@ export interface PluginOptions extends Omit<GeoJSONSourceOptions[1], 'data' | 't
 	 * If you know that data is OGC:CRS84, then pass false
 	 */
 	reproject?: boolean;
+
+	/**
+	 * On indices change
+	 */
+	onIndicesChange?: (uuid: string, indices: Record<string, number>) => void;
 }

@@ -90,4 +90,13 @@ export class MaplibrePlugin extends maplibregl.GeoJSONSource {
 			.filter((v) => v !== undefined)
 			.map((v) => v.calculateIndices(point));
 	}
+	onIndicesChange(uuid:string,indices:Record<string,number>) {
+		const coverage = this._coverages.get(uuid);
+		if (!coverage) return;
+		// Temporary highlight layer
+		switch (coverage.domainType) {
+			case "Grid":
+
+		}
+	}
 }
