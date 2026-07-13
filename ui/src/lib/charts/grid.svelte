@@ -7,11 +7,8 @@
 	import * as Carousel from '../components/ui/carousel/index.ts';
 	import { onMount } from 'svelte';
 	import { SvelteSet } from 'svelte/reactivity';
-	import { LineChart } from 'layerchart';
-	import TrendingUpIcon from '@lucide/svelte/icons/trending-up';
-	import { scaleUtc } from 'd3-scale';
-	import { curveNatural } from 'd3-shape';
 	import * as Chart from '../components/ui/chart/index.ts';
+	import LineChart from './line-chart.svelte';
 	interface Props {
 		parameters?: SvelteSet<string>;
 		styling?: { [paramName: string]: Omit<Chart.ChartConfig[typeof paramName], 'label'> };
@@ -38,21 +35,21 @@
 
 	const indices = $derived(coverage?.indices);
 	let domain = $derived(coverage?.domain);
-	onMount(async () => {
-		coverage = await load<C<G>>('https://covjson.org/playground/coverages/grid-tiled.covjson')
-			.then(Coverage.load)
-			.then((coverage) => {
-				if (coverage.parameters && !parameters)
-					parameters = new SvelteSet(coverage.parameters.keys());
-				return coverage;
-			})
-			.catch((err) => {
-				console.error(err);
-				return undefined;
-			});
-	});
+	// onMount(async () => {
+	// 	coverage = await load<C<G>>('https://covjson.org/playground/coverages/grid-tiled.covjson')
+	// 		.then(Coverage.load)
+	// 		.then((coverage) => {
+	// 			if (coverage.parameters && !parameters)
+	// 				parameters = new SvelteSet(coverage.parameters.keys());
+	// 			return coverage;
+	// 		})
+	// 		.catch((err) => {
+	// 			console.error(err);
+	// 			return undefined;
+	// 		});
+	// });
 
-	const _ = $derived.by((): Promise<DataRow[]> => {
+	const dataPromises = $derived.by((): Promise<DataRow[]> => {
 		if (!coverage) return Promise.resolve([]);
 
 		const chartAxis = sliceBy === 't' ? 'z' : 't';
@@ -72,7 +69,8 @@
 				})
 		);
 	});
-
+	const  data=$derived(await dataPromises);
+	const numericalData=data.filter((x)=>x)
 	// const chartConfig = $derived<Chart.ChartConfig | undefined>(
 	// 	parameters?.keys().reduce((l: Chart.ChartConfig, r) => {
 	// 		const param = coverage?.parameters.get(r);
@@ -81,6 +79,7 @@
 	// 		return l;
 	// 	}, {})
 	// );
+	// string data
 </script>
 
 <Card.Root class="mt-2 ml-2 max-w-sm">
@@ -94,15 +93,16 @@
 					<Carousel.Item>
 						<Card.Root>
 							<Card.Content>
-								<Carousel.Root orientation="vertical" class="h-full max-h-sm oveflow-y-auto">
+								<Carousel.Root orientation="vertical" class="max-h-sm oveflow-y-auto h-full">
 									<Carousel.Content>
 										{#each [...Array(domain?.y.length ?? 0).keys()] as yi (yi)}
 											<Carousel.Item>
 												<Card.Root>
 													<Card.Header>
-														<Card.Title>Indices at y:{indices?.y} x:{indices?.x}</Card.Title>
+														<Card.Title>Indices at y:{yi} x:{xi}</Card.Title>
 													</Card.Header>
 													<Card.Content>
+														<LineChart bind:data={}/>
 													</Card.Content>
 												</Card.Root>
 											</Carousel.Item>
