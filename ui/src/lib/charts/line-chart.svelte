@@ -9,23 +9,22 @@
 	type AxisId = 'z' | 't';
 	interface Options {
 		xAxis: AxisId;
-		// yAxis: AxisId//Exclude<AxisId,Options["xAxis"]>
 	}
 
 	interface Props {
+		parameters: SvelteSet<string>;
 		data: DataRow<number>[];
 		config: Chart.ChartConfig;
 		options: Options;
 	}
-	let { data = $bindable(), config = $bindable(), options = $bindable() }: Props = $props();
+	let {
+		data = $bindable(),
+		config,
+		options = $bindable(),
+		parameters=$bindable()
+	}: Props = $props();
 
-	const series = $derived.by(() => {
-		const uniqueIds = new Set(
-			data.flatMap((k) => Object.keys(k)).filter((v) => v !== 't' && v !== 'z')
-		);
-
-		return Array.from(uniqueIds).map((key) => ({ ...config[key], key }));
-	});
+	
 </script>
 
 <Chart.Container {config}>

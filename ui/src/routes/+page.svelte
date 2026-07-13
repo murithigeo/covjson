@@ -1,5 +1,5 @@
 <script lang="ts">
-	import Grid from '$lib/charts/grid.svelte';
+	import CoveragePreview from '$lib/charts/index.svelte';
 	import { MapLibre, type Map } from 'svelte-maplibre';
 	import maplibregl from 'maplibre-gl';
 	import { MaplibrePlugin } from '@murithigeo/covjson-maplibre';
@@ -40,7 +40,7 @@
 				paint: { 'line-color': 'red', 'line-width': 0.4 }
 			});
 			map?.on('click', 'grid-layer', (e) => {
-				if(coverage)coverage=undefined;
+				if (coverage) coverage = undefined;
 				coverage = e.coverages[0];
 				// console.log(e.coverages[0].indices,"checj")
 			});
@@ -59,5 +59,11 @@
 		standardControls
 		bind:map
 	></MapLibre>
-	<Grid bind:coverage sliceBy="t" />
+	<CoveragePreview
+		bind:coverage
+		paginateBy="t"
+		chartConfig={{
+			FOO: { color: 'red' }
+		}}
+	/>
 </div>
