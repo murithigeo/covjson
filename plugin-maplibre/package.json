@@ -4,13 +4,13 @@
   "type": "module",
   "version": "0.1.0",
   "scripts": {
-    "build":"tsdown"
+    "build": "tsdown"
   },
   "dependencies": {
-    "maplibre-gl": "^5.24.0",
-    "@murithigeo/covjson-core":"^0.1.0"
+    "@murithigeo/covjson-core": "^0.1.0",
+    "maplibre-gl": "^5.24.0"
   },
-  "exports":{
-    "default":"./src/index.ts"
+  "exports": {
+    "default": "./src/index.ts"
   }
 }

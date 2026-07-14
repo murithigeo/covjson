@@ -75,9 +75,11 @@ All work is done on the main thread. Working on using `importScriptInWorkers` to
 Grids are mapped to MultiPolygons so if you need to style individual grid cells, you have to implement that functionality.
 
 ## Workarounds
+
 In Svelte, note that while each event will recalculate the indices of `x/y` note that this will not trigger reactivity.
 
 So do:
+
 ```ts
 let coverage=$state<Coverage>();
 
@@ -87,3 +89,11 @@ map?.on("click",<layerId>,(e)=>{
     coverage=coverages[0];
 })
 ```
+
+##
+
+This plugin also initializes several layers on the map to enable highlighting when clicking on a domain axis value:
+
+- scratch#line: Used to highlight lines that have been clicked
+- scratch#symbols
+- scratch#fill

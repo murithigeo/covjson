@@ -1,2 +1,2 @@
-export type { PluginOptions as MaplibrePluginOptions } from './types.d.ts';
-export * from './adapter.ts';
+export type { PluginOptions as MaplibrePluginOptions, OnIndicesChange } from "./types.d.ts";
+export * from "./adapter.ts";
