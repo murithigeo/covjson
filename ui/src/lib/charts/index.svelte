@@ -4,12 +4,18 @@
 	import * as Card from '../components/ui/card/index.ts';
 	import * as Pagination from '../components/ui/pagination/index.ts';
 	import { Button } from '../components/ui/button/index.ts';
+	import * as ButtonGroup from '../components/ui/button-group/index.ts';
 	import { Coverage } from '@murithigeo/covjson-core';
-	import { SvelteSet } from 'svelte/reactivity';
+	import { SvelteSet, SvelteMap } from 'svelte/reactivity';
 	import type { Grid } from '../../../../core/src/coveragejson.d.ts';
-	import { Skeleton } from '../components/ui/skeleton/index.ts';
 	import type { OnIndicesChange } from '@murithigeo/covjson-maplibre';
-	import { ArrowLeft } from '@lucide/svelte';
+	import { ArrowLeft, ArrowRight, ArrowUp, ArrowDown, Grip } from '@lucide/svelte';
+	import { scaleBand } from 'd3-scale';
+	import BarChart from './bar-chart.svelte';
+	import type { SeriesDataRow } from './types.d.ts';
+	import { Skeleton } from '../components/ui/skeleton/index.ts';
+	import { cartesianProduct } from '@murithigeo/covjson-core';
+	import { cubicInOut } from 'svelte/easing';
 	interface Props {
 		coverage?: Coverage;
 		chartConfig: ChartConfig;
@@ -28,69 +34,33 @@
 		 * Sure I could create chart with the horizontal axis being t and z being vertical but what about the values?
 		 * So just paginate, default is t
 		 */
-		paginateBy?: keyof Pick<Grid['axes'], 't' | 'z'>;
+		pageWith?: keyof Pick<Grid['axes'], 't' | 'z'>;
 	}
 
 	let {
 		coverage = $bindable(),
 		chartConfig,
 		chartType,
-		paginateBy = $bindable('t'),
-		onIndicesChange
+		pageWith = $bindable('t'), // Remember to reset indexof pageWith when it changes
+		onIndicesChange,
+		parameters = $bindable(new SvelteSet(coverage?.ranges.keys()))
 	}: Props = $props();
+
 	/**
 	 * If paginated, the current page
 	 */
 	let page = $state(1);
 	/**
-	 * Current indices
+	 * max iterations of the horizontal/vertical carousel
 	 */
-	let indices = $derived.by<Record<string, number> | undefined>(() => {
-		if (!coverage) return undefined;
-		if (coverage.indices) return coverage.indices;
-		return Object.keys(coverage.domain.axes).reduce((l, r) => ({ ...l, [r]: 0 }), {});
-	});
-	/**
-	 * The number of left-right and updown carousel items
-	 */
-	let [maxHCarouselItems, maxVCarouselItems] = $derived.by((): [number, number] => {
-		// Move all button related logic under here
-		let [maxH, maxV] = [1, 1];
-		if (!coverage) return [maxH, maxV];
+	type DMax = { axis: string; value: number };
+	let axesMaxes = $state(new SvelteMap<'horizontal' | 'vertical', DMax>());
+	$effect(() => {
+		if (!coverage) return;
 		switch (coverage.domain.domainType) {
 			case 'Grid':
-				[maxH, maxV] = [coverage.domain.x.length, coverage.domain.y.length];
-				break;
-			case 'MultiPoint':
-			case 'MultiPointSeries':
-			case 'MultiPolygon':
-			case 'MultiPolygonSeries':
-			case 'Section':
-			case 'Trajectory':
-				maxH = coverage.domain.axes.composite.values.length;
-				break;
-		}
-		return [maxH, maxV];
-	});
-
-	let pageCount = $derived.by(() => {
-		if (!coverage || coverage.domain.domainType !== 'Grid') return 0;
-		return coverage.domain[paginateBy].length;
-	});
-
-	$effect(() => {
-		if (!coverage || !indices) return;
-		// Run this on indices change
-		onIndicesChange?.(coverage.uuid, indices);
-	});
-	function crementHorizontal(direction: '+' | '-') {
-		if (!indices || !coverage) return;
-		let axis: string;
-		let max: number;
-		switch (coverage?.domain.domainType) {
-			case 'Grid':
-				axis = 'x';
-				max = coverage.domain.x.length;
+				axesMaxes.set('horizontal', { value: coverage.domain.x.length, axis: 'x' });
+				axesMaxes.set('vertical', { value: coverage.domain.y.length, axis: 'y' });
 				break;
 			case 'Section':
 			case 'Trajectory':
@@ -98,20 +68,81 @@
 			case 'MultiPolygon':
 			case 'MultiPolygonSeries':
 			case 'MultiPointSeries':
-				max = coverage.domain.axes.composite.values.length;
-				axis = 'composite';
+				if (axesMaxes.has('vertical')) axesMaxes.delete('vertical');
+				axesMaxes.set('horizontal', {
+					axis: 'composite',
+					value: coverage.domain.axes.composite.values.length
+				});
 			default:
 				return;
 		}
-		if (direction === '-') {
-			if (indices[axis] < 1) return;
-			indices = { ...indices, [axis]: indices[axis] - 1 };
+	});
+
+	/**
+	 * Primarily, the indices of the horizontal components of the domain
+	 */
+	let indices = $state(new SvelteMap<string, number>());
+
+	$effect(() => {
+		if (coverage?.indices) {
+			for (let i in coverage.indices) indices.set(i, coverage?.indices[i]);
 			return;
 		}
-		if (indices[axis] >= max - 1) return;
-		indices = { ...indices, [axis]: indices[axis] + 1 };
+		for (let i in coverage?.domain.axes) {
+			indices.set(i, 0);
+		}
+	});
+	$effect(() => {
+		// Reset the indices on change
+		indices.set(pageWith, page - 1);
+	});
+	let pageCount = $derived.by(() => {
+		if (!coverage || coverage.domain.domainType !== 'Grid') return 0;
+		return coverage.domain[pageWith].length;
+	});
+
+	$effect(() => {
+		if (!coverage) return;
+		// Run this on indices change
+		onIndicesChange?.(coverage.uuid, Object.fromEntries(indices.entries()));
+	});
+
+	let dataPromises = $derived.by(async (): Promise<SeriesDataRow[]> => {
+		if (!coverage) return [];
+		let axisOfConcern: typeof pageWith = pageWith === 't' ? 'z' : 't';
+		const axes = cartesianProduct(
+			[...Array(coverage.domain[axisOfConcern].length || 1).keys()],
+			[...Array(coverage.domain[pageWith].length || 1).keys()]
+		).map((combo) => ({ [axisOfConcern]: combo[0], [pageWith]: combo[1] }));
+
+		return await Promise.all(
+			axes
+				.map((k) => ({ ...Object.fromEntries(indices.entries()), ...k }))
+				.map(async (indices) => {
+					// console.log(parameters);
+					const ranges = Array.from(parameters);
+					return {
+						...(await coverage.getData(indices, ranges)),
+						t: coverage.domain.t[indices.t],
+						z: coverage.domain.z[indices.z]
+					};
+				})
+		);
+	});
+
+	function crementIndices(direction: '+' | '-', type: 'horizontal' | 'vertical') {
+		if (!coverage) return;
+		let stats = axesMaxes.get(type);
+		if (!stats) return;
+		let { axis, value: max } = stats;
+		let value = indices.get(axis)!;
+		value = direction === '-' ? value - 1 : value + 1;
+		if (value < 0) value = max - 1;
+		if (value >= max) value = 0;
+		indices.set(axis, value);
 	}
-	$inspect(indices);
+
+	// $inspect(Object.fromEntries(indices.entries()));
 </script>
 
 <Card.Root class="mt-2 ml-2 h-screen w-full max-w-sm">
@@ -119,16 +150,64 @@
 		<Card.Title>
 			{coverage?.domain.domainType || 'No Coverage Selected'}
 		</Card.Title>
+		<!-- <Card.Action>
+			<Button
+				variant="outline"
+				onclick={() => {
+					if (pageWith === 'z') pageWith = 't';
+					else pageWith = 'z';
+					indices.set('t', 0);
+					indices.set('z', 0);
+					page = 1; // Reset the indices
+				}}>Page with "{(pageWith === 'z' ? 't' : 'z').toUpperCase()}" axis</Button
+			>
+		</Card.Action> -->
 	</Card.Header>
 	<Card.Content>
-		<Button variant="outline" id="left" onclick={() => crementHorizontal('-')}
-		disabled={}
-			><ArrowLeft />
-		</Button>
-
-		<!-- Have buttons left,right, bottom up -->
+		{#await dataPromises}
+			<Skeleton />
+		{:then data}
+			<BarChart
+				{data}
+				config={chartConfig}
+				orientation={'horizontal'}
+				yScale={scaleBand()}
+				props={{
+					bars: { stroke: 'none' },
+					radius: 5,
+					insets: { left: 24 },
+					rounded: 'all',
+					motion: { type: 'tween', duration: 500, easing: cubicInOut },
+					highligh: { area: { fill: 'none' } },
+					yAxis: { format: (d) => d }
+				}}
+			/>
+		{/await}
 	</Card.Content>
-	<Card.Footer>
+	<!-- <Card.Footer class="grid grid-cols-1 place-items-center gap-1.5">
+		<ButtonGroup.Root orientation="vertical" class="items-center">
+			{#if axesMaxes.get('vertical')?.value || 0 > 1}
+				<Button variant="outline" size="icon" onclick={() => crementIndices('+', 'vertical')}
+					><ArrowUp /></Button
+				>
+			{/if}
+			{#if axesMaxes.get('horizontal')?.value || 0 > 1}
+				<ButtonGroup.Root orientation="horizontal" class="gap-2">
+					<Button variant="outline" size="icon" onclick={() => crementIndices('-', 'horizontal')}>
+						<ArrowLeft /></Button
+					>
+					<Button variant="outline" size="icon" disabled><Grip /></Button>
+					<Button variant="outline" size="icon" onclick={() => crementIndices('+', 'horizontal')}
+						><ArrowRight /></Button
+					>
+				</ButtonGroup.Root>
+			{/if}
+			{#if axesMaxes.get('vertical')?.value || 0 > 1}
+				<Button variant="outline" size="icon" onclick={() => crementIndices('-', 'vertical')}
+					><ArrowDown /></Button
+				>
+			{/if}
+		</ButtonGroup.Root>
 		{#if pageCount > 0}
 			<Pagination.Root bind:page count={pageCount} perPage={1}>
 				{#snippet children({ pages, currentPage })}
@@ -144,7 +223,7 @@
 							{:else}
 								<Pagination.Item>
 									<Pagination.Link {page} isActive={currentPage === page.value}>
-										{coverage?.domain?.[paginateBy][i]}
+										{coverage?.domain?.[pageWith][i]}
 									</Pagination.Link>
 								</Pagination.Item>
 							{/if}
@@ -159,5 +238,5 @@
 				{/snippet}
 			</Pagination.Root>
 		{/if}
-	</Card.Footer>
+	</Card.Footer> -->
 </Card.Root>

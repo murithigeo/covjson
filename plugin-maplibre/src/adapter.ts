@@ -7,7 +7,6 @@ import type { Point, Polygon } from "geojson";
 export class MaplibrePlugin extends maplibregl.GeoJSONSource {
   _coverages: Map<string, Coverage>;
   covOptions: WithRequiredProperty<BasicPluginOptions, "layers" | "listenTo">;
-  // Prevent redrawing geometry if already exists
   // Implement functionality to remove geometries from temp layer if non-layer clicked
   indices: Record<string, number> | undefined;
   tempSourceId: string;

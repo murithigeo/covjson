@@ -1,4 +1,9 @@
 {
-  "name": "@murithigeo/covjson-plugin-leaflet",
-  "description": "Plugin for rendering CoverageJSON Documents in Leaflet"
+	"name": "@murithigeo/covjson-plugin-leaflet",
+	"description": "Plugin for rendering CoverageJSON Documents in Leaflet",
+	"type": "module",
+	"dependencies": {
+		"@murithigeo/covjson-core": "^0.1.0",
+		"leaflet": "^2.0.0-alpha.1"
+	}
 }

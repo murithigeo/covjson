@@ -49,7 +49,7 @@
 	});
 </script>
 
-<div class="space-2 grid grid-cols-2">
+<div class="space-2 grid-cols-2 sm:flex sm:flex-col md:grid">
 	<MapLibre
 		class="h-screen w-full"
 		style="https://api.maptiler.com/maps/winter-v4/style.json?key=tTYdgg3LwO0um0Aqqs6u"
