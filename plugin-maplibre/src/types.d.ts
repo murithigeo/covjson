@@ -23,7 +23,7 @@ interface BasicPluginOptions {
   /**
    * Callback to get the data on update/set
    */
-  onLoad?: (coverages: Map<string, Coverage>) => void;
+  onLoad?: (data:CoverageCollection) => void;
   /**
    * Events to listen to automatically and determine matching features
    */

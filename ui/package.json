@@ -3,6 +3,7 @@
 	"version": "0.0.1",
 	"scripts": {
 		"dev": "vite dev",
+		"build:components": "svebcomponents",
 		"build": "vite build && npm run prepack",
 		"preview": "vite preview",
 		"prepare": "playwright install && svelte-kit sync || echo ''",
@@ -28,8 +29,9 @@
 	"type": "module",
 	"exports": {
 		".": {
-			"types": "./dist/index.d.ts",
-			"svelte": "./dist/index.js"
+			"types": "./dist/client/index.d.ts",
+			"svelte": "./dist/client-svelte/index.js",
+			"default": "./dist/client/index.js"
 		}
 	},
 	"peerDependencies": {
@@ -42,6 +44,8 @@
 		"@murithigeo/covjson-core": "^0.1.0",
 		"@murithigeo/covjson-maplibre": "^0.1.0",
 		"@playwright/test": "^1.59.1",
+		"@svebcomponents/build": "^0.1.0",
+		"@svebcomponents/utils": "^0.1.0",
 		"@sveltejs/adapter-auto": "^7.0.1",
 		"@sveltejs/kit": "^2.57.0",
 		"@sveltejs/package": "^2.5.7",

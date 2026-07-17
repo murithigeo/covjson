@@ -13,6 +13,5 @@
 		"moduleResolution": "NodeNext",
 		"preserveSymlinks": true,
 		"allowArbitraryExtensions": true
-	},
-	"exclude": ["./src/lib/components/ui/**/*.{svelte|ts}"]
+	}
 }

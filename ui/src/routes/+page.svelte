@@ -4,7 +4,8 @@
 	import maplibregl from 'maplibre-gl';
 	import { MaplibrePlugin } from '@murithigeo/covjson-maplibre';
 	import { Coverage } from '@murithigeo/covjson-core';
-
+	import Parameter from '$lib/web-components/parameter.ts';
+	let data = $state<CoverageCollection>();
 	const { addSourceType } = maplibregl;
 	// @ts-expect-error By def, maplibre only accepts objects matching inbuilt specifs
 	addSourceType('coveragejson', MaplibrePlugin).catch(() => {});
@@ -20,7 +21,8 @@
 				listenTo: ['click'],
 				tempLayerPaint: {
 					fill: { 'fill-color': 'red' }
-				}
+				},
+				onLoad: (cov) => (data = cov)
 			});
 
 			map?.addLayer({
@@ -39,14 +41,10 @@
 				if (coverage) coverage = undefined;
 				//@ts-expect-error e is patched
 				coverage = e.coverages[0];
-				// console.log(e.coverages[0].indices,"checj")
 			});
-			// console.log(map?.getSource<MaplibrePlugin>("cov-load-test"))
-			// map
-			// 	?.getSource<MaplibrePlugin>('cov-load-test')
-			// 	?.setCovData('https://covjson.org/playground/coverages/profile-collection.covjson');
 		});
 	});
+	$inspect(data);
 </script>
 
 <div class="space-2 grid-cols-2 sm:flex sm:flex-col md:grid">
@@ -56,14 +54,17 @@
 		standardControls
 		bind:map
 	></MapLibre>
-	<div class="align-items-center h-screen flex-col">
+	<!-- <div class="align-items-center h-screen flex-col">
 		<CoveragePreview
 			bind:coverage
-			paginateBy="t"
+			pageWith="t"
 			chartConfig={{
 				FOO: { color: 'red' }
 			}}
 			onIndicesChange={map?.getSource<MaplibrePlugin>('cov-load-test')?.onIndicesChange}
 		/>
-	</div>
+	</div> -->
+	{#if coverage}
+		<Parameter data={coverage.parameters.get('FOO')} />
+	{/if}
 </div>

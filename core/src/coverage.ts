@@ -154,13 +154,13 @@ export class Coverage<T extends Domain = Domain> extends Base<CRG<T>> {
     //@ts-expect-error explicit assignment does not seem to work
     return this;
   }
-  toPlain(): CRG<T> {
+  toPlain() {
     return structuredClone<CRG<T>>({
       type: this.type,
       domain: this.domain.toPlain() as T,
       ranges: this.ranges
         .keys()
-        .reduce((l, r) => ({ ...l, [r]: this.ranges.get(r)!.toPlain() }), {}),
+        .reduce((l:Record<string,Nd>, r) => ({ ...l, [r]: this.ranges.get(r)!.toPlain() }), {}),
       domainType: this.domain.domainType,
       parameters: this.parameters
         .entries()
