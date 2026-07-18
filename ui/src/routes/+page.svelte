@@ -3,8 +3,8 @@
 	import { MapLibre, type Map } from 'svelte-maplibre';
 	import maplibregl from 'maplibre-gl';
 	import { MaplibrePlugin } from '@murithigeo/covjson-maplibre';
-	import { Coverage } from '@murithigeo/covjson-core';
-	import Parameter from '$lib/web-components/parameter.ts';
+	import { Coverage, CoverageCollection } from '@murithigeo/covjson-core';
+	import '$lib/web-components/parameter.js';
 	let data = $state<CoverageCollection>();
 	const { addSourceType } = maplibregl;
 	// @ts-expect-error By def, maplibre only accepts objects matching inbuilt specifs
@@ -22,7 +22,7 @@
 				tempLayerPaint: {
 					fill: { 'fill-color': 'red' }
 				},
-				onLoad: (cov) => (data = cov)
+				onLoad: (cov: unknown) => (data = cov)
 			});
 
 			map?.addLayer({
@@ -44,7 +44,7 @@
 			});
 		});
 	});
-	$inspect(data);
+	$inspect(data?.parameters);
 </script>
 
 <div class="space-2 grid-cols-2 sm:flex sm:flex-col md:grid">
@@ -64,7 +64,7 @@
 			onIndicesChange={map?.getSource<MaplibrePlugin>('cov-load-test')?.onIndicesChange}
 		/>
 	</div> -->
-	{#if coverage}
-		<Parameter data={coverage.parameters.get('FOO')} />
+	{#if data}
+		<covjson-parameter data={data.parameters.get('FOO')}></covjson-parameter>
 	{/if}
 </div>

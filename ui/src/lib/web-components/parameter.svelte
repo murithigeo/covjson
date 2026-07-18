@@ -36,6 +36,7 @@
 		if (data instanceof ParameterClass) return data;
 		return new ParameterClass(data);
 	});
+	$inspect({ parameter });
 </script>
 
 <Card.Root aria-disabled={disabled} class={className}>
@@ -44,11 +45,11 @@
 		<Card.Action>
 			<Checkbox
 				onCheckedChange={(checked) => {
-					if (checked) selected?.add(parameter.key);
-					else selected?.delete(parameter.key);
+					if (checked) selected?.add(parameter.key!);
+					else selected?.delete(parameter.key!);
 				}}
 				value={parameter.key}
-				checked={selected?.has(parameter.key)}
+				checked={selected?.has(parameter.key!)}
 			/>
 		</Card.Action>
 	</Card.Header>

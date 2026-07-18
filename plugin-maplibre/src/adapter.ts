@@ -1,9 +1,10 @@
 import maplibregl from 'maplibre-gl';
 import { Coverage, CoverageCollection, type WithRequiredProperty } from '@murithigeo/covjson-core';
 import type { BasicPluginOptions, OnIndicesChange, PluginOptions } from './types.d.ts';
-import type { Position, Position2D } from '../../core/src/coveragejson.d.ts';
+import type { Position } from '../../core/src/coveragejson.d.ts';
 import { loadCovJson } from './util.ts';
 import type { Point, Polygon } from 'geojson';
+
 export class MaplibrePlugin extends maplibregl.GeoJSONSource {
 	_coverages: Map<string, Coverage>;
 	covOptions: WithRequiredProperty<BasicPluginOptions, 'layers' | 'listenTo'>;
@@ -38,10 +39,10 @@ export class MaplibrePlugin extends maplibregl.GeoJSONSource {
 		// this.workerSourceURL = url
 		// maplibregl.importScriptInWorkers(url);
 		this.indices = undefined;
-		this.setCovData(options.data).then(() => this.covOptions.onLoad?.(this._coverages));
+		this.setCovData(options.data).then(() => this.covOptions.onLoad?.(this.covMapToCollection()));
 	}
 
-	setCovData(v: PluginOptions['data']): Promise<void> {
+	async setCovData(v: PluginOptions['data']): Promise<void> {
 		const load = loadCovJson(v).then((covs) => {
 			const features: GeoJSON.Feature[] = [];
 			for (const cov of covs) {
@@ -50,13 +51,15 @@ export class MaplibrePlugin extends maplibregl.GeoJSONSource {
 			}
 			this.setData({ type: 'FeatureCollection', features });
 		});
-		return Promise.resolve(load).then(() => this.covOptions.onLoad?.(this.covMapToCollection()));
+		await Promise.resolve(load);
+		return this.covOptions.onLoad?.(this.covMapToCollection());
 	}
 	updateCovData() {}
 
 	covMapToCollection(): CoverageCollection {
 		const coll = new CoverageCollection({
 			type: 'CoverageCollection',
+
 			coverages: this._coverages
 				.values()
 				.map((cov) => cov.toPlain())
@@ -119,7 +122,7 @@ export class MaplibrePlugin extends maplibregl.GeoJSONSource {
 		const ltype = geometry.type === 'Point' ? 'symbol' : 'fill';
 		// Overwrite the data
 		mapSource?.setData(geometry, true).then(() => {
-			let layer = this.map.getLayer(id);
+			const layer = this.map.getLayer(id);
 			if (layer && layer.type === ltype) return;
 			if (layer) this.map.removeLayer(id);
 			if (geometry.type === 'Point') {

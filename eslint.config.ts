@@ -3,7 +3,6 @@ import { defineConfig } from 'eslint/config';
 import tseslint from 'typescript-eslint';
 export default defineConfig({
 	extends: [js.configs.recommended, tseslint.configs.recommended],
-	files: ['**/*.{js,ts}'],
 	ignores: ['ui/**'],
 	languageOptions: {
 		parserOptions: {

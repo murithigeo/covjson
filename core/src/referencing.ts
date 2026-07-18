@@ -1,7 +1,7 @@
 import type {
 	Position,
 	ReferenceSystemConnection as RSC,
-	SpatialReferenceSystem
+	SpatialReferenceSystem,
 } from './coveragejson.d.ts';
 import { Temporal } from '@js-temporal/polyfill';
 import { uriproj, load, toURI, proj4 } from '@murithigeo/uriproj';
@@ -38,7 +38,7 @@ export class Referencing {
 	constructor(
 		options: ReferencingOptions,
 		userOptions: UserReferencingOptions,
-		connections: RSC[]
+		connections: RSC[],
 	) {
 		this.options = options;
 		this.userOptions = userOptions;
@@ -88,7 +88,7 @@ export class Referencing {
 			.withTimeZone(this.options.timezone || 'UTC')
 			.toString({
 				timeZoneName: 'never',
-				calendarName: 'never'
+				calendarName: 'never',
 			});
 	}
 
@@ -96,13 +96,13 @@ export class Referencing {
 		options = options instanceof Referencing ? options.userOptions : options;
 
 		let crsIndex = connections.findIndex(({ coordinates }) =>
-			coordinates.some((axisName) => ['x', 'y'].includes(axisName))
+			coordinates.some((axisName) => ['x', 'y'].includes(axisName)),
 		);
 		if (crsIndex === -1) {
 			crsIndex =
 				connections.push({
 					coordinates: ['x', 'y'],
-					system: { type: 'GeographicCRS', id: CRS84 }
+					system: { type: 'GeographicCRS', id: CRS84 },
 				}) - 1;
 		}
 
@@ -111,12 +111,12 @@ export class Referencing {
 			trsIndex =
 				connections.push({
 					coordinates: ['t'],
-					system: { type: 'TemporalRS', calendar: 'Gregorian' }
+					system: { type: 'TemporalRS', calendar: 'Gregorian' },
 				}) - 1;
 		}
 
 		let vrsIndex = connections.findIndex(
-			({ coordinates, system }) => coordinates.includes('z') || system.type === 'VerticalCRS'
+			({ coordinates, system }) => coordinates.includes('z') || system.type === 'VerticalCRS',
 		);
 
 		// Spin into separate connection object
@@ -143,33 +143,33 @@ export class Referencing {
 			coordinates: ['x', 'y'],
 			system: {
 				type: proj4.defs(to_crs)?.units === 'meter' ? 'ProjectedCRS' : 'GeographicCRS',
-				id: to_crs
-			}
+				id: to_crs,
+			},
 		};
 		connections[vrsIndex] = {
 			coordinates: ['z'],
 			system: {
 				type: 'VerticalCRS',
 				// Maybe make it optional
-				id: to_vrs
-			}
+				id: to_vrs,
+			},
 		};
 		connections[trsIndex] = {
 			coordinates: ['t'],
 			system: {
 				type: 'TemporalRS',
-				calendar: 'Gregorian'
-			}
+				calendar: 'Gregorian',
+			},
 		};
 
 		return new Referencing(
 			{
 				crs: { from: toURI(from_crs), to: toURI(to_crs) },
 				vrs: { from: from_vrs, to: to_vrs },
-				timezone: options?.timeZone
+				timezone: options?.timeZone,
 			},
 			options,
-			connections
+			connections,
 		);
 	}
 }
