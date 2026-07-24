@@ -1,5 +1,11 @@
+<svelte:options customElement="parameter-group" />
+
 <script lang="ts">
-	import type { MetadataRenderProps, MetadataRenderDetail } from './types.d.ts';
+	import type {
+		MetadataRenderProps,
+		MetadataRenderDetail,
+		ParameterToggleEventDetail
+	} from './types.d.ts';
 	import { Checkbox } from '../components/ui/checkbox/index.ts';
 	import ObservedProperty from './observed-property.svelte';
 	import {
@@ -10,34 +16,33 @@
 	import * as ButtonGroup from '../components/ui/button-group/index.ts';
 	import * as Card from '../components/ui/card/index.ts';
 	import type { Snippet } from 'svelte';
-	import type { SvelteSet } from 'svelte/reactivity';
+	import { SvelteSet } from 'svelte/reactivity';
 	interface Props extends MetadataRenderProps<PGroupClass> {
 		observedPropertyChild?: Snippet<[{ data: ObsClass; detail?: MetadataRenderDetail }]>;
-		selected?: SvelteSet<string>;
 	}
-	let {
-		data = $bindable(),
-		class: className,
-		observedPropertyChild,
-		selected = $bindable(),
-		detail
-	}: Props = $props();
+	let { data = $bindable(), class: className, observedPropertyChild, detail }: Props = $props();
 	let pGroup = $derived.by(() => {
 		if (data instanceof PGroupClass) return data;
 		return new PGroupClass(data);
 	});
-	let checked = $derived(pGroup.members.every((member) => selected?.has(member)));
-	let indeterminate = $derived(!checked && pGroup.members.some((member) => selected?.has(member)));
-	$effect(() => {
-		// Emit an event to the parent to select/unselect the parameters
-	});
+	let selected = $derived(new SvelteSet(pGroup.members));
+
+	let checked = $derived(pGroup.members.every((member) => selected.has(member)));
+	let indeterminate = $derived(!checked && pGroup.members.some((member) => selected.has(member)));
+
+	const dispatch = () => {
+		const event = new CustomEvent<ParameterToggleEventDetail>('toggle-parameter', {
+			detail: pGroup.members.reduce((l, r) => ({ ...l, [r]: selected.has(r) }), {})
+		});
+		$host().dispatchEvent(event);
+	};
+	$effect(() => dispatch());
 	const unselect = (id: string) => selected?.delete(id);
 	const select = (id: string) => selected?.add(id);
 
 	const onCheckedChange = (checked: boolean, id?: string) => {
 		const ex = checked ? select : unselect;
 		if (id !== undefined) return ex(id);
-
 		pGroup.members.forEach(ex);
 	};
 </script>
@@ -65,7 +70,9 @@
 			<ButtonGroup.Root>
 				{#each pGroup.members as member (member)}
 					<ButtonGroup.Root class="flex flex-row items-center gap-2">
-						<Button variant="outline" class="uppercase" size="sm" href={undefined}>{member}</Button>
+						<Button variant="outline" class="uppercase" size="sm" href="#param:{member}"
+							>{member}</Button
+						>
 						<Button variant="outline" class="icon-sm">
 							<Checkbox
 								onCheckedChange={(checked) => onCheckedChange(checked, member)}

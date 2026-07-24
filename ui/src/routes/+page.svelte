@@ -1,10 +1,15 @@
 <script lang="ts">
-	import CoveragePreview from '$lib/charts/index.svelte';
+	// import '../../dist/client/parameter.js';
+	import '$lib/web-components/parameter-group.svelte';
+	import '$lib/web-components/coverage-preview.svelte';
+	import '$lib/web-components/parameter.svelte';
+
 	import { MapLibre, type Map } from 'svelte-maplibre';
 	import maplibregl from 'maplibre-gl';
 	import { MaplibrePlugin } from '@murithigeo/covjson-maplibre';
+	import Parameter from '$lib/web-components/parameter.svelte';
 	import { Coverage, CoverageCollection } from '@murithigeo/covjson-core';
-	import '$lib/web-components/parameter.js';
+	import CoveragePreview from '$lib/web-components/coverage-preview.svelte';
 	let data = $state<CoverageCollection>();
 	const { addSourceType } = maplibregl;
 	// @ts-expect-error By def, maplibre only accepts objects matching inbuilt specifs
@@ -22,7 +27,7 @@
 				tempLayerPaint: {
 					fill: { 'fill-color': 'red' }
 				},
-				onLoad: (cov: unknown) => (data = cov)
+				onLoad: (cov: any) => (data = cov)
 			});
 
 			map?.addLayer({
@@ -44,7 +49,7 @@
 			});
 		});
 	});
-	$inspect(data?.parameters);
+	// $inspect(coverage);
 </script>
 
 <div class="space-2 grid-cols-2 sm:flex sm:flex-col md:grid">
@@ -54,17 +59,21 @@
 		standardControls
 		bind:map
 	></MapLibre>
-	<!-- <div class="align-items-center h-screen flex-col">
-		<CoveragePreview
-			bind:coverage
-			pageWith="t"
-			chartConfig={{
-				FOO: { color: 'red' }
-			}}
-			onIndicesChange={map?.getSource<MaplibrePlugin>('cov-load-test')?.onIndicesChange}
-		/>
-	</div> -->
-	{#if data}
-		<covjson-parameter data={data.parameters.get('FOO')}></covjson-parameter>
-	{/if}
+	<div class="align-items-center h-screen flex-col">
+		{#if data}
+			<parameter-preview data={data.parameters.get('FOO')}></parameter-preview>
+			<!-- <Parameter data={data.parameters.get('FOO')} /> -->
+		{/if}
+
+		{#if coverage}
+			<coverage-preview
+				data={coverage}
+				pageWith="t"
+				chartConfig={{
+					FOO: { color: 'red' }
+				}}
+				onIndicesChange={map?.getSource<MaplibrePlugin>('cov-load-test')?.onIndicesChange}
+			></coverage-preview>
+		{/if}
+	</div>
 </div>

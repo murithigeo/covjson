@@ -47,3 +47,8 @@ export interface LChartProps extends LineChartProps<DataRow<number>> {
 	pageWith?: 'z' | 't';
 	config: ChartConfig;
 }
+
+/**
+ * The parameter key and its toggle state
+ */
+export type ParameterToggleEventDetail = Record<string, boolean>;

@@ -1,6 +1,11 @@
 import maplibregl from 'maplibre-gl';
-import { Coverage, CoverageCollection, type WithRequiredProperty } from '@murithigeo/covjson-core';
-import type { BasicPluginOptions, OnIndicesChange, PluginOptions } from './types.d.ts';
+import {
+	Coverage,
+	CoverageCollection,
+	type WithRequiredProperty,
+	type OnIndicesChange
+} from '@murithigeo/covjson-core';
+import type { BasicPluginOptions, PluginOptions } from './types.d.ts';
 import type { Position } from '../../core/src/coveragejson.d.ts';
 import { loadCovJson } from './util.ts';
 import type { Point, Polygon } from 'geojson';
@@ -59,11 +64,7 @@ export class MaplibrePlugin extends maplibregl.GeoJSONSource {
 	covMapToCollection(): CoverageCollection {
 		const coll = new CoverageCollection({
 			type: 'CoverageCollection',
-
-			coverages: this._coverages
-				.values()
-				.map((cov) => cov.toPlain())
-				.toArray()
+			coverages: this._coverages.values().toArray()
 		});
 		return coll;
 	}
@@ -101,10 +102,6 @@ export class MaplibrePlugin extends maplibregl.GeoJSONSource {
 			.map((v) => v.calculateIndices(point));
 	}
 
-	/**
-	 * Run when the current indices of the coverage change.
-	 * To be used to highlight the axes values of the grid
-	 */
 	onIndicesChange: OnIndicesChange = (uuid: string, indices: Record<string, number>) => {
 		const geometry = this.indicesToGeometry(uuid, indices);
 		this.indices = indices;
@@ -165,7 +162,7 @@ export class MaplibrePlugin extends maplibregl.GeoJSONSource {
 				};
 			case 'Trajectory':
 			case 'Section':
-				// Highlight the string and the nodes
+				// todo Highlight the string and the nodes
 				indices.composite = indices.composite || 0;
 				if (this.indices?.composite === indices.composite) return;
 				return {

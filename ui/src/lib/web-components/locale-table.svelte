@@ -1,17 +1,19 @@
+<svelte:options customElement={{ tag: 'locale-table', shadow: 'none' }} />
+
 <script lang="ts">
 	import * as Table from '$lib/components/ui/table/index.js';
 	import { I18N } from '@murithigeo/covjson-core';
-	import { BanIcon } from '@lucide/svelte';
+	import { cn } from '$lib/utils.js';
 	import type { MetadataRenderProps } from './types.d.ts';
 
-	type Props = MetadataRenderProps<Record<string, I18N >>;
+	type Props = MetadataRenderProps<Record<string, I18N>>;
 
-	let { data = $bindable(), detail }: Props = $props();
+	let { data = $bindable(), detail, class: className }: Props = $props();
 
 	let numOfRows = $derived(Object.values(data).reduce((l, r) => l + r.locales.length, 0));
 </script>
 
-<Table.Root>
+<Table.Root class={cn(className)}>
 	<Table.Header>
 		<Table.Row>
 			<Table.Head>Field</Table.Head>
@@ -23,7 +25,6 @@
 		{#if numOfRows}
 			{#each Object.keys(data) as field (field)}
 				{@const i18n = data[field]}
-
 				{#if detail === 'full'}
 					{#each i18n.locales as lang, index (lang)}
 						<Table.Row>
@@ -44,10 +45,7 @@
 			{/each}
 		{:else}
 			<Table.Row>
-				<Table.Cell class="flex-row items-center gap-2" colspan={3}>
-					<BanIcon />
-					No Data Found
-				</Table.Cell>
+				<Table.Cell class="flex-row items-center gap-2" colspan={3}>No Data Found</Table.Cell>
 			</Table.Row>
 		{/if}
 	</Table.Body>

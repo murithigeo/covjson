@@ -24,3 +24,9 @@ export default function getCoverageJson<T extends CoverageJSON>(doc: T) {
 			return new NdArray(doc);
 	}
 }
+
+/**
+ * A function to be called when the current indices on the coverage change
+ * For integrating UI with mapping libraries i.e. to change view of the map or to highlight the clicked axis values
+ */
+export type OnIndicesChange = (uuid: string, indices: Record<string, number>) => void;

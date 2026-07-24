@@ -14,19 +14,15 @@ import { load } from './load.ts';
 import type { InferDomainClass, WithoutRegularlySpacedAxis } from './domain/types.d.ts';
 import { Referencing } from './referencing.ts';
 import { NdArray } from './ranges.ts';
-import type { WithRequiredProperty } from './utils.ts';
 import { nanoid } from 'nanoid';
 import type { Feature } from 'geojson';
 
 type RangeValue = string | number | null;
 export class Coverage<T extends Domain = Domain> extends Base<CRG<T>> {
-	indices?: Record<string, number>;
+	indices: Record<string, number>;
 	type: 'Coverage';
 	id?: string | undefined;
 	domain: InferDomainClass<T>;
-	/**
-	 * An object containing properties not explicitly defined on the Coverage class
-	 */
 	properties: Record<string, unknown>;
 	domainType: T['domainType'];
 	parameters: Map<string, Parameter>;
@@ -35,38 +31,30 @@ export class Coverage<T extends Domain = Domain> extends Base<CRG<T>> {
 	uuid: string;
 	constructor(coverage: CRG<T> & { ranges: Record<string, Nd> }) {
 		super();
-
-		this.type = coverage.type;
-		this.id = coverage.id;
-		this.domain = getDomain<T>(coverage.domain);
-		this.domainType = this.domain.domainType;
+		const {
+			type,
+			domain,
+			domainType,
+			ranges,
+			parameterGroups = [],
+			parameters = {},
+			id,
+			...properties
+		} = coverage;
+		this.type = type;
+		this.id = id;
+		this.domain = getDomain<T>(domain);
+		this.domainType = this.domain.domainType || domainType;
 		this.ranges = new Map(
-			Object.keys(coverage.ranges).map((id) => [
-				id.toUpperCase(),
-				new NdArray(coverage.ranges[id]),
-			]),
+			Object.entries(ranges).map(([id, range]) => [id.toUpperCase(), new NdArray(range)]),
 		);
-		//@todo capitalize
-		coverage.parameters = coverage.parameters || {};
 		this.parameters = new Map(
-			Object.keys(coverage.parameters).map((id) => [
-				id,
-				new Parameter(coverage.parameters![id], id),
-			]),
+			Object.entries(parameters).map(([id, param]) => [id, new Parameter(param, id)]),
 		);
-		this.parameterGroups = coverage.parameterGroups?.map((e) => new ParameterGroup(e)) || [];
-		this.properties = {};
-		for (const key in coverage) {
-			if (
-				['domain', 'id', 'ranges', 'parameters', 'parameterGroups', 'type', 'domainType'].includes(
-					key,
-				)
-			)
-				continue;
-			this.properties[key] = coverage[key];
-		}
+		this.parameterGroups = parameterGroups.map((e) => new ParameterGroup(e));
+		this.properties = properties;
 		this.uuid = nanoid();
-		this.indices = undefined;
+		this.indices = Object.keys(this.domain.axes).reduce((l, r) => ({ ...l, [r]: 0 }), {});
 	}
 
 	static async resolve<T extends Domain>(
@@ -155,9 +143,11 @@ export class Coverage<T extends Domain = Domain> extends Base<CRG<T>> {
 	queryIndices(point: Position) {
 		return this.domain.queryIndices(point);
 	}
-	calculateIndices(point: Position): WithRequiredProperty<this, 'indices'> {
+	/**
+	 * Calculates the relevant axes indices given a reference point
+	 */
+	calculateIndices(point: Position): this {
 		this.indices = this.queryIndices(point);
-		//@ts-expect-error explicit assignment does not seem to work
 		return this;
 	}
 	/**

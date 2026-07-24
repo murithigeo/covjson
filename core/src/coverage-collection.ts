@@ -19,28 +19,39 @@ export class CoverageCollection<T extends Domain = Domain> extends Base<CovColl<
 	type: 'CoverageCollection';
 	coverages: Coverage<T>[];
 	#referencing?: ReferenceSystemConnection[] | undefined;
-	domainType?: CoverageJSON.CoverageCollection<T>['domainType'];
+	domainType?: InferDomainClass<T>['domainType'];
 	parameterGroups: ParameterGroup[];
+	properties: Record<string, unknown>;
 	constructor(
 		doc: Omit<CovColl, 'coverages'> & {
-			coverages: (CRG<T> & { ranges: Record<string, Nd> })[];
+			coverages: ((CRG<T> & { ranges: Record<string, Nd> }) | Coverage<T>)[];
 		},
 	) {
 		super();
-		this.type = doc.type;
+		const {
+			type,
+			domainType,
+			coverages,
+			referencing,
+			parameterGroups = [],
+			parameters = {},
+			...properties
+		} = doc;
+		this.type = type;
+		this.domainType = domainType;
 
-		doc.parameters = doc.parameters || {};
-		const parameters = new Map(
-			Object.keys(doc.parameters).map((id) => [id, new Parameter(doc.parameters![id])]),
+		// todo make this a set or copy to coverages
+		this.parameterGroups = parameterGroups.map((e) => new ParameterGroup(e));
+		this.#referencing = referencing;
+		this.properties = properties;
+		const parameters_ = new Map(
+			Object.entries(parameters).map(([id, param]) => [id, new Parameter(param, id)]),
 		);
-		this.parameterGroups = (doc.parameterGroups || []).map((e) => new ParameterGroup(e));
-		this.#referencing = doc.referencing;
-
-		this.coverages = doc.coverages.map((cov) => {
-			const cov_ = new Coverage(cov);
+		this.coverages = coverages.map((cov) => {
+			const cov_ = cov instanceof Coverage ? cov : new Coverage(cov);
 			if (!cov_.domain.referencing && this.referencing) cov_.domain.referencing = this.referencing;
 			// Ensure that each coverage has a copy of the parameters and parameterGroups
-			parameters.entries().forEach(([k, v]) => cov_.addParameter(k, v));
+			parameters_.entries().forEach(([k, v]) => cov_.addParameter(k, v));
 			this.parameterGroups.forEach((v) => cov_.addParameterGroup(v));
 			return cov_;
 		});
@@ -143,4 +154,3 @@ export class CoverageCollection<T extends Domain = Domain> extends Base<CovColl<
 		return params;
 	}
 }
-// use intersects to calculate ranges intersecting with the map view

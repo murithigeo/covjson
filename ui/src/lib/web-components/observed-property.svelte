@@ -1,24 +1,24 @@
+<svelte:options customElement={{ tag: 'observed-property', shadow: 'none' }} />
+
 <script lang="ts">
 	import type { ObservedProperty } from 'coveragejson';
 	import * as Card from '../components/ui/card/index.ts';
-	import { ObservedProperty as ObservedPropertyClass } from '@murithigeo/covjson-core';
-	import { BanIcon } from '@lucide/svelte';
+	import { ObservedProperty as ObsClass } from '@murithigeo/covjson-core';
 	import LocaleTable from './locale-table.svelte';
 	import CategoryTable from './category-table.svelte';
+	import { cn } from '$lib/utils.js';
 	import type { MetadataRenderProps } from './types.d.ts';
 
-	type Props = MetadataRenderProps<ObservedProperty | ObservedPropertyClass>;
+	type Data = ObservedProperty | ObsClass;
 
-	let { data, detail }: Props = $props();
-	let obs = $derived.by(() => {
-		if (data instanceof ObservedPropertyClass) return data;
-		return new ObservedPropertyClass(data);
-	});
+	let { data, detail, class: className }: MetadataRenderProps<Data> = $props();
+	const toObs = () => (data instanceof ObsClass ? data : new ObsClass(data));
+	const obs = $derived(toObs());
 	let label = $derived(obs.label);
 	let description = $derived(obs.description);
 </script>
 
-<Card.Root class="w-full">
+<Card.Root class={cn(className)}>
 	<Card.Header>
 		{@const l = label?.query()}
 		{@const d = description?.query()}
@@ -44,7 +44,7 @@
 			<h5>Categories</h5>
 			<CategoryTable data={data.categories} {detail} />
 		{:else}
-			<span class="flex flex-wrap items-center gap-2"><BanIcon /> No Categories found</span>
+			<span class="flex flex-wrap items-center gap-2"> No Categories found</span>
 		{/if}
 	</Card.Footer>
 </Card.Root>
