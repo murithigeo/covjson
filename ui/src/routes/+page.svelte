@@ -1,8 +1,8 @@
 <script lang="ts">
 	// import '../../dist/client/parameter.js';
-	import '$lib/web-components/parameter-group.svelte';
-	import '$lib/web-components/coverage-preview.svelte';
-	import '$lib/web-components/parameter.svelte';
+	// import '$lib/web-components/parameter-group.svelte';
+	// import '$lib/web-components/coverage-preview.svelte';
+	// import '$lib/web-components/parameter.svelte';
 
 	import { MapLibre, type Map } from 'svelte-maplibre';
 	import maplibregl from 'maplibre-gl';
@@ -10,6 +10,8 @@
 	import Parameter from '$lib/web-components/parameter.svelte';
 	import { Coverage, CoverageCollection } from '@murithigeo/covjson-core';
 	import CoveragePreview from '$lib/web-components/coverage-preview.svelte';
+	import ParameterGroup from '$lib/web-components/parameter-group.svelte';
+
 	let data = $state<CoverageCollection>();
 	const { addSourceType } = maplibregl;
 	// @ts-expect-error By def, maplibre only accepts objects matching inbuilt specifs
@@ -49,7 +51,8 @@
 			});
 		});
 	});
-	// $inspect(coverage);
+	import { SvelteSet } from 'svelte/reactivity';
+	let selected = $derived(new SvelteSet(data?.parameters.keys())); // needs to be
 </script>
 
 <div class="space-2 grid-cols-2 sm:flex sm:flex-col md:grid">
@@ -61,19 +64,12 @@
 	></MapLibre>
 	<div class="align-items-center h-screen flex-col">
 		{#if data}
-			<parameter-preview data={data.parameters.get('FOO')}></parameter-preview>
+			<Parameter data={data.parameters.get('FOO')!}></Parameter>
 			<!-- <Parameter data={data.parameters.get('FOO')} /> -->
 		{/if}
-
-		{#if coverage}
-			<coverage-preview
-				data={coverage}
-				pageWith="t"
-				chartConfig={{
-					FOO: { color: 'red' }
-				}}
-				onIndicesChange={map?.getSource<MaplibrePlugin>('cov-load-test')?.onIndicesChange}
-			></coverage-preview>
-		{/if}
+		<ParameterGroup
+			data={{ id: 'some', members: ['FOO', 'Randohm'], label: { en: 'Random' } }}
+			bind:selected
+		/>
 	</div>
 </div>

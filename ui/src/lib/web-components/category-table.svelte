@@ -1,5 +1,3 @@
-<svelte:options customElement={{ tag: 'category-table', shadow: 'none' }} />
-
 <script lang="ts">
 	import { Category as CategoryClass } from '@murithigeo/covjson-core';
 	import type { Category } from 'coveragejson';

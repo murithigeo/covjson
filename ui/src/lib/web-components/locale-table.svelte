@@ -1,5 +1,3 @@
-<svelte:options customElement={{ tag: 'locale-table', shadow: 'none' }} />
-
 <script lang="ts">
 	import * as Table from '$lib/components/ui/table/index.js';
 	import { I18N } from '@murithigeo/covjson-core';
@@ -9,7 +7,6 @@
 	type Props = MetadataRenderProps<Record<string, I18N>>;
 
 	let { data = $bindable(), detail, class: className }: Props = $props();
-
 	let numOfRows = $derived(Object.values(data).reduce((l, r) => l + r.locales.length, 0));
 </script>
 
@@ -23,8 +20,7 @@
 	</Table.Header>
 	<Table.Body>
 		{#if numOfRows}
-			{#each Object.keys(data) as field (field)}
-				{@const i18n = data[field]}
+			{#each Object.entries(data) as [field, i18n] (field)}
 				{#if detail === 'full'}
 					{#each i18n.locales as lang, index (lang)}
 						<Table.Row>
@@ -32,7 +28,7 @@
 								<Table.Cell class="capitalize" rowspan={i18n.locales.length}>{field}</Table.Cell>
 							{/if}
 							<Table.Cell>{i18n.getTagName(lang)}</Table.Cell>
-							<Table.Cell {lang}>{i18n.query(lang)}</Table.Cell>
+							<Table.Cell {lang}>{i18n.query(lang)?.value!}</Table.Cell>
 						</Table.Row>
 					{/each}
 				{:else if i18n.locales.length}

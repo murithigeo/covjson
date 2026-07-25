@@ -1,5 +1,3 @@
-<svelte:options customElement={{ tag: 'observed-property', shadow: 'none' }} />
-
 <script lang="ts">
 	import type { ObservedProperty } from 'coveragejson';
 	import * as Card from '../components/ui/card/index.ts';

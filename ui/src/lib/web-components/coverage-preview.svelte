@@ -1,5 +1,3 @@
-<svelte:options customElement={{ tag: 'coverage-preview', shadow: 'none' }} />
-
 <script lang="ts">
 	import * as Card from '../components/ui/card/index.ts';
 	import { Coverage, type OnIndicesChange } from '@murithigeo/covjson-core';
@@ -26,29 +24,28 @@
 		class: className
 	}: Props = $props();
 
-	let selectedParameters = $state(new SvelteSet<string>());
-	addEventListener('toggle-parameter', (e) => {
-		Object.entries(e).forEach(([id, bool]) => {
-			const action = bool ? selectedParameters.add : selectedParameters.delete;
-			action(id);
-		});
-		console.log(e);
-	});
-	$inspect({ selectedParameters });
-	/**
-	 * Current indices values
-	 */
-	let indices = $derived(new SvelteMap(Object.entries(coverage.indices).map(([k, v]) => [k, v])));
-	$effect(() => onIndicesChange?.(coverage.uuid, Object.fromEntries(indices.entries())));
-
 	/**
 	 * For Grid only. Allows tiling by z/t axis such that each value has its own data
 	 */
 	let page = $state(1);
-	$effect(() => {
-		// Fix immediate run after mount
-		indices.set(pageWith, page - 1);
-	});
+
+	/**
+	 * Current indices values
+	 */
+	let indices = $derived(
+		new SvelteMap(
+			Object.entries({ ...coverage.indices, [pageWith]: page - 1 }).map(([k, v]) => [k, v])
+		)
+	);
+
+	addEventListener('ontoggleParameter', (e) => console.log(e));
+	// $effect(() => {
+	// 	$host().dispatchEvent(
+	// 		new CustomEvent('IndicesChange', {
+	// 			detail: [coverage.uuid, Object.fromEntries(indices.entries())]
+	// 		})
+	// 	);
+	// });
 	let axesMaxes = $derived.by(() => {
 		let maxes = new SvelteMap<'horizontal' | 'vertical', { value: number; axis: string }>();
 		switch (coverage?.domain.domainType) {
@@ -111,7 +108,7 @@
 				>
 					<ArrowLeft />
 				</Button>
-				<Tooltip.Provider>
+				<Tooltip.Provider delayDuration={300}>
 					<Tooltip.Root>
 						<Tooltip.Trigger class={buttonVariants({ variant: 'outline', size: 'icon-sm' })}
 							><Info /></Tooltip.Trigger

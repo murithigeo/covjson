@@ -1,5 +1,3 @@
-<svelte:options customElement={{ tag: 'parameter-preview', shadow: 'none' }} />
-
 <script lang="ts">
 	import type { Parameter } from 'coveragejson';
 	import { Parameter as PrClass } from '@murithigeo/covjson-core';
@@ -9,8 +7,15 @@
 	import * as Collapsible from '../components/ui/collapsible/index.ts';
 	import * as Item from '../components/ui/item/index.ts';
 	import { Checkbox } from '../components/ui/checkbox/index.ts';
+	import * as Field from '../components/ui/field/index.ts';
 	import { buttonVariants } from '../components/ui/button/index.ts';
 	import { cn } from '$lib/utils.js';
+	import {
+		RulerDimensionLineIcon,
+		ChevronsUpDown,
+		SunSnowIcon,
+		LanguagesIcon
+	} from '@lucide/svelte';
 	import type { MetadataRenderProps, ParameterToggleEventDetail } from './types.d.ts';
 
 	interface Props extends MetadataRenderProps<Parameter | PrClass> {
@@ -18,42 +23,47 @@
 		disabled?: boolean;
 	}
 
-	let { data = $bindable(), disabled, detail, class: className }: Props = $props();
+	let {
+		data = $bindable(),
+		disabled,
+		detail,
+		class: className,
+		checked = $bindable(true)
+	}: Props = $props();
 
 	let parameter = $derived(data instanceof PrClass ? data : new PrClass(data));
 	let id = $derived<string>('param:' + (parameter.key || parameter.id));
-	let checked = $state(true);
-	const dispatch = (checked: boolean) => {
-		const event = new CustomEvent<ParameterToggleEventDetail>('toggle-parameter', {
-			detail: { [data.key]: checked }
-		});
-		$host().dispatchEvent(event);
-	};
-	$effect(() => dispatch(checked));
+	// const dispatch = () => {
+	// 	const event = new CustomEvent<ParameterToggleEventDetail>('toggleParameter', {
+	// 		detail: { [data.key]: checked }
+	// 	});
+	// 	$host().dispatchEvent(event);
+	// };
 </script>
 
-<Card.Root aria-disabled={disabled} class={cn(className)} {id}>
-	<Card.Header>
-		<Card.Title>{parameter.id || parameter.key}</Card.Title>
-		<Card.Action>
-			<Checkbox value={parameter.key} bind:checked />
-		</Card.Action>
-	</Card.Header>
-	<Card.Content class="flex flex-col gap-2">
+<Collapsible.Root {disabled} class="w-full max-w-sm">
+	<Field.Group>
+		<Field.Field orientation="horizontal">
+			<Checkbox bind:checked value={id} {id} />
+			<Field.Label for={id}>{parameter.key}</Field.Label>
+		</Field.Field>
+	</Field.Group>
+	<Collapsible.Content>
 		<Collapsible.Root
 			disabled={!parameter.label.locales.length && !parameter.description.locales.length}
 			id="{id}:i18n"
 		>
 			<Item.Root size="sm" variant="outline">
+				<Item.Media><LanguagesIcon class="size-5" /></Item.Media>
 				<Item.Content>
-					<Item.Title lang="en">Localization</Item.Title>
+					<Item.Title lang="en">Internationalization</Item.Title>
 				</Item.Content>
 				<Item.Actions>
 					<Collapsible.Trigger
-						class={buttonVariants({ variant: 'outline' })}
+						class={buttonVariants({ variant: 'ghost' })}
 						disabled={!parameter.label.locales.length && !parameter.description.locales.length}
 					>
-						Toggle
+						<ChevronsUpDown />
 					</Collapsible.Trigger>
 				</Item.Actions>
 			</Item.Root>
@@ -70,15 +80,16 @@
 
 		<Collapsible.Root id="{id}:unit">
 			<Item.Root size="sm" variant="outline">
+				<Item.Media><RulerDimensionLineIcon class="size-5" /></Item.Media>
 				<Item.Content>
 					<Item.Title>Unit</Item.Title>
 				</Item.Content>
 				<Item.Actions>
 					<Collapsible.Trigger
-						class={buttonVariants({ variant: 'outline' })}
+						class={buttonVariants({ variant: 'ghost' })}
 						disabled={!parameter.unit}
 					>
-						Toggle
+						<ChevronsUpDown />
 					</Collapsible.Trigger>
 				</Item.Actions>
 			</Item.Root>
@@ -106,12 +117,15 @@
 		</Collapsible.Root>
 		<Collapsible.Root id="{id}:observed-property">
 			<Item.Root size="sm" variant="outline">
+				<Item.Media>
+					<SunSnowIcon />
+				</Item.Media>
 				<Item.Content>
 					<Item.Title lang="en">Observed Property</Item.Title>
 				</Item.Content>
 				<Item.Actions>
-					<Collapsible.Trigger class={buttonVariants({ variant: 'outline' })}>
-						Toggle
+					<Collapsible.Trigger class={buttonVariants({ variant: 'ghost' })}>
+						<ChevronsUpDown />
 					</Collapsible.Trigger>
 				</Item.Actions>
 			</Item.Root>
@@ -121,5 +135,5 @@
 				{/if}
 			</Collapsible.Content>
 		</Collapsible.Root>
-	</Card.Content></Card.Root
->
+	</Collapsible.Content>
+</Collapsible.Root>

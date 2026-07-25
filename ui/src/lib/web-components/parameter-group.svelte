@@ -1,42 +1,43 @@
-<svelte:options customElement="parameter-group" />
-
 <script lang="ts">
 	import type {
 		MetadataRenderProps,
 		MetadataRenderDetail,
 		ParameterToggleEventDetail
 	} from './types.d.ts';
+	import type { ParameterGroup } from 'coveragejson';
 	import { Checkbox } from '../components/ui/checkbox/index.ts';
 	import ObservedProperty from './observed-property.svelte';
+	import LocaleTable from './locale-table.svelte';
+	import * as Field from '../components/ui/field/index.ts';
+	import * as Item from '../components/ui/item/index.ts';
+	import * as Collapsible from '../components/ui/collapsible/index.ts';
+	import { ChevronsUpDown, LanguagesIcon } from '@lucide/svelte';
 	import {
 		ObservedProperty as ObsClass,
 		ParameterGroup as PGroupClass
 	} from '@murithigeo/covjson-core';
-	import { Button } from '../components/ui/button/index.ts';
-	import * as ButtonGroup from '../components/ui/button-group/index.ts';
-	import * as Card from '../components/ui/card/index.ts';
 	import type { Snippet } from 'svelte';
 	import { SvelteSet } from 'svelte/reactivity';
-	interface Props extends MetadataRenderProps<PGroupClass> {
-		observedPropertyChild?: Snippet<[{ data: ObsClass; detail?: MetadataRenderDetail }]>;
+	import { buttonVariants } from '../components/ui/button/index.ts';
+	interface Props extends MetadataRenderProps<PGroupClass | ParameterGroup> {
+		selected?: SvelteSet<string>;
+		disabled?: boolean;
 	}
-	let { data = $bindable(), class: className, observedPropertyChild, detail }: Props = $props();
+	let {
+		data = $bindable(),
+		class: className,
+		detail,
+		disabled,
+		selected = $bindable()
+	}: Props = $props();
 	let pGroup = $derived.by(() => {
 		if (data instanceof PGroupClass) return data;
 		return new PGroupClass(data);
 	});
-	let selected = $derived(new SvelteSet(pGroup.members));
+	let id = $derived(pGroup.id || pGroup.members.join('/'));
+	let checked = $derived(pGroup.members.every((member) => selected?.has(member)));
+	let indeterminate = $derived(!checked && pGroup.members.some((member) => selected?.has(member)));
 
-	let checked = $derived(pGroup.members.every((member) => selected.has(member)));
-	let indeterminate = $derived(!checked && pGroup.members.some((member) => selected.has(member)));
-
-	const dispatch = () => {
-		const event = new CustomEvent<ParameterToggleEventDetail>('toggle-parameter', {
-			detail: pGroup.members.reduce((l, r) => ({ ...l, [r]: selected.has(r) }), {})
-		});
-		$host().dispatchEvent(event);
-	};
-	$effect(() => dispatch());
 	const unselect = (id: string) => selected?.delete(id);
 	const select = (id: string) => selected?.add(id);
 
@@ -47,41 +48,55 @@
 	};
 </script>
 
-<Card.Root class={[className]}>
-	<Card.Header>
-		<Card.Title>{pGroup.id || 'No Id provided'}</Card.Title>
-	</Card.Header>
-	<Card.Action>
-		<Checkbox {checked} {indeterminate} {onCheckedChange} />
-	</Card.Action>
-	<Card.Content>
-		<!-- Add localization table, autoscroll to this observedProperty if listed member parameters do not have the observedProperty -->
-		{#if pGroup.observedProperty}
-			{#if observedPropertyChild}
-				{@render observedPropertyChild({ data: pGroup.observedProperty, detail })}
-			{:else}
-				<ObservedProperty data={pGroup.observedProperty} {detail} />
-			{/if}
-		{/if}
-	</Card.Content>
-	<Card.Footer class="flex w-full flex-col items-center gap-2">
-		<h4>Select parameters to visualize</h4>
-		<div class="flex flex-row items-center gap-2">
-			<ButtonGroup.Root>
-				{#each pGroup.members as member (member)}
-					<ButtonGroup.Root class="flex flex-row items-center gap-2">
-						<Button variant="outline" class="uppercase" size="sm" href="#param:{member}"
-							>{member}</Button
-						>
-						<Button variant="outline" class="icon-sm">
+<Collapsible.Root {disabled} class="w-full max-w-sm border">
+	<Field.Field orientation="horizontal">
+		<Checkbox bind:checked bind:indeterminate value={id} {id} {onCheckedChange} />
+		<Field.Label for={id}>{id}</Field.Label>
+		<Collapsible.Trigger class={buttonVariants({ variant: 'ghost' })}
+			><ChevronsUpDown /></Collapsible.Trigger
+		>
+	</Field.Field>
+	<Collapsible.Content>
+		<Field.Group>
+			<Field.Set class="ml-5">
+				<Field.Description>Parameters in this Group</Field.Description>
+				<Field.Group class="gap-3">
+					{#each pGroup.members as member (member)}
+						{@const id = `pgroup:${member}`}
+						<Field.Field orientation="horizontal">
 							<Checkbox
 								onCheckedChange={(checked) => onCheckedChange(checked, member)}
+								{id}
 								checked={selected?.has(member)}
 							/>
-						</Button>
-					</ButtonGroup.Root>
-				{/each}
-			</ButtonGroup.Root>
-		</div>
-	</Card.Footer>
-</Card.Root>
+							<Field.Label for={id}>{member}</Field.Label>
+						</Field.Field>
+					{/each}
+				</Field.Group>
+			</Field.Set>
+		</Field.Group>
+		<Collapsible.Root disabled={false} class="border">
+			<Item.Root class="sm">
+				<Item.Media><LanguagesIcon class="size-5" /></Item.Media>
+				<Item.Content>
+					<Item.Title lang="en">Internationalization</Item.Title>
+				</Item.Content>
+				<Item.Actions
+					><Collapsible.Trigger class={buttonVariants({ variant: 'ghost' })}>
+						<ChevronsUpDown />
+					</Collapsible.Trigger></Item.Actions
+				>
+			</Item.Root>
+			<Collapsible.Content>
+				<div class="ml-5">
+					<LocaleTable data={{ label: pGroup.label, description: pGroup.description }} {detail} />
+				</div>
+			</Collapsible.Content>
+		</Collapsible.Root>
+		<Collapsible.Root disabled={!pGroup.observedProperty}>
+			{#if pGroup.observedProperty}
+				<ObservedProperty data={pGroup.observedProperty} {detail} />
+			{/if}
+		</Collapsible.Root>
+	</Collapsible.Content>
+</Collapsible.Root>
