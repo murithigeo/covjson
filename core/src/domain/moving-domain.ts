@@ -1,9 +1,5 @@
 import { BaseDomain } from './base-domain.ts';
-import type {
-	Trajectory as TrajDomain,
-	Section as SectionDomain,
-	Position
-} from '../coveragejson.d.ts';
+import type { Trajectory as TrajDomain, Section as SectionDomain, Position } from 'coveragejson';
 import type { Referencing } from '../referencing.ts';
 import type { LineString } from 'geojson';
 import { denormalizeNumAxis, normalizeNumAxis, numAxisIsNormalized } from './utils.ts';

@@ -1,5 +1,5 @@
 import { BaseDomain } from './base-domain.ts';
-import type { Position, VerticalProfile as VertProfDomain } from '../coveragejson.d.ts';
+import type { Position, VerticalProfile as VertProfDomain } from 'coveragejson';
 import type { Referencing } from '../referencing.ts';
 import type { Point } from 'geojson';
 import { denormalizeNumAxis, normalizeNumAxis } from './utils.ts';

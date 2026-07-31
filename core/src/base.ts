@@ -1,5 +1,5 @@
 import { Referencing, type UserReferencingOptions as RefOptions } from './referencing.ts';
-import type { ReferenceSystemConnection as RSC } from './coveragejson.d.ts';
+import type { ReferenceSystemConnection as RSC } from 'coveragejson';
 
 export abstract class Base<T> {
 	abstract get referencing(): RSC[] | undefined;

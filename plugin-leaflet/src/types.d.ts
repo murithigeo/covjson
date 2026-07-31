@@ -4,7 +4,7 @@ import type {
 	Coverage as CovCoverage,
 	Domain as CovDomain,
 	CoverageCollection as CovCollection
-} from '../../core/src/coveragejson.d.ts';
+} from 'coveragejson';
 
 type Domain = Awaited<ReturnType<typeof getDomain>>;
 

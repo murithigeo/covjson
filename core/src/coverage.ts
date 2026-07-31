@@ -5,8 +5,8 @@ import type {
 	ParameterGroup as CovPGroup,
 	NdArray as Nd,
 	Position2D,
-	Position,
-} from './coveragejson.d.ts';
+	Position
+} from 'coveragejson';
 import { Base } from './base.ts';
 import { Parameter, ParameterGroup } from './parameters.ts';
 import { getDomain } from './domain/index.ts';
@@ -46,10 +46,10 @@ export class Coverage<T extends Domain = Domain> extends Base<CRG<T>> {
 		this.domain = getDomain<T>(domain);
 		this.domainType = this.domain.domainType || domainType;
 		this.ranges = new Map(
-			Object.entries(ranges).map(([id, range]) => [id.toUpperCase(), new NdArray(range)]),
+			Object.entries(ranges).map(([id, range]) => [id.toUpperCase(), new NdArray(range)])
 		);
 		this.parameters = new Map(
-			Object.entries(parameters).map(([id, param]) => [id, new Parameter(param, id)]),
+			Object.entries(parameters).map(([id, param]) => [id, new Parameter(param, id)])
 		);
 		this.parameterGroups = parameterGroups.map((e) => new ParameterGroup(e));
 		this.properties = properties;
@@ -58,7 +58,7 @@ export class Coverage<T extends Domain = Domain> extends Base<CRG<T>> {
 	}
 
 	static async resolve<T extends Domain>(
-		coverage: CRG<T | string>,
+		coverage: CRG<T | string>
 	): Promise<
 		CRG<T> & {
 			ranges: Record<string, Nd>;
@@ -82,11 +82,11 @@ export class Coverage<T extends Domain = Domain> extends Base<CRG<T>> {
 			//@ts-expect-error error in types upstream
 			domainType: domain.domainType,
 			domain,
-			ranges,
+			ranges
 		};
 	}
 	static async load<T extends Domain = Domain>(
-		coverage: CRG<T | string> | string,
+		coverage: CRG<T | string> | string
 	): Promise<Coverage<T>> {
 		if (typeof coverage === 'string') coverage = await load<CRG<T>>(coverage);
 
@@ -130,8 +130,8 @@ export class Coverage<T extends Domain = Domain> extends Base<CRG<T>> {
 			geometry: this.domain.geometry,
 			properties: {
 				uuid: this.uuid,
-				domainType: this.domainType, // Allow filtering for maplibregl
-			},
+				domainType: this.domainType // Allow filtering for maplibregl
+			}
 			// id:this.uuid // If properties is null, then id becomes undefined in maplibre
 		};
 	}
@@ -165,7 +165,7 @@ export class Coverage<T extends Domain = Domain> extends Base<CRG<T>> {
 			parameters: this.parameters
 				.entries()
 				.reduce((l, [id, val]) => ({ ...l, [id]: val.toPlain() }), {}),
-			parameterGroups: this.parameterGroups.map((v) => v.toPlain()),
+			parameterGroups: this.parameterGroups.map((v) => v.toPlain())
 		});
 	}
 	_reproject(referencing: Referencing): this {
@@ -190,7 +190,7 @@ export class Coverage<T extends Domain = Domain> extends Base<CRG<T>> {
 	 */
 	async getData(
 		point: Position2D | Record<string, number>,
-		rangeIds?: string[],
+		rangeIds?: string[]
 	): Promise<Record<string, RangeValue | undefined>> {
 		const indices = Array.isArray(point) ? this.queryIndices(point) : point;
 		if (!rangeIds) rangeIds = this.ranges.keys().toArray();

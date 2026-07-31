@@ -1,4 +1,4 @@
-import type { Domain, RegularlySpacedAxis, Position, DomainTypes } from '../coveragejson.d.ts';
+import type { Domain, RegularlySpacedAxis, Position, DomainTypes } from 'coveragejson';
 import { Temporal } from '@js-temporal/polyfill';
 import midpoint from '@turf/midpoint';
 import destination from '@turf/destination';

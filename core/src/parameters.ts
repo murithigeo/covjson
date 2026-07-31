@@ -4,9 +4,8 @@ import type {
 	UnitSymbol as USymbol,
 	ObservedProperty as Obs,
 	I18N as I18n,
-	Unit as U,
-} from './coveragejson.d.ts';
-import type * as CoverageJSON from './coveragejson.d.ts';
+	Unit as U
+} from 'coveragejson';
 /**
  * https://bobbyhadz.com/blog/typescript-make-property-required
  */
@@ -79,7 +78,7 @@ export class Parameter extends Metadata<PR> {
 		if (pr.categoryEncoding) {
 			this.categoryEncoding = Object.entries(pr.categoryEncoding).reduce(
 				(l, [k, v]) => ({ ...l, [k]: Array.isArray([v]) ? v : [v] }),
-				{},
+				{}
 			);
 		}
 		if (pr.unit) {
@@ -92,7 +91,7 @@ export class Parameter extends Metadata<PR> {
 			observedProperty: this.observedProperty?.toPlain(),
 			unit: this.observedProperty.categories ? undefined : this.unit?.toPlain(),
 			label: this.label.locales.length ? this.label.toPlain() : undefined,
-			description: this.description.locales.length ? this.description.toPlain() : undefined,
+			description: this.description.locales.length ? this.description.toPlain() : undefined
 		};
 	}
 }
@@ -118,7 +117,7 @@ export class ObservedProperty extends Metadata<Obs> {
 	 * Destructive
 	 */
 	addCategory(
-		category: CoverageJSON.Category | Category,
+		category: CoverageJSON.Category | Category
 	): WithRequiredProperty<this, 'categories'> {
 		if (!(category instanceof Category)) category = new Category(category);
 
@@ -135,7 +134,7 @@ export class ObservedProperty extends Metadata<Obs> {
 			description: this.description.locales.length ? this.description.toPlain() : undefined,
 			categories: this.categories?.length
 				? (this.categories.map((cat) => cat.toPlain()) as [Cat, ...Cat[]])
-				: undefined,
+				: undefined
 		};
 	}
 }
@@ -156,7 +155,7 @@ export class Unit extends Metadata<U> {
 		const unit: CoverageJSON.Unit = {
 			id: this.id,
 			label: this.label.toPlain(),
-			symbol: this.symbol?.toPlain(),
+			symbol: this.symbol?.toPlain()
 		};
 		return unit;
 	}
@@ -215,7 +214,7 @@ export class ParameterGroup extends Metadata<CoverageJSON.ParameterGroup> {
 			type: this.type,
 			members: this.members as [string, ...string[]],
 			observedProperty: this.observedProperty?.toPlain(),
-			label: this.label.toPlain(),
+			label: this.label.toPlain()
 		};
 
 		return value;
@@ -236,7 +235,7 @@ export class Category extends Metadata<Cat> {
 		return {
 			id: this.id,
 			label: this.label.toPlain(),
-			description: this.description?.locales.length ? this.description.toPlain() : undefined,
+			description: this.description?.locales.length ? this.description.toPlain() : undefined
 		};
 	}
 }

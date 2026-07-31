@@ -1,5 +1,5 @@
 import maplibregl from 'maplibre-gl';
-import type { Domain, NdArray, CoverageJSON } from '../../core/src/coveragejson.js';
+import type { Domain, NdArray, CoverageJSON } from 'coveragejson';
 import {
 	Coverage,
 	CoverageCollection,

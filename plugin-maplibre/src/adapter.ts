@@ -6,7 +6,7 @@ import {
 	type OnIndicesChange
 } from '@murithigeo/covjson-core';
 import type { BasicPluginOptions, PluginOptions } from './types.d.ts';
-import type { Position } from '../../core/src/coveragejson.d.ts';
+import type { Position } from 'coveragejson';
 import { loadCovJson } from './util.ts';
 import type { Point, Polygon } from 'geojson';
 

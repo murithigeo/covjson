@@ -1,4 +1,4 @@
-import type { TileSet, NdArray as Nd, NumberNdArray, StringNdArray } from './coveragejson.d.ts';
+import type { TileSet, NdArray as Nd, NumberNdArray, StringNdArray } from 'coveragejson';
 import ndarray, { type NdArray as NdArr } from 'ndarray';
 import { parseTemplate } from 'url-template';
 import { load } from './load.ts';
@@ -122,8 +122,8 @@ export class NdArray<T extends string | number = string | number> {
 			this.#values.lo(...offsets).hi(...(range.shape || this.shape)), // If range has no shape, then use the one it was init with (0D)
 			ndarray(
 				range.values.map((v) => (this.options.transform ? this.options.transform?.(v) : v)),
-				range.shape,
-			),
+				range.shape
+			)
 		);
 	}
 	/**
@@ -149,7 +149,7 @@ export class NdArray<T extends string | number = string | number> {
 			: [this.getBestTile(tileSet, indices)];
 		const template = parseTemplate(tileSet.urlTemplate);
 		const urls = tiles.map((tile) =>
-			template.expand(tile.reduce((l, r, i) => ({ ...l, [this.axisNames[i]]: r }), {})),
+			template.expand(tile.reduce((l, r, i) => ({ ...l, [this.axisNames[i]]: r }), {}))
 		);
 		const ranges = await Promise.all(urls.map((href) => load<SimpleNdArray>(href)));
 		ranges.forEach((range, i) => this.appendRange(tileSet.tileShape, tiles[i], range));
@@ -160,8 +160,8 @@ export class NdArray<T extends string | number = string | number> {
 	getTileCombos(tileset: TileSet) {
 		return cartesianProduct(
 			...tileset.tileShape.map((ts, i) =>
-				Array.from({ length: Math.ceil(this.shape[i] / (ts ?? this.shape[i])) }, (_, t) => t),
-			),
+				Array.from({ length: Math.ceil(this.shape[i] / (ts ?? this.shape[i])) }, (_, t) => t)
+			)
 		).map((combo) => this.axisNames.map((_, i) => combo[i]));
 	}
 	toPlain(): Nd {
@@ -171,7 +171,7 @@ export class NdArray<T extends string | number = string | number> {
 				dataType: this.dataType,
 				shape: this.vLength === 1 ? undefined : this.shape,
 				axisNames: this.axisNames.length ? this.axisNames : undefined,
-				values: this.values,
+				values: this.values
 			};
 		}
 		return {
@@ -179,7 +179,7 @@ export class NdArray<T extends string | number = string | number> {
 			dataType: this.dataType,
 			tileSets: this.tileSets!,
 			shape: this.shape,
-			axisNames: this.axisNames,
+			axisNames: this.axisNames
 		};
 	}
 }

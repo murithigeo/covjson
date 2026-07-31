@@ -5,7 +5,7 @@ import type {
 	MultiPolygon as MP,
 	MultiPolygonSeries as MPs,
 	Position
-} from '../coveragejson.d.ts';
+} from 'coveragejson';
 import type { Referencing } from '../referencing.ts';
 import inside from 'point-in-polygon-hao';
 import type { Polygon as PolygonGeometry } from 'geojson';

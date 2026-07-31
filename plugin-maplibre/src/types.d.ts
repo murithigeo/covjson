@@ -2,7 +2,7 @@ import type {
 	Coverage as CovCoverage,
 	Domain as CovDomain,
 	CoverageCollection as CovCollection
-} from '../../core/src/coveragejson.d.ts';
+} from 'coveragejson';
 import { Coverage, CoverageCollection, getDomain } from '@murithigeo/covjson-core';
 import type maplibregl from 'maplibre-gl';
 

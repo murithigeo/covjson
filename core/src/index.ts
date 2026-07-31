@@ -1,5 +1,5 @@
 import { Coverage } from './coverage.ts';
-import type { CoverageJSON } from './coveragejson.js';
+import type { CoverageJSON } from 'coveragejson';
 import { CoverageCollection } from './coverage-collection.ts';
 import { getDomain } from './domain/index.ts';
 import { NdArray } from './ranges.ts';

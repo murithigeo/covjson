@@ -11,7 +11,7 @@
     "devDependencies": {
         "@eslint/js": "^10.0.1",
         "@tsdown/css": "^0.22.13",
-        "@types/coveragejson": "^2.0.0",
+        "@types/coveragejson": "^3.0.0",
         "@types/geojson": "^7946.0.16",
         "@types/ndarray": "^1.0.14",
         "@types/ndarray-ops": "^1.2.7",

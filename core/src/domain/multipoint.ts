@@ -1,5 +1,5 @@
 import { BaseDomain } from './base-domain.ts';
-import type { MultiPointSeries as MpsD, MultiPoint as MpD, Position } from '../coveragejson.d.ts';
+import type { MultiPointSeries as MpsD, MultiPoint as MpD, Position } from 'coveragejson';
 import { Referencing } from '../referencing.ts';
 import type { MultiPoint as MultiPointGeometry } from 'geojson';
 import { calcStrAxisBounds, calc2dTupleAxisBounds, calcNumAxisBounds } from './utils.ts';

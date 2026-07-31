@@ -3,7 +3,7 @@
 	"description": "Plugin for rendering CoverageJSON Documents in Leaflet",
 	"type": "module",
 	"dependencies": {
-		"@murithigeo/covjson-core": "^0.1.0",
+		"@murithigeo/covjson-core": "workspace:*",
 		"leaflet": "^2.0.0-alpha.1"
 	}
 }

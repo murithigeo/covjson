@@ -3,14 +3,14 @@ import type {
 	ReferenceSystemConnection,
 	CoverageCollection as CovColl,
 	Coverage as CRG,
-	NdArray as Nd,
-} from './coveragejson.d.ts';
+	NdArray as Nd
+} from 'coveragejson';
 import { Parameter, ParameterGroup } from './parameters.ts';
 import { Coverage } from './coverage.ts';
 import { Referencing, type UserReferencingOptions } from './referencing.ts';
 import { Base } from './base.ts';
 import type { FeatureCollection } from 'geojson';
-import type { InferDomainClass } from './domain/types.js';
+import type { InferDomainClass } from './domain/types.d.ts';
 
 export class CoverageCollection<T extends Domain = Domain> extends Base<CovColl<T>> {
 	_reproject(): this {
@@ -25,7 +25,7 @@ export class CoverageCollection<T extends Domain = Domain> extends Base<CovColl<
 	constructor(
 		doc: Omit<CovColl, 'coverages'> & {
 			coverages: ((CRG<T> & { ranges: Record<string, Nd> }) | Coverage<T>)[];
-		},
+		}
 	) {
 		super();
 		const {
@@ -45,7 +45,7 @@ export class CoverageCollection<T extends Domain = Domain> extends Base<CovColl<
 		this.#referencing = referencing;
 		this.properties = properties;
 		const parameters_ = new Map(
-			Object.entries(parameters).map(([id, param]) => [id, new Parameter(param, id)]),
+			Object.entries(parameters).map(([id, param]) => [id, new Parameter(param, id)])
 		);
 		this.coverages = coverages.map((cov) => {
 			const cov_ = cov instanceof Coverage ? cov : new Coverage(cov);
@@ -61,7 +61,7 @@ export class CoverageCollection<T extends Domain = Domain> extends Base<CovColl<
 		const coverages = await Promise.all(doc.coverages.map((cov) => Coverage.resolve(cov)));
 		return new CoverageCollection({
 			...doc,
-			coverages,
+			coverages
 		});
 	}
 	denormalize() {
@@ -80,7 +80,7 @@ export class CoverageCollection<T extends Domain = Domain> extends Base<CovColl<
 	reproject(referencing: UserReferencingOptions, force?: false): Promise<this>;
 	reproject(
 		referencing: Referencing | UserReferencingOptions,
-		force?: boolean,
+		force?: boolean
 	): this | Promise<this> {
 		if (referencing instanceof Referencing && force) {
 			this.coverages = this.coverages.map((cov) => {
@@ -100,7 +100,7 @@ export class CoverageCollection<T extends Domain = Domain> extends Base<CovColl<
 				});
 
 				return this;
-			},
+			}
 		);
 	}
 
@@ -116,7 +116,7 @@ export class CoverageCollection<T extends Domain = Domain> extends Base<CovColl<
 			parameterGroups: this.parameterGroups.length
 				? this.parameterGroups.map((e) => e.toPlain())
 				: undefined,
-			referencing: this.referencing,
+			referencing: this.referencing
 		};
 	}
 	get featurecollection(): FeatureCollection<
@@ -125,7 +125,7 @@ export class CoverageCollection<T extends Domain = Domain> extends Base<CovColl<
 	> {
 		return {
 			type: 'FeatureCollection',
-			features: this.coverages.map((cov) => cov.feature),
+			features: this.coverages.map((cov) => cov.feature)
 		};
 	}
 	public get referencing() {
