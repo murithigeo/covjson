@@ -32,7 +32,7 @@
 /**
  * Get the smallest and largest values in array
  */
-export function minMax(arr: number[]) {
+export function minMax(arr: (number | null)[]): [number | null, number | null] {
 	let len = arr.length;
 	let min: number | null = Infinity;
 	let max: number | null = -Infinity;
@@ -120,7 +120,7 @@ export function indexOfNearest(a: number[], x: number): number {
 	}
 }
 
-export function cartesianProduct<T>(...args: T[][]):T[][] {
+export function cartesianProduct<T>(...args: T[][]): T[][] {
 	return args.reduce<T[][]>((a, b) => a.flatMap((d) => b.map((e) => [...d, e])), [[]]);
 }
 

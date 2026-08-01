@@ -197,4 +197,7 @@ export class Coverage<T extends Domain = Domain> extends Base<CRG<T>> {
 		const data = await Promise.all(rangeIds.map((id) => this.ranges.get(id)?.get(indices)));
 		return rangeIds.reduce((l, r, i) => ({ ...l, [r]: data[i] }), {});
 	}
+	hasRange(key: string) {
+		return this.ranges.has(key);
+	}
 }

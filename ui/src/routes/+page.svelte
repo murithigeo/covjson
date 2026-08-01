@@ -1,20 +1,11 @@
 <script lang="ts">
-	// import '../../dist/client/parameter.js';
-	// import '$lib/web-components/parameter-group.svelte';
-	// import '$lib/web-components/coverage-preview.svelte';
-	// import '$lib/web-components/parameter.svelte';
-
 	import { MapLibre, type Map } from 'svelte-maplibre';
 	import maplibregl from 'maplibre-gl';
 	import { MaplibrePlugin } from '@murithigeo/covjson-maplibre';
-	import Parameter from '$lib/web-components/parameter.svelte';
 	import { Coverage, CoverageCollection } from '@murithigeo/covjson-core';
-	import CoveragePreview from '$lib/web-components/coverage-preview.svelte';
-	import ParameterGroup from '$lib/web-components/parameter-group.svelte';
-
+	import Dashboard1 from '$lib/web-components/dashboards/dashboard-1.svelte';
 	let data = $state<CoverageCollection>();
 	const { addSourceType } = maplibregl;
-	// @ts-expect-error By def, maplibre only accepts objects matching inbuilt specifs
 	addSourceType('coveragejson', MaplibrePlugin).catch(() => {});
 
 	let map = $state<Map>();
@@ -51,25 +42,16 @@
 			});
 		});
 	});
-	import { SvelteSet } from 'svelte/reactivity';
-	let selected = $derived(new SvelteSet(data?.parameters.keys())); // needs to be
 </script>
 
-<div class="space-2 grid-cols-2 sm:flex sm:flex-col md:grid">
+<Dashboard1
+	bind:data={coverage}
+	onIndicesChange={map?.getSource<MaplibrePlugin>?.('cov-load-test')?.onIndicesChange}
+>
 	<MapLibre
-		class="h-screen w-full"
-		style="https://api.maptiler.com/maps/winter-v4/style.json?key=tTYdgg3LwO0um0Aqqs6u"
-		standardControls
+		class="h-full w-full"
 		bind:map
-	></MapLibre>
-	<div class="align-items-center h-screen flex-col">
-		{#if data}
-			<Parameter data={data.parameters.get('FOO')!}></Parameter>
-			<!-- <Parameter data={data.parameters.get('FOO')} /> -->
-		{/if}
-		<ParameterGroup
-			data={{ id: 'some', members: ['FOO', 'Randohm'], label: { en: 'Random' } }}
-			bind:selected
-		/>
-	</div>
-</div>
+		standardControls
+		style="https://api.maptiler.com/maps/winter-v4/style.json?key=tTYdgg3LwO0um0Aqqs6u"
+	/>
+</Dashboard1>

@@ -5,17 +5,20 @@
 	import { ChevronsUpDown, GroupIcon } from '@lucide/svelte';
 	import { SvelteSet } from 'svelte/reactivity';
 	import { buttonVariants } from '../../components/ui/button/index.ts';
-	import { ParameterGroup } from '@murithigeo/covjson-core';
+	import { ParameterGroup, Parameter } from '@murithigeo/covjson-core';
 	import ParameterGroupComponent from '../parameter-group.svelte';
-	let { onIndicesChange }: DashboardProps = $props();
-	let selected = $state(new SvelteSet<string>());
-	let parameterGroups = $state<ParameterGroup[]>([]);
-	let parameters = $state<Record<string, Parameter>>({});
+	import ParameterComponent from '../parameter.svelte';
+	import ModeWatcher from '../mode-watcher.svelte';
+
+	type Props = DashboardProps;
+	let { onIndicesChange, data = $bindable(), detail, children }: Props = $props();
+	let selected = $derived(new SvelteSet(data?.parameters.keys()));
 </script>
 
 <div class="grid grid-cols-3">
-	<div class="" id="parameter-preview">
-		<Collapsible.Root id="parameter-group-list" disabled={!parameterGroups.length}>
+	<div class="flex flex-col" id="parameter-preview">
+		<ModeWatcher />
+		<Collapsible.Root id="parameter-group-list" disabled={!data?.parameterGroups.length} open>
 			<Item.Root size="sm" variant="outline">
 				<Item.Media><GroupIcon class="size-5" /></Item.Media>
 				<Item.Content>
@@ -28,12 +31,12 @@
 				</Item.Actions>
 			</Item.Root>
 			<Collapsible.Content class="">
-				{#each parameterGroups as group, i (i)}
-					<ParameterGroupComponent {group} bind:selected />
+				{#each data?.parameterGroups as group, i (i)}
+					<ParameterGroupComponent data={group} bind:selected {detail} />
 				{/each}
 			</Collapsible.Content>
 		</Collapsible.Root>
-		<Collapsible.Root id="parameter-list">
+		<Collapsible.Root id="parameter-list" open>
 			<Item.Root size="sm" variant="outline">
 				<Item.Media><GroupIcon class="size-5" /></Item.Media>
 				<Item.Content>
@@ -46,10 +49,14 @@
 				</Item.Actions>
 			</Item.Root>
 			<Collapsible.Content>
-				{#each Object.entries(parameters) as [id, param] (id)}{/each}
+				{#each data?.parameters as [id, param] (id)}
+					<ParameterComponent data={param} bind:selected {detail} />
+				{/each}
 			</Collapsible.Content>
 		</Collapsible.Root>
 	</div>
-	<div class="" id="chart-1"></div>
-	<div class="" id="chart-2"></div>
+	<div class="" id="charts"></div>
+	<div class="h-screen w-full">
+		{@render children?.()}
+	</div>
 </div>

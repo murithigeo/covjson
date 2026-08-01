@@ -5,6 +5,7 @@ import { load } from './load.ts';
 import ops from 'ndarray-ops';
 import { cartesianProduct } from './utils.ts';
 import { TilesetNotFound } from './error.ts';
+import { minMax } from './utils.ts';
 
 type Indices = Record<string, number>;
 
@@ -20,7 +21,7 @@ interface NdArrayOptions<T extends string | number = string | number> {
 	 * const ndarrIn=new TiledNdArray(...)
 	 *
 	 */
-	transform?: (val: T | null) => T | null;
+	transform?: (val: T | null, dataType: 'string' | 'float' | 'integer') => T | null;
 }
 
 type SimpleNdArray = NumberNdArray | StringNdArray;
@@ -32,6 +33,8 @@ export class NdArray<T extends string | number = string | number> {
 	axisNames: string[];
 	dataType: 'string' | 'float' | 'integer';
 	options: NdArrayOptions;
+	min: number | null | undefined;
+	max: number | null | undefined;
 	constructor(ndarr: Nd, options?: NdArrayOptions) {
 		this.type = ndarr.type;
 		this.axisNames = ndarr.axisNames || [];
@@ -40,18 +43,22 @@ export class NdArray<T extends string | number = string | number> {
 		this.#tileSets = 'tileSets' in ndarr ? ndarr.tileSets : [];
 		this.dataType = ndarr.dataType;
 		this.options = options || {};
+		this.max = undefined;
+		this.min = undefined;
 		if ('values' in ndarr) this.appendRange(this.shape, Array(this.vLength).fill(0), ndarr);
 	}
 	public get vLength() {
 		if (this.shape.length === 0) return 1;
 		return this.shape.reduce((l, r) => l * r);
 	}
+
 	/**
 	 * Get the ndarray's data.
 	 * If all the data has not been completely loaded, undefined values will become nulls
+	 * @todo fill with nulls
 	 */
 	public get values(): [T | null, ...(T | null)[]] {
-		return Array.from(this.#values.data).map((v) => (v === undefined ? null : v));
+		return this.#values.data;
 	}
 
 	/**
@@ -121,10 +128,13 @@ export class NdArray<T extends string | number = string | number> {
 		ops.assign(
 			this.#values.lo(...offsets).hi(...(range.shape || this.shape)), // If range has no shape, then use the one it was init with (0D)
 			ndarray(
-				range.values.map((v) => (this.options.transform ? this.options.transform?.(v) : v)),
+				range.values.map((v) =>
+					this.options.transform ? this.options.transform?.(v, this.dataType) : v
+				),
 				range.shape
 			)
 		);
+		this.calculateMinMax();
 	}
 	/**
 	 * Gets the indices of the tile that contains the indices provided
@@ -164,10 +174,10 @@ export class NdArray<T extends string | number = string | number> {
 			)
 		).map((combo) => this.axisNames.map((_, i) => combo[i]));
 	}
-	toPlain(): Nd {
-		if (this.type === 'NdArray') {
+	toPlain(nonTiled = false): Nd {
+		if (this.type === 'NdArray' || nonTiled) {
 			return {
-				type: this.type,
+				type: 'NdArray',
 				dataType: this.dataType,
 				shape: this.vLength === 1 ? undefined : this.shape,
 				axisNames: this.axisNames.length ? this.axisNames : undefined,
@@ -181,5 +191,9 @@ export class NdArray<T extends string | number = string | number> {
 			shape: this.shape,
 			axisNames: this.axisNames
 		};
+	}
+	calculateMinMax() {
+		if (this.dataType === 'string') return;
+		[this.min, this.max] = minMax(this.values as (number | null)[]);
 	}
 }
