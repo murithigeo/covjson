@@ -1,6 +1,6 @@
 import type { ClassValue } from 'clsx';
 import type { ChartConfig } from '../components/ui/chart/index.ts';
-import type { BarChartProps, LineChartProps } from 'layerchart';
+import type { BarChartProps as BarChartAttrs, LineChartProps as LineChartAttrs } from 'layerchart';
 import type { ComponentProps } from 'svelte';
 /**
  * How to render properties such as locale objects.
@@ -38,12 +38,12 @@ interface BaseChartProps<T extends DataValue = DataValue> {
 	pageWith?: 'z' | 't';
 }
 
-export interface BChartProps extends BarChartProps<DataRow<number>> {
+export interface BarChartProps extends BarChartAttrs<DataRow<number>> {
 	pageWith?: 'z' | 't';
 	config: ChartConfig;
 }
 
-export interface LChartProps extends LineChartProps<DataRow<number>> {
+export interface LineChartProps extends LineChartAttrs<DataRow<number>> {
 	pageWith?: 'z' | 't';
 	config: ChartConfig;
 }

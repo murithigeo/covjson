@@ -5,7 +5,6 @@
 	import { ChevronsUpDown, GroupIcon } from '@lucide/svelte';
 	import { SvelteSet } from 'svelte/reactivity';
 	import { buttonVariants } from '../../components/ui/button/index.ts';
-	import { ParameterGroup, Parameter } from '@murithigeo/covjson-core';
 	import ParameterGroupComponent from '../parameter-group.svelte';
 	import ParameterComponent from '../parameter.svelte';
 	import ModeWatcher from '../mode-watcher.svelte';
@@ -13,6 +12,11 @@
 	type Props = DashboardProps;
 	let { onIndicesChange, data = $bindable(), detail, children }: Props = $props();
 	let selected = $derived(new SvelteSet(data?.parameters.keys()));
+
+	$effect(() => {
+		if (!data) return;
+		onIndicesChange?.(data.uuid, data.indices);
+	});
 </script>
 
 <div class="grid grid-cols-3">
