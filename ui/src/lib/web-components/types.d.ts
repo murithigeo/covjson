@@ -29,24 +29,21 @@ interface DataRow<T extends DataValue = DataValue> {
 	t?: string;
 }
 
-interface BaseChartProps<T extends DataValue = DataValue> {
+interface BaseChartProps {
 	config: ChartConfig;
 	/**
 	 * If provided, then it means that the data is not condensed into a single chart
 	 * If not, data is coalesced into a single chart where the x-axis will be t and the values may be stacked or grouped
 	 */
 	pageWith?: 'z' | 't';
+	/**
+	 * Whether to show tooltip
+	 */
+	tooltip?: boolean;
 }
 
-export interface BarChartProps extends BarChartAttrs<DataRow<number>> {
-	pageWith?: 'z' | 't';
-	config: ChartConfig;
-}
-
-export interface LineChartProps extends LineChartAttrs<DataRow<number>> {
-	pageWith?: 'z' | 't';
-	config: ChartConfig;
-}
+export type BarChartProps = BaseChartProps & BarChartAttrs<DataRow<number>>;
+export type LineChartProps = BaseChartProps & LineChartAttrs<DataRow<number>>;
 
 /**
  * The parameter key and its toggle state

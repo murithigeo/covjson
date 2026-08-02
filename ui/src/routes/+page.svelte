@@ -6,6 +6,7 @@
 	import Dashboard1 from '$lib/web-components/dashboards/dashboard-1.svelte';
 	let data = $state<CoverageCollection>();
 	const { addSourceType } = maplibregl;
+	//@ts-expect-error incompatibility with inbuilt maplibre type
 	addSourceType('coveragejson', MaplibrePlugin).catch(() => {});
 
 	let map = $state<Map>();
