@@ -2,12 +2,11 @@ import { BaseDomain } from './base-domain.ts';
 import type { Trajectory as TrajDomain, Section as SectionDomain, Position } from 'coveragejson';
 import type { Referencing } from '../referencing.ts';
 import type { LineString } from 'geojson';
-import { denormalizeNumAxis, normalizeNumAxis, numAxisIsNormalized } from './utils.ts';
+import { denormalizeNumAxis, isUndefined, normalizeNumAxis, numAxisIsNormalized } from './utils.ts';
 import { indexOfNearest, minMax } from '../utils.ts';
-import distance from '@turf/distance';
 import type { WithoutRegularlySpacedAxis } from './types.d.ts';
 import nearestPointOnLine from '@turf/nearest-point-on-line';
-import { set } from '@murithigeo/uriproj';
+
 abstract class Base<T extends TrajDomain | SectionDomain> extends BaseDomain<T> {
   calculateAxesBounds(): this {
     return this;
@@ -19,7 +18,7 @@ abstract class Base<T extends TrajDomain | SectionDomain> extends BaseDomain<T> 
       t = referencing.trs(t);
       [x, y] = referencing.crs([x, y]);
       this.axes.composite.values[i] = [t, x, y];
-      if (z === undefined) continue;
+      if (isUndefined(z)) continue;
       z = referencing.vrs(z);
       this.axes.composite.values[i][3] = z;
     }
@@ -47,6 +46,12 @@ abstract class Base<T extends TrajDomain | SectionDomain> extends BaseDomain<T> 
   get t(): string[] {
     return this.axes.composite.values.map(([t]) => t);
   }
+  get axesStats(): Map<keyof T['axes'], number> {
+    return new Map([
+      ['composite', this.axes.composite.values.length],
+      ['z', this.z.length]
+    ]);
+  }
 }
 
 export class Trajectory extends Base<TrajDomain> {
@@ -71,7 +76,7 @@ export class Trajectory extends Base<TrajDomain> {
     return {
       type: 'LineString',
       coordinates: this.axes.composite.values.map(([, x, y, z]) => {
-        if (z === undefined) return [x, y];
+        if (isUndefined(z)) return [x, y];
         return [x, y, z];
       })
     };
@@ -84,9 +89,10 @@ export class Section extends Base<SectionDomain> {
     const {
       properties: { segmentIndex: composite }
     } = nearestPointOnLine(this.geometry, point, { units: 'meters' });
-    indices.set('composite', composite);
-    if (point[2] === undefined) point[2] = 0;
-    indices.set('z', indexOfNearest(denormalizeNumAxis(this.axes.z).values, point[2]));
+    indices.set('composite', composite).set('z', 0);
+    if (!isUndefined(point[2])) {
+      indices.set('z', indexOfNearest(denormalizeNumAxis(this.axes.z).values, point[2]));
+    }
     return indices;
   }
 

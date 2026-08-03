@@ -2,9 +2,12 @@ import { BaseDomain } from './base-domain.ts';
 import type { MultiPointSeries as MpsD, MultiPoint as MpD, Position } from 'coveragejson';
 import { Referencing } from '../referencing.ts';
 import type { MultiPoint as MultiPointGeometry } from 'geojson';
-import { calcStrAxisBounds, calc2dTupleAxisBounds, calcNumAxisBounds } from './utils.ts';
-import distance from '@turf/distance';
-import { minMax } from '../utils.ts';
+import {
+  calcStrAxisBounds,
+  calc2dTupleAxisBounds,
+  calcNumAxisBounds,
+  isUndefined
+} from './utils.ts';
 import nearestPointOnLine from '@turf/nearest-point-on-line';
 
 abstract class Base<T extends MpD | MpsD> extends BaseDomain<T> {
@@ -18,7 +21,7 @@ abstract class Base<T extends MpD | MpsD> extends BaseDomain<T> {
     if (this.axes.t) this.axes.t.bounds = calcStrAxisBounds(this.axes.t.values, timeZone);
     const xyBounds = calc2dTupleAxisBounds(this.axes.composite.values);
     const zBounds = calcNumAxisBounds(
-      this.axes.composite.values.map(([, , z]) => (z === undefined ? 0 : z))
+      this.axes.composite.values.map(([, , z]) => (isUndefined(z) ? 0 : z))
     );
     this.axes.composite.bounds = [];
     for (let i = 0; i < this.axes.composite.values.length; i++) {
@@ -38,6 +41,12 @@ abstract class Base<T extends MpD | MpsD> extends BaseDomain<T> {
   }
   get t(): string[] {
     return this.axes.t?.values || [];
+  }
+  get axesStats(): Map<keyof T['axes'], number> {
+    return new Map([
+      ['composite', this.axes.composite.values.length],
+      ['t', this.t.length]
+    ]);
   }
   _reproject(referencing: Referencing): this {
     super._reproject(referencing);
@@ -86,9 +95,7 @@ export class MultiPointSeries extends Base<MpsD> {
       coordinates: this.axes.composite.values
     };
   }
-  queryIndices(point: Position): Map<'composite' | 't', number> {
-    return super.queryIndices(point);
-  }
+
   constructor(domain: MpsD) {
     super(domain);
   }

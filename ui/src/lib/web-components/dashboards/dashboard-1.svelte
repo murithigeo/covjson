@@ -8,21 +8,24 @@
 	import ParameterGroupComponent from '../parameter-group.svelte';
 	import ParameterComponent from '../parameter.svelte';
 	import ModeWatcher from '../mode-watcher.svelte';
+	import GearStick from '../gear-stick.svelte';
 
 	type Props = DashboardProps;
-	let { onIndicesChange, data = $bindable(), detail, children }: Props = $props();
-	let selected = $derived(new SvelteSet(data?.parameters.keys()));
+	let { onIndicesChange, data: coverage = $bindable(), detail, children }: Props = $props();
 
-	$effect(() => {
-		if (!data) return;
-		onIndicesChange?.(data.uuid, data.indices);
-	});
+	let selected = $derived(new SvelteSet(coverage?.parameters.keys()));
+
+	let page = $state(1);
+	function handleOIndic(cov, indices) {
+		console.log({ cov, indices });
+		onIndicesChange?.(cov, indices);
+	}
 </script>
 
 <div class="grid grid-cols-3">
 	<div class="flex flex-col" id="parameter-preview">
 		<ModeWatcher />
-		<Collapsible.Root id="parameter-group-list" disabled={!data?.parameterGroups.length} open>
+		<Collapsible.Root id="parameter-group-list" disabled={!coverage?.parameterGroups.length} open>
 			<Item.Root size="sm" variant="outline">
 				<Item.Media><GroupIcon class="size-5" /></Item.Media>
 				<Item.Content>
@@ -35,7 +38,7 @@
 				</Item.Actions>
 			</Item.Root>
 			<Collapsible.Content class="">
-				{#each data?.parameterGroups as group, i (i)}
+				{#each coverage?.parameterGroups as group, i (i)}
 					<ParameterGroupComponent data={group} bind:selected {detail} />
 				{/each}
 			</Collapsible.Content>
@@ -53,13 +56,15 @@
 				</Item.Actions>
 			</Item.Root>
 			<Collapsible.Content>
-				{#each data?.parameters as [id, param] (id)}
+				{#each coverage?.parameters as [id, param] (id)}
 					<ParameterComponent data={param} bind:selected {detail} />
 				{/each}
 			</Collapsible.Content>
 		</Collapsible.Root>
 	</div>
-	<div class="" id="charts"></div>
+	<div class="" id="charts">
+		<GearStick bind:coverage bind:page onIndicesChange={handleOIndic} />
+	</div>
 	<div class="h-screen w-full">
 		{@render children?.()}
 	</div>

@@ -5,7 +5,7 @@ import {
 	type WithRequiredProperty,
 	type OnIndicesChange
 } from '@murithigeo/covjson-core';
-import type { BasicPluginOptions, PluginOptions } from './types.d.ts';
+import type { BasicPluginOptions, PluginOptions } from './types.js';
 import type { Position } from 'coveragejson';
 import { loadCovJson } from './util.ts';
 import type { Point, Polygon } from 'geojson';
@@ -14,7 +14,7 @@ export class MaplibrePlugin extends maplibregl.GeoJSONSource {
 	_coverages: Map<string, Coverage>;
 	covOptions: WithRequiredProperty<BasicPluginOptions, 'layers' | 'listenTo'>;
 	// Implement functionality to remove geometries from temp layer if non-layer clicked
-	indices: Record<string, number> | undefined;
+	indices: Map<string, number> | undefined;
 	tempSourceId: string;
 	constructor(
 		id: string,
@@ -101,11 +101,19 @@ export class MaplibrePlugin extends maplibregl.GeoJSONSource {
 			.filter((v) => v !== undefined)
 			.map((v) => v.calculateIndices(point));
 	}
+	onIndicesChange: OnIndicesChange = (coverage, indices) => {
+		console.log({ indices });
+		if (typeof coverage === 'string') {
+			let coverage_ = this._coverages.get(coverage);
+			if (!coverage_) return;
+			coverage = coverage_;
+		}
+		if (!indices) indices = coverage.indices;
 
-	onIndicesChange: OnIndicesChange = (uuid: string, indices: Record<string, number>) => {
-		const geometry = this.indicesToGeometry(uuid, indices);
-		this.indices = indices;
+		const geometry = this.indicesToGeometry(coverage);
 		if (!geometry) return;
+
+		this.indices = indices;
 		let mapSource = this.map.getSource<maplibregl.GeoJSONSource>(this.tempSourceId);
 		if (!mapSource) {
 			this.map.addSource(this.tempSourceId, {
@@ -141,49 +149,52 @@ export class MaplibrePlugin extends maplibregl.GeoJSONSource {
 			});
 		});
 	};
-	indicesToGeometry(uuid: string, indices: Record<string, number>): Polygon | Point | undefined {
-		const coverage = this._coverages.get(uuid);
-		if (!coverage) return undefined;
-
+	indicesToGeometry(coverage: Coverage): Polygon | Point | undefined {
+		const { indices } = coverage;
 		switch (coverage.domain.domainType) {
 			case 'Grid':
-				indices.x = indices.x || 0;
-				indices.y = indices.y || 0;
+				if (!indices.has('x')) indices.set('x', 0);
+				if (!indices.has('y')) indices.set('y', 0);
+
 				// Don't recompute
-				if (this.indices?.x === indices.x && this.indices.y === indices.y) return;
-				return coverage.domain.getPolygonAtIndices(indices.x, indices.y);
+				if (
+					this.indices?.get('x') === indices.get('x') &&
+					this.indices?.get('y') === indices.get('y')
+				) {
+					return;
+				}
+				return coverage.domain.getPolygonAtIndices(indices.get('x')!, indices.get('y'));
 			case 'MultiPoint':
 			case 'MultiPointSeries':
-				indices.composite = indices.composite || 0;
-				if (this.indices?.composite === indices.composite) return;
+				if (!indices.has('composite')) indices.set('composite', 0);
+				if (this.indices?.get('composite') === indices.get('composite')) return;
 				return {
 					type: 'Point',
-					coordinates: coverage.domain.axes.composite.values[indices.composite]
+					coordinates: coverage.domain.axes.composite.values[indices.get('composite')!]
 				};
 			case 'Trajectory':
 			case 'Section':
 				// todo Highlight the string and the nodes
-				indices.composite = indices.composite || 0;
-				if (this.indices?.composite === indices.composite) return;
+				if (indices.has('composite')) indices.set('composite', 0);
+				if (this.indices?.get('composite') === indices.get('composite')) return;
 				return {
 					type: 'Point',
-					// @ts-expect-error already extracted x,y via slice()
-					coordinates: coverage.domain.axes.composite.values[indices.composite || 0]
+					coordinates: coverage.domain.axes.composite.values[indices.get('composite')!]
 				};
 			case 'Point':
 			case 'VerticalProfile':
 			case 'PointSeries':
-				if (indices) return;
+				// if (indices) return;
 				return coverage.domain.geometry;
 			case 'MultiPolygon':
 			case 'MultiPolygonSeries':
 			case 'Polygon':
 			case 'PolygonSeries':
-				indices.composite = indices.composite || 0;
-				if (this.indices?.composite === indices.composite) return;
+				if (!indices.has('composite')) indices.set('composite', 0);
+				if (this.indices?.get('composite') === indices.get('composite')) return;
 				return {
 					type: 'Polygon',
-					coordinates: coverage.domain.axes.composite.values[indices.composite || 0]
+					coordinates: coverage.domain.axes.composite.values[indices.get('composite')!]
 				};
 			default:
 				return; //throw error?

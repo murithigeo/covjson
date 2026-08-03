@@ -91,13 +91,13 @@ export function numListIsRegular(values: number[]): boolean {
   }
   return true;
 }
-export function calcNumAxisBounds(values: number[]): number[] {
-  if (values.length === 1) return [values[0] - 1, values[0] + 1];
+export function calcNumAxisBounds<T extends number[]>(values: number[]): T {
+  if (values.length === 1) return [values[0] - 1, values[0] + 1] as T;
   if (numListIsRegular(values)) {
     let step = (values.at(-1)! - values[0]) / (values.length - 1);
     // Divide by two to get halfway between the values
     step /= 2;
-    return values.flatMap((val) => [val - step, val + step]);
+    return values.flatMap((val) => [val - step, val + step]) as T;
   }
 
   const bounds = Array<number>(values.length * 2);
@@ -117,7 +117,7 @@ export function calcNumAxisBounds(values: number[]): number[] {
     bounds[2 * i] = min;
     bounds[2 * i + 1] = max;
   }
-  return bounds;
+  return bounds as T;
 }
 export function calcStrAxisBounds(values: string[], timeZone = 'UTC'): string[] | undefined {
   // const options: Temporal.ZonedDateTimeToStringOptions = {
@@ -362,4 +362,8 @@ export function tIndicesOfNearest(a: string[], t: string) {
     return Temporal.ZonedDateTime.from({ ...v, timeZone: v.offset }).epochMilliseconds;
   });
   return indicesOfNearest(sinceEpoch.slice(1), sinceEpoch[0]);
+}
+
+export function isUndefined<T>(val: T | undefined): val is undefined {
+  return typeof val === 'undefined';
 }

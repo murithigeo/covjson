@@ -54,6 +54,10 @@ export abstract class BaseDomain<T extends Domain> extends Base<T> {
    */
   abstract calculateAxesBounds(timeZone?: string): this;
   /**
+   * Number of axis values in the domain
+   */
+  abstract get axesStats(): Map<keyof T['axes'], number>;
+  /**
    * Note that this is a clone of the class's core deets
    */
   toPlain(useRefs = true): T {

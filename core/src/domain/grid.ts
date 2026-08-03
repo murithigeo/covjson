@@ -8,7 +8,8 @@ import {
   normalizeNumAxis,
   numAxisIsNormalized,
   calcNumAxisBounds,
-  calcStrAxisBounds
+  calcStrAxisBounds,
+  isUndefined
 } from './utils.ts';
 import bboxPolygon from '@turf/bbox-polygon';
 import type { WithoutRegularlySpacedAxis } from './types.d.ts';
@@ -40,13 +41,11 @@ export class Grid extends BaseDomain<GridDomain> {
       }
 
       // Get the last values
-      if (x === undefined) {
+      if (isUndefined(x)) {
         this.axes.y.values[i] = referencing.crs([xvals[xvals.length - 1], y])[1];
         continue;
       }
-      if (y === undefined) {
-        [this.axes.x.values[i]] = referencing.crs([x, yvals[yvals.length - 1]]);
-      }
+      if (isUndefined(y)) [this.axes.x.values[i]] = referencing.crs([x, yvals[yvals.length - 1]]);
     }
     if (xIsNormalized) this.#normalize('x');
     if (yIsNormalized) this.#normalize('y');
@@ -151,9 +150,15 @@ export class Grid extends BaseDomain<GridDomain> {
     indices.set('z', z);
     // todo add check for end of polygon
     // add inside check to find the exact indices
+
     return indices;
   }
-  // split(xIndex: number, yIndex: number): PolygonSeries | Polygon | MultiPolygon | MultiPolygonSeries{
-
-  // }
+  get axesStats(): Map<'x' | 'y' | 'z' | 't', number> {
+    return new Map([
+      ['x', this.x.length],
+      ['y', this.y.length],
+      ['t', this.t.length],
+      ['z', this.z.length]
+    ]);
+  }
 }

@@ -15,6 +15,13 @@ abstract class Base<T extends PolygonDomain | PolySeriesD | MP | MPs> extends Ba
   constructor(domain: T) {
     super(domain);
   }
+  get axesStats(): Map<keyof T['axes'], number> {
+    return new Map([
+      ['composite', this.axes.composite.values.length],
+      ['t', this.t.length],
+      ['z', this.z.length]
+    ]);
+  }
   _reproject(referencing: Referencing): this {
     super._reproject(referencing);
     for (let oi = 0; oi < this.axes.composite.values.length; oi++) {
@@ -57,6 +64,8 @@ abstract class Base<T extends PolygonDomain | PolySeriesD | MP | MPs> extends Ba
   normalize = undefined;
   denormalize = undefined;
   calculateAxesBounds(): this {
+    if (this.axes.z) this.axes.z.bounds = calcNumAxisBounds(this.axes.z.values);
+
     return this;
   }
 }
@@ -111,54 +120,20 @@ export class MultiPolygon extends Base<MP> {
       coordinates: this.axes.composite.values
     };
   }
-  split(compositeIndex: number): Polygon {
-    const domain = this.toPlain();
-    const { composite, z, t } = domain.axes;
-    return new Polygon({
-      ...domain,
-      domainType: 'Polygon',
-      axes: {
-        composite: {
-          ...domain.axes.composite,
-          values: [composite.values[compositeIndex]],
-          bounds: composite.bounds
-            ? [composite.bounds[2 * compositeIndex], composite.bounds[2 * compositeIndex + 1]]
-            : undefined
-        },
-        z,
-        t
-      }
-    });
-  }
 }
 
 export class MultiPolygonSeries extends Base<MPs> {
   constructor(domain: MPs) {
     super(domain);
   }
-  split(compositeIndex: number): PolygonSeries {
-    const domain = this.toPlain();
-    const { composite, z, t } = domain.axes;
-    return new PolygonSeries({
-      ...domain,
-      domainType: 'PolygonSeries',
-      axes: {
-        composite: {
-          ...domain.axes.composite,
-          values: [composite.values[compositeIndex]],
-          bounds: composite.bounds
-            ? [composite.bounds[2 * compositeIndex], composite.bounds[2 * compositeIndex + 1]]
-            : undefined
-        },
-        z,
-        t
-      }
-    });
-  }
+
   get geometry(): GeoJSON.MultiPolygon {
     return {
       type: 'MultiPolygon',
       coordinates: this.axes.composite.values
     };
+  }
+  queryIndices(point: Position): Map<'composite' | 't', number> {
+    return super.queryIndices(point);
   }
 }

@@ -160,7 +160,6 @@ export class Coverage<T extends Domain = Domain> extends Base<CRG<T>> {
       ranges: this.ranges
         .keys()
         .reduce((l: Record<string, Nd>, r) => ({ ...l, [r]: this.ranges.get(r)!.toPlain() }), {}),
-      //@ts-expect-error error in types upstream
       domainType: this.domain.domainType,
       parameters: this.parameters
         .entries()
