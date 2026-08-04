@@ -9,17 +9,13 @@
 	import ParameterComponent from '../parameter.svelte';
 	import ModeWatcher from '../mode-watcher.svelte';
 	import GearStick from '../gear-stick.svelte';
-
+	import TemporalControl from '../temporal-control.svelte';
 	type Props = DashboardProps;
 	let { onIndicesChange, data: coverage = $bindable(), detail, children }: Props = $props();
 
 	let selected = $derived(new SvelteSet(coverage?.parameters.keys()));
 
 	let page = $state(1);
-	function handleOIndic(cov, indices) {
-		console.log({ cov, indices });
-		onIndicesChange?.(cov, indices);
-	}
 </script>
 
 <div class="grid grid-cols-3">
@@ -63,7 +59,13 @@
 		</Collapsible.Root>
 	</div>
 	<div class="" id="charts">
-		<GearStick bind:coverage bind:page onIndicesChange={handleOIndic} />
+		<TemporalControl
+			values={['2021', '2023', '2024']}
+			formatter={(v, res) => {
+				return v;
+			}}
+		></TemporalControl>
+		<GearStick bind:coverage bind:page {onIndicesChange} joystick />
 	</div>
 	<div class="h-screen w-full">
 		{@render children?.()}

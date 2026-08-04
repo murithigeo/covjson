@@ -7,7 +7,7 @@
 	type Props = MetadataRenderProps<Record<string, I18N>>;
 
 	let { data = $bindable(), detail, class: className }: Props = $props();
-	let numOfRows = $derived(Object.values(data).reduce((l, r) => l + r.locales.length, 0));
+	let numOfRows = $derived(Object.values(data).reduce((l, r) => l + r.size, 0));
 </script>
 
 <Table.Root class={cn(className)}>
@@ -22,20 +22,25 @@
 		{#if numOfRows}
 			{#each Object.entries(data) as [field, i18n] (field)}
 				{#if detail === 'full'}
-					{#each i18n.locales as lang, index (lang)}
+					{#each i18n as [lang, value], index (lang)}
 						<Table.Row>
 							{#if !index}
-								<Table.Cell class="capitalize" rowspan={i18n.locales.length}>{field}</Table.Cell>
+								<Table.Cell class="capitalize" rowspan={i18n.size}>{field}</Table.Cell>
 							{/if}
 							<Table.Cell>{i18n.getTagName(lang)}</Table.Cell>
-							<Table.Cell {lang}>{i18n.query(lang)?.value!}</Table.Cell>
+							<Table.Cell {lang}>{value}</Table.Cell>
 						</Table.Row>
 					{/each}
-				{:else if i18n.locales.length}
+				{:else}
+					{@const value = i18n.query()}
 					<Table.Row>
 						<Table.Cell class="capitalize">{field}</Table.Cell>
-						<Table.Cell>{i18n.getTagName(i18n.query()!.tag)}</Table.Cell>
-						<Table.Cell>{i18n.query()!.value}</Table.Cell>
+						{#if !value}
+							<Table.Cell colspan={2}>No Match Found</Table.Cell>
+						{:else}
+							<Table.Cell>{i18n.getTagName(value.tag!)}</Table.Cell>
+							<Table.Cell>{value}</Table.Cell>
+						{/if}
 					</Table.Row>
 				{/if}
 			{/each}

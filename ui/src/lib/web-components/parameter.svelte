@@ -57,7 +57,7 @@
 	<Collapsible.Content>
 		<div class="ml-4">
 			<Collapsible.Root
-				disabled={!parameter.label.locales.length && !parameter.description.locales.length}
+				disabled={!parameter.label.size && !parameter.description.size}
 				id="{id}:i18n"
 			>
 				<Item.Root size="sm" variant="outline">
@@ -68,7 +68,7 @@
 					<Item.Actions>
 						<Collapsible.Trigger
 							class={buttonVariants({ variant: 'ghost' })}
-							disabled={!parameter.label.locales.length && !parameter.description.locales.length}
+							disabled={!parameter.label.size && !parameter.description.size}
 						>
 							<ChevronsUpDown />
 						</Collapsible.Trigger>

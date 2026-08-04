@@ -215,7 +215,7 @@ export function tListIsRegular(values: string[]): boolean {
   for (let i = 1; i < values.length; i++) {
     const [ref, now] = [values[i - 1], values[i]].map(parseDateString);
     // Add cache so as not to do parsing again;
-    if (ref.format !== now.format) return false;
+    if (ref.resolution !== now.resolution) return false;
     const [refn, nown] = [ref, now].map(getTemporalInstance);
 
     const dur = nown.since(refn);
@@ -271,11 +271,11 @@ export function calc2dTupleAxisBounds(positions: Position[]): number[][] {
  * Internal helper used to calculate bounds
  */
 export function getTemporalInstance(res: DateTimeParseResult) {
-  if (res.format === 'Instant') {
+  if (res.resolution === 'Instant') {
     return Temporal.ZonedDateTime.from({ ...res, timeZone: res.offset }, { offset: 'use' }); //.withTimeZone("UTC").toString({"timeZoneName"});
   }
-  if (res.format === 'YearMonth') res.day = 1;
-  if (res.format === 'Year') {
+  if (res.resolution === 'YearMonth') res.day = 1;
+  if (res.resolution === 'Year') {
     res.day = 1;
     res.month = 1;
   }
@@ -283,9 +283,9 @@ export function getTemporalInstance(res: DateTimeParseResult) {
   return Temporal.PlainDate.from({ ...res });
 }
 
-type TFormat = 'Instant' | 'Date' | 'Year' | 'YearMonth';
-type DateTimeParseResult<T extends TFormat = TFormat> = {
-  format: T;
+export type TemporalResolution = 'Instant' | 'Date' | 'Year' | 'YearMonth';
+type DateTimeParseResult<T extends TemporalResolution = TemporalResolution> = {
+  resolution: T;
   year: number;
   month: T extends 'Year' ? undefined : number;
   day: T extends 'YearMonth' | 'Year' ? undefined : number;
@@ -296,7 +296,7 @@ type DateTimeParseResult<T extends TFormat = TFormat> = {
 };
 
 export function parseDateString(val: string): DateTimeParseResult {
-  let format: 'Year' | 'YearMonth' | 'Instant' | 'Date';
+  let resolution: TemporalResolution;
   let year: number;
   let month: number | undefined;
   let day: number | undefined;
@@ -309,19 +309,19 @@ export function parseDateString(val: string): DateTimeParseResult {
   if (parts.length === 1) {
     year = Number(parts[0]);
     if (!Number.isInteger(year)) throw new InvalidDateRepresentation('YYYY or +-DYYYY', val);
-    format = 'Year';
+    resolution = 'Year';
   } else if (parts.length === 2) {
     [year, month] = parts.map(Number);
     if (Number.isNaN(year) || Number.isNaN(month))
       throw new InvalidDateRepresentation('YYYY-MM', val);
-    format = 'YearMonth';
+    resolution = 'YearMonth';
   } else {
     // eslint-disable-next-line prefer-const
     let [date, time] = val.split('T');
     [year, month, day] = date.split('-').map(Number);
-    format = 'Date';
+    resolution = 'Date';
     if (val.indexOf('T') !== -1) {
-      format = 'Instant';
+      resolution = 'Instant';
       if (time.indexOf('Z') !== -1) time = time.replace('Z', '+00:00');
       let direction: '+' | '-' = '+';
       if (time.indexOf('-') !== -1) direction = '-';
@@ -333,7 +333,7 @@ export function parseDateString(val: string): DateTimeParseResult {
     }
   }
   return {
-    format,
+    resolution,
     year,
     month,
     day,

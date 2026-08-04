@@ -27,5 +27,11 @@
     },
     "allowScripts": {
         "msw@2.15.0": true
+    },
+    "dependencies": {
+        "@turf/bearing": "^7.3.5",
+        "@turf/distance": "^7.3.5",
+        "@turf/line-offset": "^7.3.5",
+        "turf": "^3.0.14"
     }
 }

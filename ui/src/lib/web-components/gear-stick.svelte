@@ -22,15 +22,12 @@
 		onIndicesChange,
 		page = $bindable(1),
 		pageWith = 't',
-		joystick = false
+		joystick = $bindable(false)
 		// Also include code such that the client receives an array of data markers
 	}: Props = $props();
-	let indices = $state(new SvelteMap<string, number>());
-	$effect(() => {
-		if (!coverage) return;
-		onIndicesChange?.(coverage.uuid, indices);
-	});
+	let indices = $derived(new SvelteMap(coverage?.indices).set(pageWith, page - 1));
 
+	$effect(() => onIndicesChange?.(coverage!, new Map(indices)));
 	let limits = $derived.by(() => {
 		// How many components are there in the axis
 		let limits = new SvelteMap<'horizontal' | 'vertical', { value: number; axis: string }>();
@@ -53,7 +50,6 @@
 				break;
 		}
 		return limits;
-		// if(!has)
 	});
 	let buttonProps: ButtonProps = {};
 	function crementIndices(operator: '+' | '-', direction: 'vertical' | 'horizontal') {
@@ -79,18 +75,16 @@
 		{@render down()}
 	</ButtonGroup.Root>
 {:else}
-	<div class="">
-		<ButtonGroup.Root>
-			<ButtonGroup.Root orientation="horizontal">
-				{@render left()}
-				{@render right()}
-			</ButtonGroup.Root>
-			<ButtonGroup.Root orientation="horizontal">
-				{@render up()}
-				{@render down()}
-			</ButtonGroup.Root>
+	<ButtonGroup.Root>
+		<ButtonGroup.Root orientation="horizontal">
+			{@render left()}
+			{@render right()}
 		</ButtonGroup.Root>
-	</div>
+		<ButtonGroup.Root orientation="horizontal">
+			{@render up()}
+			{@render down()}
+		</ButtonGroup.Root>
+	</ButtonGroup.Root>
 {/if}
 
 {#snippet right()}

@@ -40,9 +40,6 @@ export class MaplibrePlugin extends maplibregl.GeoJSONSource {
 			reproject: 'reproject' in options ? options.reproject : true
 		};
 		this.tempSourceId = `${this.id}::::scratchpad`;
-		// const url = new URL('./worker.ts', import.meta.url).href;
-		// this.workerSourceURL = url
-		// maplibregl.importScriptInWorkers(url);
 		this.indices = undefined;
 		this.setCovData(options.data).then(() => this.covOptions.onLoad?.(this.covMapToCollection()));
 	}
@@ -102,15 +99,13 @@ export class MaplibrePlugin extends maplibregl.GeoJSONSource {
 			.map((v) => v.calculateIndices(point));
 	}
 	onIndicesChange: OnIndicesChange = (coverage, indices) => {
-		console.log({ indices });
 		if (typeof coverage === 'string') {
-			let coverage_ = this._coverages.get(coverage);
-			if (!coverage_) return;
-			coverage = coverage_;
+			coverage = this._coverages.get(coverage);
 		}
-		if (!indices) indices = coverage.indices;
+		console.log({ coverage, indices });
+		if (!coverage) return;
+		const geometry = this.indicesToGeometry(coverage, indices || coverage.indices);
 
-		const geometry = this.indicesToGeometry(coverage);
 		if (!geometry) return;
 
 		this.indices = indices;
@@ -149,8 +144,7 @@ export class MaplibrePlugin extends maplibregl.GeoJSONSource {
 			});
 		});
 	};
-	indicesToGeometry(coverage: Coverage): Polygon | Point | undefined {
-		const { indices } = coverage;
+	indicesToGeometry(coverage: Coverage, indices: Map<string, number>): Polygon | Point | undefined {
 		switch (coverage.domain.domainType) {
 			case 'Grid':
 				if (!indices.has('x')) indices.set('x', 0);
