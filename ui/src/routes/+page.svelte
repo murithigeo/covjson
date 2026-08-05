@@ -47,9 +47,8 @@
 
 <Dashboard1
 	bind:data={coverage}
-	onIndicesChange={
-		map?.getSource<MaplibrePlugin>('cov-load-test')?.onIndicesChange
-	}
+	bind:coveragecollection={data}
+	onIndicesChange={map?.getSource<MaplibrePlugin>('cov-load-test')?.onIndicesChange}
 >
 	<MapLibre
 		class="h-full w-full"

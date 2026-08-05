@@ -4,7 +4,6 @@ import type {
 	Parameter as CovParam,
 	ParameterGroup as CovPGroup,
 	NdArray as Nd,
-	Position2D,
 	Position
 } from 'coveragejson';
 import { Base } from './base.ts';
@@ -180,7 +179,7 @@ export class Coverage<T extends Domain = Domain> extends Base<CRG<T>> {
 	 * @param point The point to get data for
 	 * @param rangeIds The parameter IDs to get data for. Should be in uppercase
 	 * @returns {Promise<Record<string,RangeValue|undefined>>} If the range does not exist, the value is undefined
-	 * @todo allow 3D Positions so as to query z values
+	 * @todo Check that loaded values are persisted once loaded (range is replaced)
 	 * @example
 	 *  const data=await coverage.getData([0,0],["QC","POTM","x"])
 	 *  data==={"QC":50,"POTM":100,"x":undefined}

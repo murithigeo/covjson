@@ -3,19 +3,25 @@
 	import * as Collapsible from '../../components/ui/collapsible/index.ts';
 	import * as Item from '../../components/ui/item/index.ts';
 	import { ChevronsUpDown, GroupIcon } from '@lucide/svelte';
-	import { SvelteSet } from 'svelte/reactivity';
+	import { SvelteSet, SvelteMap } from 'svelte/reactivity';
 	import { buttonVariants } from '../../components/ui/button/index.ts';
 	import ParameterGroupComponent from '../parameter-group.svelte';
 	import ParameterComponent from '../parameter.svelte';
 	import ModeWatcher from '../mode-watcher.svelte';
 	import GearStick from '../gear-stick.svelte';
 	import TemporalControl from '../temporal-control.svelte';
-	type Props = DashboardProps;
-	let { onIndicesChange, data: coverage = $bindable(), detail, children }: Props = $props();
+
+	let {
+		onIndicesChange,
+		data: coverage = $bindable(),
+		detail,
+		children,
+		coveragecollection = $bindable()
+	}: DashboardProps = $props();
 
 	let selected = $derived(new SvelteSet(coverage?.parameters.keys()));
-
 	let page = $state(1);
+	$inspect(coveragecollection.parameters);
 </script>
 
 <div class="grid grid-cols-3">
@@ -58,14 +64,14 @@
 			</Collapsible.Content>
 		</Collapsible.Root>
 	</div>
-	<div class="" id="charts">
+	<div class="flex flex-col gap-2" id="charts">
+		<GearStick bind:coverage bind:page {onIndicesChange} />
 		<TemporalControl
 			values={['2021', '2023', '2024']}
 			formatter={(v, res) => {
 				return v;
 			}}
-		></TemporalControl>
-		<GearStick bind:coverage bind:page {onIndicesChange} joystick />
+		/>
 	</div>
 	<div class="h-screen w-full">
 		{@render children?.()}

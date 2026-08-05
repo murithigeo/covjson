@@ -102,7 +102,6 @@ export class MaplibrePlugin extends maplibregl.GeoJSONSource {
 		if (typeof coverage === 'string') {
 			coverage = this._coverages.get(coverage);
 		}
-		console.log({ coverage, indices });
 		if (!coverage) return;
 		const geometry = this.indicesToGeometry(coverage, indices || coverage.indices);
 
@@ -173,7 +172,7 @@ export class MaplibrePlugin extends maplibregl.GeoJSONSource {
 				if (this.indices?.get('composite') === indices.get('composite')) return;
 				return {
 					type: 'Point',
-					coordinates: coverage.domain.axes.composite.values[indices.get('composite')!]
+					coordinates: coverage.domain.axes.composite.values[indices.get('composite')!].slice(1)
 				};
 			case 'Point':
 			case 'VerticalProfile':

@@ -152,10 +152,29 @@ export class CoverageCollection<T extends Domain = Domain> extends Base<CovColl<
 	 * If the parameter is referenced by more than 1 coverage, it is deleted from all coverages
 	 */
 	get parameters(): Map<string, Parameter> {
-		const params = new Map<string, Parameter>();
-		for (const cov of this.coverages) {
-			for (const [id, param] of cov.parameters.entries()) {
-				if (params.has(id)) continue;
+		const params = new Map(this.coverages.flatMap((c) => [...c.parameters]));
+		const isNull = (v: any): v is null => v === null;
+		for (const coverage of this.coverages) {
+			for (let [id, range] of coverage.ranges) {
+				const param = params.get(id);
+				if (!param) continue;
+				let { count = 0, minMax } = param.stats;
+				count += 1;
+				let _minMax = range.minMax;
+				if (range.dataType !== 'string') {
+					minMax = minMax || [null, null];
+					_minMax = _minMax || [null, null];
+					minMax.forEach((v0, i, arr) => {
+						const v1 = _minMax![i];
+						if (isNull(v0) && !isNull(v1)) v0 = v1;
+						if (isNull(v0) && isNull(v1)) return;
+						if (i === 0 && v1! < v0!) v0 = v1;
+						if (i === 1 && v1! > v0!) v0 = v1;
+						arr[i] = v0;
+					});
+				}
+				param.stats.count = count;
+				param.stats.minMax = minMax;
 				params.set(id, param);
 			}
 		}

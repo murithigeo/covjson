@@ -25,9 +25,9 @@
 		joystick = $bindable(false)
 		// Also include code such that the client receives an array of data markers
 	}: Props = $props();
-	let indices = $derived(new SvelteMap(coverage?.indices).set(pageWith, page - 1));
+	let indices = $derived(new SvelteMap(coverage?.indices));
 
-	$effect(() => onIndicesChange?.(coverage!, new Map(indices)));
+	$effect(() => onIndicesChange?.(coverage!, new Map(indices).set(pageWith, page - 1)));
 	let limits = $derived.by(() => {
 		// How many components are there in the axis
 		let limits = new SvelteMap<'horizontal' | 'vertical', { value: number; axis: string }>();
