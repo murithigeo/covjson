@@ -36,10 +36,10 @@
 					<Table.Row>
 						<Table.Cell class="capitalize">{field}</Table.Cell>
 						{#if !value}
-							<Table.Cell colspan={2}>No Match Found</Table.Cell>
+							<Table.Cell colspan={2} class="items-center flex flex-col">No Match Found</Table.Cell>
 						{:else}
-							<Table.Cell>{i18n.getTagName(value.tag!)}</Table.Cell>
-							<Table.Cell>{value}</Table.Cell>
+							<Table.Cell>{i18n.getTagName(value.tag)}</Table.Cell>
+							<Table.Cell>{value.value}</Table.Cell>
 						{/if}
 					</Table.Row>
 				{/if}

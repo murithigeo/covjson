@@ -53,7 +53,6 @@ export class MaplibrePlugin extends maplibregl.GeoJSONSource {
 			}
 			this.setData({ type: 'FeatureCollection', features });
 		});
-		await Promise.resolve(load);
 		return this.covOptions.onLoad?.(this.covMapToCollection());
 	}
 	updateCovData() {}
@@ -172,7 +171,9 @@ export class MaplibrePlugin extends maplibregl.GeoJSONSource {
 				if (this.indices?.get('composite') === indices.get('composite')) return;
 				return {
 					type: 'Point',
-					coordinates: coverage.domain.axes.composite.values[indices.get('composite')!].slice(1)
+					coordinates: coverage.domain.axes.composite.values[indices.get('composite')!].slice(
+						1
+					) as Position
 				};
 			case 'Point':
 			case 'VerticalProfile':

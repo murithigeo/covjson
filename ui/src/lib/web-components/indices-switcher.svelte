@@ -1,33 +1,34 @@
 <!-- A component used to change active indices of the focus coverage -->
 <script lang="ts">
-	import type { OnIndicesChange, Coverage } from '@murithigeo/covjson-core';
+	import type { Coverage } from '@murithigeo/covjson-core';
 	import { Button, type ButtonProps } from '../components/ui/button/index.ts';
 	import * as ButtonGroup from '../components/ui/button-group/index.ts';
 	import { ArrowUp, ArrowDown, ArrowLeft, ArrowRight, Info } from '@lucide/svelte';
 	import { SvelteMap } from 'svelte/reactivity';
+
 	interface Props {
+		domainData: Pick<InferDomainClass<T>, 'axes' | 'domainType'>;
 		coverage?: Coverage; // make the indices generic
-		onIndicesChange?: OnIndicesChange;
 		/**
 		 * For Grid coverages only.
 		 * Allows visualization of 4D data values by slicing into tiles either by the "z"|"t" axes
 		 */
 		page?: number;
 		pageWith?: 'z' | 't';
-		indices?: SvelteMap<string, number>;
+		indices: SvelteMap<string, number>;
+		/**
+		 * Renders the indices buttons as a grid reminiscent of a joystick
+		 */
 		joystick?: boolean;
 	}
 	let {
-		coverage = $bindable(),
-		onIndicesChange,
+		domainData = $bindable(),
 		page = $bindable(1),
 		pageWith = 't',
-		joystick = $bindable(false)
-		// Also include code such that the client receives an array of data markers
+		joystick = $bindable(false),
+		indices = $bindable()
 	}: Props = $props();
-	let indices = $derived(new SvelteMap(coverage?.indices));
 
-	$effect(() => onIndicesChange?.(coverage!, new Map(indices).set(pageWith, page - 1)));
 	let limits = $derived.by(() => {
 		// How many components are there in the axis
 		let limits = new SvelteMap<'horizontal' | 'vertical', { value: number; axis: string }>();
@@ -56,11 +57,11 @@
 		const stats = limits.get(direction);
 		if (!stats) return;
 		let { axis, value: max } = stats;
-		let currentIndex = indices.get(axis)!;
+		let currentIndex = indices?.get(axis)!;
 		if (operator === '+') currentIndex += 1;
 		else currentIndex -= 1;
 		currentIndex = (currentIndex + max) % max;
-		indices.set(axis, currentIndex);
+		indices?.set(axis, currentIndex);
 	}
 </script>
 

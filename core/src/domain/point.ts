@@ -66,13 +66,8 @@ abstract class PointBasedDomain<
     }
     return indices;
   }
-  get axesStats(): Map<keyof T['axes'], number> {
-    return new Map([
-      ['x', 0],
-      ['y', 0],
-      ['t', this.t.length],
-      ['z', this.z.length]
-    ]);
+  get axesMaxIndices(): Map<keyof T['axes'], number> {
+    return new Map().set('x', 0).set('y', 0).set('t', this.t.length).set('z', this.z.length);
   }
 }
 
@@ -80,6 +75,7 @@ export class Point extends PointBasedDomain<PointD> {
   constructor(domain: PointD) {
     super(domain);
   }
+
   get geometry(): PointGeometry {
     return {
       type: 'Point',
@@ -99,9 +95,10 @@ export class PointSeries extends PointBasedDomain<PSeriesD> {
       coordinates: [this.axes.x.values[0], this.axes.y.values[0]]
     };
   }
-  queryIndices(point: Position): Map<'x' | 'y' | 'z' | 't', number> {
-    return super.queryIndices(point);
-  }
+
+  // queryIndices(point: Position): Map<'x' | 'y' | 'z' | 't', number> {
+  //   return super.queryIndices(point);
+  // }
   constructor(domain: PSeriesD) {
     super(domain);
   }
@@ -153,10 +150,10 @@ export class VerticalProfile extends PointBasedDomain<VertProfDomain> {
     return this;
   }
 
-  normalize = () => {
+  normalize() {
     this.axes.z = normalizeNumAxis(this.axes.z);
     return this;
-  };
+  }
   queryIndices(point: Position): Map<'x' | 'y' | 'z' | 't', number> {
     const indices = super.queryIndices(point);
     if (point[2] === undefined) point[2] = 0; // todo, set index to 0 instead

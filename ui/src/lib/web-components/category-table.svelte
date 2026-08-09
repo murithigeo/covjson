@@ -25,27 +25,27 @@
 	<Table.Body>
 		{#each categories as { id, label, description } (id)}
 			{#if detail === 'full'}
-				{@const rowspan = label.locales.length + description.locales.length}
-				{#each label.locales as lang, i (i)}
+				{@const rowspan = label.size+ description.size}
+				{#each label as [lang,value],i  (lang)}
 					<Table.Row>
 						{#if i === 0}
 							<Table.Cell {rowspan} class="border-r">{id}</Table.Cell>
-							<Table.Cell rowspan={label.locales.length} class="border-r">Label</Table.Cell>
+							<Table.Cell rowspan={label.size} class="border-r">Label</Table.Cell>
 						{/if}
 						<Table.Cell>{label.getTagName(lang)}</Table.Cell>
-						<Table.Cell {lang}>{label.query(lang)}</Table.Cell>
+						<Table.Cell {lang}>{value}</Table.Cell>
 					</Table.Row>
 				{/each}
 
-				{#each description.locales as lang, i (lang)}
+				{#each description as [lang,value],i (lang)}
 					<Table.Row>
 						{#if i === 0}
-							<Table.Cell rowspan={description.locales.length} class="border-r"
+							<Table.Cell rowspan={description.size} class="border-r"
 								>Description</Table.Cell
 							>
 						{/if}
 						<Table.Cell>{description.getTagName(lang)}</Table.Cell>
-						<Table.Cell {lang}>{description.query(lang)}</Table.Cell>
+						<Table.Cell {lang}>{value}</Table.Cell>
 					</Table.Row>
 				{/each}
 			{:else}

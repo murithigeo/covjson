@@ -42,11 +42,8 @@ abstract class Base<T extends MpD | MpsD> extends BaseDomain<T> {
   get t(): string[] {
     return this.axes.t?.values || [];
   }
-  get axesStats(): Map<keyof T['axes'], number> {
-    return new Map([
-      ['composite', this.axes.composite.values.length],
-      ['t', this.t.length]
-    ]);
+  get axesMaxIndices(): Map<keyof T['axes'], number> {
+    return new Map().set('composite', this.axes.composite.values.length).set('t', this.t.length);
   }
   _reproject(referencing: Referencing): this {
     super._reproject(referencing);

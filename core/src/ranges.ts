@@ -187,8 +187,8 @@ export class NdArray<T extends string | number = string | number> {
 			axisNames: this.axisNames
 		};
 	}
-	get minMax() {
-		if (this.dataType === 'string') return undefined;
+	get minMax(): [number | null, number | null] {
+		if (this.dataType === 'string') return [null, null];
 		return minMax(this.ndarr.data as number[]);
 	}
 }

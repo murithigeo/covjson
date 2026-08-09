@@ -50,36 +50,3 @@ export function getDomain<D extends Domain = Domain>(domain: D | string) {
       throw Error(`Does not custom domain:${domain}`);
   }
 }
-
-export function domainIsInstanceOf(
-  v: unknown
-): v is
-  | Grid
-  | Trajectory
-  | Section
-  | Point
-  | PointSeries
-  | Polygon
-  | PolygonSeries
-  | MultiPoint
-  | MultiPointSeries
-  | MultiPolygon
-  | MultiPolygonSeries
-  | VerticalProfile
-  | Trajectory
-  | Section {
-  return [
-    Grid,
-    Trajectory,
-    Section,
-    Point,
-    PointSeries,
-    MultiPoint,
-    MultiPointSeries,
-    Polygon,
-    PolygonSeries,
-    MultiPolygon,
-    MultiPolygonSeries,
-    VerticalProfile
-  ].some((clx) => v instanceof clx);
-}

@@ -1,5 +1,11 @@
 import type { NdArray, CoverageJSON } from 'coveragejson';
-import { Coverage, CoverageCollection, domainIsInstanceOf, load } from '@murithigeo/covjson-core';
+import {
+	BaseDomain,
+	Coverage,
+	CoverageCollection,
+	getDomain,
+	load
+} from '@murithigeo/covjson-core';
 import type { PluginOptions } from './types.d.ts';
 
 export function getCoverageId(data: Coverage, promoteId = 'uuid'): string {
@@ -7,21 +13,21 @@ export function getCoverageId(data: Coverage, promoteId = 'uuid'): string {
 	return promoteId in data ? data[promoteId] : data.properties[promoteId];
 }
 
-export async function loadCovJson(
-	data: PluginOptions['data'],
-	reproject: PluginOptions['reproject'] = true
-) {
+export async function loadCovJson(data: PluginOptions['data']): Promise<Coverage[]> {
 	if (typeof data === 'string') {
 		data = await load<Exclude<CoverageJSON, NdArray>>(data);
 		if (['TiledNdArray', 'NdArray'].includes(data.type))
 			throw Error(`Maplibre does not support NdArrays`);
 	}
-	if (data instanceof Coverage || data instanceof CoverageCollection || domainIsInstanceOf(data)) {
-		data = data.toPlain();
+
+	if (data.type === 'Domain') {
+		if (!(data instanceof BaseDomain)) data = getDomain(data);
+		return [new Coverage({ type: 'Coverage', domain: data, ranges: {} })];
 	}
-	if (data.type === 'Domain') data = { type: 'Coverage', domain: data, ranges: {} };
-	if (data.type === 'Coverage') data = { type: 'CoverageCollection', coverages: [data] };
-	return CoverageCollection.load(data)
-		.then((cov) => (reproject ? cov.reproject({ crsId: 'OGC:CRS84' }) : cov))
-		.then((cov) => cov.coverages);
+	if (data.type === 'Coverage') {
+		if (data instanceof Coverage) return [data];
+		return [await Coverage.load(data)];
+	}
+	if (data instanceof CoverageCollection) return data.coverages;
+	return CoverageCollection.load(data).then(({ coverages }) => coverages);
 }

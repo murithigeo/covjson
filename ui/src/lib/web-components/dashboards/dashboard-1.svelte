@@ -8,7 +8,7 @@
 	import ParameterGroupComponent from '../parameter-group.svelte';
 	import ParameterComponent from '../parameter.svelte';
 	import ModeWatcher from '../mode-watcher.svelte';
-	import GearStick from '../gear-stick.svelte';
+	import GearStick from '../indices-switcher.svelte';
 	import TemporalControl from '../temporal-control.svelte';
 
 	let {
@@ -21,7 +21,6 @@
 
 	let selected = $derived(new SvelteSet(coverage?.parameters.keys()));
 	let page = $state(1);
-	$inspect(coveragecollection.parameters);
 </script>
 
 <div class="grid grid-cols-3">

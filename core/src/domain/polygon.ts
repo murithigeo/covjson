@@ -15,12 +15,11 @@ abstract class Base<T extends PolygonDomain | PolySeriesD | MP | MPs> extends Ba
   constructor(domain: T) {
     super(domain);
   }
-  get axesStats(): Map<keyof T['axes'], number> {
-    return new Map([
-      ['composite', this.axes.composite.values.length],
-      ['t', this.t.length],
-      ['z', this.z.length]
-    ]);
+  get axesMaxIndices(): Map<keyof T['axes'], number> {
+    return new Map()
+      .set('composite', this.axes.composite.values.length)
+      .set('t', this.t.length)
+      .set('z', this.z.length);
   }
   _reproject(referencing: Referencing): this {
     super._reproject(referencing);
