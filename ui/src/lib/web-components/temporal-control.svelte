@@ -41,7 +41,10 @@
 		onValueChange,
 		loop = $bindable(false)
 	}: Props = $props();
-
+	/**
+	 * Disallow if values are not loopable
+	 */
+	let disabled = $derived(values.length < 2);
 	let index = $state(0);
 	let player = $state<NodeJS.Timeout>();
 
@@ -55,6 +58,7 @@
 		player = undefined;
 	};
 	const play = () => {
+		if (disabled) return;
 		player = setInterval(increment, duration);
 	};
 	const stop = () => {
@@ -74,15 +78,15 @@
 	<Slider max={values.length - 1} type="single" bind:value={index} />
 	<Label>{values[index]}</Label>
 	<ButtonGroup.Root>
-		<Button onclick={setPlayState}>
+		<Button onclick={setPlayState} {disabled}>
 			{#if player}
 				<Pause />
 			{:else}
 				<Play />
 			{/if}
 		</Button>
-		<Button onclick={stop}><TimerReset /></Button>
-		<Button onclick={setLoop}
+		<Button onclick={stop} {disabled}><TimerReset /></Button>
+		<Button onclick={setLoop} {disabled}
 			>{#if loop}
 				<RepeatOff />
 			{:else}

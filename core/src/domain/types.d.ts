@@ -52,7 +52,7 @@ export type MakeDomainTypeRequired<D extends Domain> = D & {
   domainType: NonNullable<D['domainType']>;
 };
 
-export type WithoutRegularlySpacedAxis<D extends Domain> = Omit<D, 'axes'> & {
+export type WithoutRegularlySpacedAxis<D extends Domain> = Omit<BaseDomain<D>, 'axes'> & {
   axes: {
     [axisName in keyof BaseDomain<D>['axes']]: Exclude<
       BaseDomain<D>['axes'][axisName],

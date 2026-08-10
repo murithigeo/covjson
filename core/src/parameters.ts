@@ -152,8 +152,8 @@ export class Symbol extends Metadata<USymbol> {
   label = undefined;
   description = undefined;
   id = undefined;
-  public value: string;
-  public type = '';
+  value: string;
+  type = '';
   constructor(sym: USymbol) {
     super();
     if (typeof sym === 'string') this.value = sym;

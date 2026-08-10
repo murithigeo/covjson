@@ -16,8 +16,13 @@ import { NdArray } from './ranges.ts';
 import { nanoid } from 'nanoid';
 import type { Feature } from 'geojson';
 
-type RangeValue = string | number | null;
 export class Coverage<T extends Domain = Domain> extends Base<CRG<T>> {
+  get t(): string[] {
+    return this.domain.t;
+  }
+  get z(): number[] {
+    return this.domain.z;
+  }
   type: 'Coverage';
   id?: string | undefined;
   domain: InferDomainClass<T>;
@@ -149,17 +154,15 @@ export class Coverage<T extends Domain = Domain> extends Base<CRG<T>> {
   /**
    * @todo add explicit types that it returns {ranges:Record<string,Nd>}
    */
-  toPlain() {
-    return structuredClone<CRG<T>>({
+  toPlain(): CRG<T> {
+    return structuredClone({
       type: this.type,
       domain: this.domain.toPlain() as T,
-      ranges: this.ranges
-        .keys()
-        .reduce((l: Record<string, Nd>, r) => ({ ...l, [r]: this.ranges.get(r)!.toPlain() }), {}),
+      ranges: this.ranges.entries().reduce((l, r) => ({ ...l, [r[0]]: r[1].toPlain() }), {}),
       domainType: this.domain.domainType,
       parameters: this.parameters
         .entries()
-        .reduce((l, [id, val]) => ({ ...l, [id]: val.toPlain() }), {}),
+        .reduce((l, r) => ({ ...l, [r[0]]: r[1].toPlain() }), {}),
       parameterGroups: this.parameterGroups.map((v) => v.toPlain())
     });
   }
@@ -183,16 +186,23 @@ export class Coverage<T extends Domain = Domain> extends Base<CRG<T>> {
    *  const data=await coverage.getData([0,0],["QC","POTM","x"])
    *  data==={"QC":50,"POTM":100,"x":undefined}
    */
-  async getData(
-    point: Position | Map<string, number>,
-    rangeIds?: string[]
-  ): Promise<Record<string, RangeValue | undefined>> {
-    const indices = Array.isArray(point) ? this.queryIndices(point) : point;
+  async getData(point: Position | Map<string, number>, rangeIds?: string[]): Promise<DataRow> {
+    if (Array.isArray(point)) point = this.queryIndices(point);
     if (!rangeIds) rangeIds = this.ranges.keys().toArray();
-    const data = await Promise.all(rangeIds.map((id) => this.ranges.get(id)?.get(indices)));
-    return rangeIds.reduce((l, r, i) => ({ ...l, [r]: data[i] }), {});
+
+    const values = rangeIds
+      .map((id) => this.ranges.get(id)?.get(point))
+      .map(async (val, idx) => [rangeIds[idx], await val]);
+
+    return Object.fromEntries(await Promise.all(values));
   }
   hasRange(key: string) {
     return this.ranges.has(key);
   }
+  get axesCount(): Map<string, number> {
+    return this.domain.axesCount;
+  }
 }
+
+export type DataValue = string | number | null | undefined;
+export type DataRow<T extends DataValue = DataValue> = Record<string, T>;

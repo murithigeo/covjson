@@ -66,7 +66,7 @@ abstract class PointBasedDomain<
     }
     return indices;
   }
-  get axesMaxIndices(): Map<keyof T['axes'], number> {
+  get axesCount(): Map<keyof T['axes'], number> {
     return new Map().set('x', 0).set('y', 0).set('t', this.t.length).set('z', this.z.length);
   }
 }

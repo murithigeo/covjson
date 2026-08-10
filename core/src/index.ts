@@ -26,7 +26,7 @@ export default function getCoverageJson<T extends CoverageJSON>(doc: T) {
 }
 
 /**
- * A function to be called when the current indices on the coverage change
+ * A function to be called when the current indices on the coverage change. 
  * For integrating UI with mapping libraries i.e. to change view of the map or to highlight the clicked axis values
  */
 export type OnIndicesChange = (coverage?: string | Coverage, indices?: Map<string, number>) => void;

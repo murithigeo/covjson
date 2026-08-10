@@ -128,17 +128,20 @@ export class CoverageCollection<T extends Domain = Domain> extends Base<CovColl<
       features: this.coverages.map((cov) => cov.feature)
     };
   }
-  public get referencing() {
+  get referencing() {
     return this.#referencing;
   }
   get z(): number[] {
-    return Array.from(new Set(this.coverages.flatMap(({ domain }) => domain.z))).sort();
+    return new Set(this.coverages.flatMap(({ domain }) => domain.z))
+      .keys()
+      .toArray()
+      .sort((a, b) => a - b);
   }
   get t(): string[] {
-    const values = this.coverages
-      .flatMap(({ domain }) => domain.t)
+    return new Set(this.coverages.flatMap(({ domain }) => domain.t))
+      .keys()
+      .toArray()
       .sort((a, b) => new Date(a).getTime() - new Date(b).getTime());
-    return Array.from(new Set(values));
   }
   private set referencing(referencing: ReferenceSystemConnection[] | undefined) {
     this.#referencing = referencing;

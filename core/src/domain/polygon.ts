@@ -15,7 +15,7 @@ abstract class Base<T extends PolygonDomain | PolySeriesD | MP | MPs> extends Ba
   constructor(domain: T) {
     super(domain);
   }
-  get axesMaxIndices(): Map<keyof T['axes'], number> {
+  get axesCount(): Map<keyof T['axes'], number> {
     return new Map()
       .set('composite', this.axes.composite.values.length)
       .set('t', this.t.length)

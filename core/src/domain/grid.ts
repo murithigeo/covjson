@@ -153,7 +153,7 @@ export class Grid extends BaseDomain<GridDomain> {
 
     return indices;
   }
-  get axesMaxIndices(): Map<'x' | 'y' | 'z' | 't', number> {
+  get axesCount(): Map<'x' | 'y' | 'z' | 't', number> {
     return new Map()
       .set('x', this.x.length)
       .set('y', this.y.length)

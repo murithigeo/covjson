@@ -20,7 +20,10 @@
 	}: DashboardProps = $props();
 
 	let selected = $derived(new SvelteSet(coverage?.parameters.keys()));
+	let indices = $derived(new SvelteMap(coverage?.indices));
 	let page = $state(1);
+	$effect(() => onIndicesChange?.(coverage?.uuid, indices));
+	let tvalue = $derived(coveragecollection?.t[0] || coverage?.t[0]);
 </script>
 
 <div class="grid grid-cols-3">
@@ -64,9 +67,9 @@
 		</Collapsible.Root>
 	</div>
 	<div class="flex flex-col gap-2" id="charts">
-		<GearStick bind:coverage bind:page {onIndicesChange} />
+		<GearStick bind:coverage bind:page bind:indices />
 		<TemporalControl
-			values={['2021', '2023', '2024']}
+			values={coveragecollection?.t || coverage?.t || []}
 			formatter={(v, res) => {
 				return v;
 			}}

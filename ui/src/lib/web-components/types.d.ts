@@ -2,6 +2,7 @@ import type { ClassValue } from 'clsx';
 import type { ChartConfig } from '../components/ui/chart/index.ts';
 import type { BarChartProps as BarChartAttrs, LineChartProps as LineChartAttrs } from 'layerchart';
 import type { ComponentProps } from 'svelte';
+import { type DataValue, type DataRow } from '@murithigeo/covjson-core';
 /**
  * How to render properties such as locale objects.
  * "full" means rendering every single locale value.
@@ -20,13 +21,6 @@ export interface MetadataRenderProps<T> {
 	 *
 	 */
 	class?: ClassValue;
-}
-
-type DataValue = string | number;
-interface DataRow<T extends DataValue = DataValue> {
-	[range: string]: T | null | undefined;
-	z?: number;
-	t?: string;
 }
 
 interface BaseChartProps {

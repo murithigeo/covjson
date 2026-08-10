@@ -2,7 +2,7 @@
 	import { MapLibre, type Map } from 'svelte-maplibre';
 	import maplibregl from 'maplibre-gl';
 	import { MaplibrePlugin } from '@murithigeo/covjson-maplibre';
-	import { Coverage, CoverageCollection } from '@murithigeo/covjson-core';
+	import { Coverage, CoverageCollection, type OnIndicesChange } from '@murithigeo/covjson-core';
 	import Dashboard1 from '$lib/web-components/dashboards/dashboard-1.svelte';
 	let data = $state<CoverageCollection>();
 	const { addSourceType } = maplibregl;
@@ -11,9 +11,10 @@
 
 	let map = $state<Map>();
 	let coverage = $state<Coverage>();
+	let onIndicesChange = $state<OnIndicesChange>();
 	$effect(() => {
-		map?.on('load', () => {
-			map?.addSource('cov-load-test', {
+		map?.on('load', ({ target: map }) => {
+			map.addSource('cov-load-test', {
 				type: 'coveragejson',
 				data: 'https://covjson.org/playground/coverages/grid-tiled.covjson',
 				layers: ['grid-outline', 'grid-layer', 'random'],
@@ -23,20 +24,20 @@
 				},
 				onLoad: (cov: any) => (data = cov)
 			});
-
-			map?.addLayer({
+			onIndicesChange = map.getSource<MaplibrePlugin>('cov-load-test')?.onIndicesChange;
+			map.addLayer({
 				source: 'cov-load-test',
 				id: 'grid-layer',
 				type: 'fill',
 				paint: { 'fill-color': 'grey', 'fill-opacity': 0.5 }
 			});
-			map?.addLayer({
+			map.addLayer({
 				source: 'cov-load-test',
 				id: 'grid-outline',
 				type: 'line',
 				paint: { 'line-color': 'red', 'line-width': 0.4 }
 			});
-			map?.on('click', 'grid-layer', (e) => {
+			map.on('click', 'grid-layer', (e) => {
 				if (coverage) coverage = undefined;
 				//@ts-expect-error e is patched
 				coverage = e.coverages[0];
@@ -45,11 +46,7 @@
 	});
 </script>
 
-<Dashboard1
-	bind:data={coverage}
-	bind:coveragecollection={data}
-	onIndicesChange={map?.getSource<MaplibrePlugin>('cov-load-test')?.onIndicesChange}
->
+<Dashboard1 bind:data={coverage} bind:coveragecollection={data} {onIndicesChange}>
 	<MapLibre
 		class="h-full w-full"
 		bind:map

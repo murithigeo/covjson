@@ -7,7 +7,6 @@
 	import { SvelteMap } from 'svelte/reactivity';
 
 	interface Props {
-		domainData: Pick<InferDomainClass<T>, 'axes' | 'domainType'>;
 		coverage?: Coverage; // make the indices generic
 		/**
 		 * For Grid coverages only.
@@ -22,7 +21,7 @@
 		joystick?: boolean;
 	}
 	let {
-		domainData = $bindable(),
+		coverage = $bindable(),
 		page = $bindable(1),
 		pageWith = 't',
 		joystick = $bindable(false),
@@ -35,8 +34,8 @@
 		switch (coverage?.domain.domainType) {
 			case 'Grid':
 				limits
-					.set('horizontal', { axis: 'x', value: coverage.domain.axesStats.get('x')! })
-					.set('vertical', { axis: 'y', value: coverage.domain.axesStats.get('y')! });
+					.set('horizontal', { axis: 'x', value: coverage.domain.axesCount.get('x')! })
+					.set('vertical', { axis: 'y', value: coverage.domain.axesCount.get('y')! });
 				break;
 			case 'Polygon':
 			case 'PolygonSeries':
@@ -46,7 +45,7 @@
 			case 'MultiPolygonSeries':
 				limits.set('horizontal', {
 					axis: 'composite',
-					value: coverage.domain.axesStats.get('composite')!
+					value: coverage.domain.axesCount.get('composite')!
 				});
 				break;
 		}
@@ -63,6 +62,7 @@
 		currentIndex = (currentIndex + max) % max;
 		indices?.set(axis, currentIndex);
 	}
+	$inspect(indices);
 </script>
 
 {#if joystick}

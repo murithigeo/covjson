@@ -55,7 +55,7 @@ abstract class Base<T extends TrajDomain | SectionDomain> extends BaseDomain<T> 
 }
 
 export class Trajectory extends Base<TrajDomain> {
-  get axesMaxIndices(): Map<'z' | 'composite', number> {
+  get axesCount(): Map<'z' | 'composite', number> {
     return new Map()
       .set('composite', this.axes.composite.values.length)
       .set('z', this.axes.z ? 1 : 0);
@@ -89,7 +89,7 @@ export class Trajectory extends Base<TrajDomain> {
 }
 
 export class Section extends Base<SectionDomain> {
-  get axesMaxIndices(): Map<'z' | 'composite', number> {
+  get axesCount(): Map<'z' | 'composite', number> {
     return new Map()
       .set('composite', this.axes.composite.values.length)
       .set('z', numAxisIsNormalized(this.axes.z) ? this.axes.z.num : this.axes.z.values.length);

@@ -16,20 +16,13 @@
 		ObservedProperty as ObsClass,
 		ParameterGroup as PGroupClass
 	} from '@murithigeo/covjson-core';
-	import type { Snippet } from 'svelte';
 	import { SvelteSet } from 'svelte/reactivity';
 	import { buttonVariants } from '../components/ui/button/index.ts';
 	interface Props extends MetadataRenderProps<PGroupClass | ParameterGroup> {
 		selected?: SvelteSet<string>;
 		disabled?: boolean;
 	}
-	let {
-		data = $bindable(),
-		class: className,
-		detail,
-		disabled,
-		selected = $bindable()
-	}: Props = $props();
+	let { data = $bindable(), detail, disabled, selected = $bindable() }: Props = $props();
 	let pGroup = $derived.by(() => {
 		if (data instanceof PGroupClass) return data;
 		return new PGroupClass(data);

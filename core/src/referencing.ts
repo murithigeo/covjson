@@ -69,7 +69,7 @@ export class Referencing {
    * Gets only the multiplication/division factor to convert desired units
    * The intermediate factor is meters
    */
-  public get vrsFactor(): number {
+  get vrsFactor(): number {
     const vrs = this.options.vrs;
     let from_source = vrs.from ? proj4.defs(vrs.from)?.to_meter : undefined;
     let to_target = vrs.to ? proj4.defs(vrs.to)?.to_meter : undefined;
