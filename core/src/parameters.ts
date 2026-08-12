@@ -21,7 +21,11 @@ abstract class Metadata<T> {
 
 export class I18N extends Map<string, string> {
   language: string;
-  constructor(value?: Iterable<readonly [string, string]> | null | undefined, locale?: string) {
+  constructor(
+    value?: Iterable<readonly [string, string]> | null | undefined | string,
+    locale?: string
+  ) {
+    if (typeof value === 'string') value = [['en', value]];
     super(value);
     this.language = locale || navigator.language;
   }
@@ -133,8 +137,8 @@ export class Unit extends Metadata<U> {
   symbol?: Symbol;
   constructor(unit: U, locale?: string) {
     super();
-    //@ts-expect-error fix the types
-    this.label = new I18N(unit.label, locale);
+    if ('label' in unit && unit.label) this.label = new I18N(Object.entries(unit.label));
+    else this.label = new I18N(undefined, locale);
     this.id = unit?.id;
     if ('symbol' in unit) this.symbol = new Symbol(unit.symbol);
   }

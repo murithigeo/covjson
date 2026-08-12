@@ -14,6 +14,7 @@ export * from './point.ts';
 export * from './polygon.ts';
 export * from './grid.ts';
 export * from './utils.ts';
+export type * from './types.d.ts';
 export function getDomain<D extends Domain = Domain>(domain: D): InferDomainClass<D>;
 export function getDomain<D extends Domain = Domain>(domain: string): Promise<InferDomainClass<D>>;
 export function getDomain<D extends Domain = Domain>(domain: D | string) {

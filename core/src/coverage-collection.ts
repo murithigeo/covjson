@@ -7,7 +7,7 @@ import type {
   Position
 } from 'coveragejson';
 import { Parameter, ParameterGroup } from './parameters.ts';
-import { Coverage } from './coverage.ts';
+import { Coverage, type DataRow } from './coverage.ts';
 import { Referencing, type UserReferencingOptions } from './referencing.ts';
 import { Base } from './base.ts';
 import type { FeatureCollection } from 'geojson';
@@ -110,6 +110,7 @@ export class CoverageCollection<T extends Domain = Domain> extends Base<CovColl<
   toPlain(): CovColl<T> {
     return {
       type: this.type,
+      //@ts-expect-error upstream conflict
       domainType: this.domainType,
       coverages: this.coverages.map((cov) => cov.toPlain()),
       parameters: this.parameters
@@ -147,9 +148,12 @@ export class CoverageCollection<T extends Domain = Domain> extends Base<CovColl<
     this.#referencing = referencing;
   }
 
-  async getData(point: Position, rangeIds: string[]) {
-    rangeIds = rangeIds.map((id) => id.toUpperCase());
-    return await Promise.all(this.coverages.map((coverage) => coverage.getData(point, rangeIds)));
+  getData(ref: Position | string | number, rangeIds?: string[]) {
+    return this.coverages.map((cov) => cov.getData(ref, rangeIds));
+  }
+  query(...axisNames: string[]) {
+    return (ref: Position | string | number, rangeIds?: string[]) =>
+      this.coverages.map((cov) => cov.query(...axisNames)(ref, rangeIds));
   }
   /**
    * Recompile list of parameters from constituent coverages

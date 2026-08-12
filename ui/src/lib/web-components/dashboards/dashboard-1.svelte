@@ -16,14 +16,19 @@
 		data: coverage = $bindable(),
 		detail,
 		children,
-		coveragecollection = $bindable()
+		coveragecollection = $bindable(),
+		pageWith = $bindable('z')
 	}: DashboardProps = $props();
 
 	let selected = $derived(new SvelteSet(coverage?.parameters.keys()));
 	let indices = $derived(new SvelteMap(coverage?.indices));
 	let page = $state(1);
 	$effect(() => onIndicesChange?.(coverage?.uuid, indices));
-	let tvalue = $derived(coveragecollection?.t[0] || coverage?.t[0]);
+	let dataHandler = $derived(coverage?.query(pageWith === 'z' ? 't' : 'z'));
+	let data = $derived(dataHandler?.(indices, selected.keys().toArray()));
+	$effect(() => {
+		data?.then((data) => console.log(data));
+	});
 </script>
 
 <div class="grid grid-cols-3">
@@ -67,7 +72,7 @@
 		</Collapsible.Root>
 	</div>
 	<div class="flex flex-col gap-2" id="charts">
-		<GearStick bind:coverage bind:page bind:indices />
+		<GearStick bind:coverage bind:page bind:indices bind:pageWith />
 		<TemporalControl
 			values={coveragecollection?.t || coverage?.t || []}
 			formatter={(v, res) => {

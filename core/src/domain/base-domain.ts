@@ -10,13 +10,13 @@ import type {
   VerticalProfile,
   Trajectory,
   ReferenceSystemConnection,
-  Position
+  Position,
+  Position3D
 } from 'coveragejson';
 import { Base } from '../base.ts';
 import type { Referencing } from '../referencing.ts';
 import type { WithoutRegularlySpacedAxis } from './types.d.ts';
-import { tIndicesOfNearest } from './utils.ts';
-import { indicesOfNearest } from '../utils.ts';
+import { indexOfNearest } from '../utils.ts';
 
 export abstract class BaseDomain<D extends Domain = Domain> extends Base<D> {
   type: D['type'];
@@ -33,10 +33,6 @@ export abstract class BaseDomain<D extends Domain = Domain> extends Base<D> {
   get referencing(): D['referencing'] {
     return this.#referencing;
   }
-  abstract queryIndices(point: Position): Map<keyof D['axes'], number>;
-  /**
-   * @todo implement a temporal and vertical method for finding indices
-   */
   /**
    * An unsorted list of t values in the domain's axes
    */
@@ -98,8 +94,16 @@ export abstract class BaseDomain<D extends Domain = Domain> extends Base<D> {
     this.#referencing = referencing;
   }
 
-  indexOfT = (t: string) => tIndicesOfNearest(this.t, t);
-  indexOfZ = (z: number) => indicesOfNearest(this.z, z);
+  tIndex(t: string): number {
+    return indexOfNearest(
+      this.t.map((t) => new Date(t).getTime()),
+      new Date(t).getTime()
+    );
+  }
+  zIndex(z: number): number {
+    return indexOfNearest(this.z, z);
+  }
+  abstract queryIndices(ref: Position | string | number): Map<keyof D['axes'], number>;
   /**
    * We can have a method that returns boolean for boolean intersects
    * Another for determining which composite values intersect ie. for polygons,multipoints which are computationally expensive

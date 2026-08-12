@@ -19,9 +19,7 @@ import {
 import type { WithoutRegularlySpacedAxis } from './types.d.ts';
 import { indexOfNearest } from '../utils.ts';
 
-abstract class PointBasedDomain<
-  T extends PointD | PSeriesD | VertProfDomain
-> extends BaseDomain<T> {
+abstract class Base<T extends PointD | PSeriesD | VertProfDomain> extends BaseDomain<T> {
   constructor(domain: T) {
     super(domain);
   }
@@ -54,16 +52,11 @@ abstract class PointBasedDomain<
     if (this.axes.t) this.axes.t.bounds = calcStrAxisBounds(this.axes.t.values, timeZone);
     return this;
   }
-  queryIndices(point: Position) {
-    const indices = new Map<keyof T['axes'], number>([
-      ['x', 0],
-      ['y', 0],
-      ['z', 0],
-      ['t', 0]
-    ]);
-    if (this.axes.z && !isUndefined(point[2])) {
-      indices.set('z', indexOfNearest(denormalizeNumAxis(this.axes.z).values, point[2]));
-    }
+  queryIndices(ref: Position | string | number): Map<keyof T['axes'], number> {
+    const indices = new Map().set('x', 0).set('y', 0).set('z', 0).set('t', 0);
+    let zRef = typeof ref === 'number' ? ref : Array.isArray(ref) ? ref[2] : undefined;
+    if (!isUndefined(zRef)) indices.set('z', this.zIndex(zRef));
+    if (typeof ref === 'string') indices.set('t', this.tIndex(ref));
     return indices;
   }
   get axesCount(): Map<keyof T['axes'], number> {
@@ -71,7 +64,7 @@ abstract class PointBasedDomain<
   }
 }
 
-export class Point extends PointBasedDomain<PointD> {
+export class Point extends Base<PointD> {
   constructor(domain: PointD) {
     super(domain);
   }
@@ -86,7 +79,7 @@ export class Point extends PointBasedDomain<PointD> {
   denormalize = undefined;
 }
 
-export class PointSeries extends PointBasedDomain<PSeriesD> {
+export class PointSeries extends Base<PSeriesD> {
   normalize = undefined;
   denormalize = undefined;
   get geometry(): PointGeometry {
@@ -96,15 +89,12 @@ export class PointSeries extends PointBasedDomain<PSeriesD> {
     };
   }
 
-  // queryIndices(point: Position): Map<'x' | 'y' | 'z' | 't', number> {
-  //   return super.queryIndices(point);
-  // }
   constructor(domain: PSeriesD) {
     super(domain);
   }
 }
 
-export class VerticalProfile extends PointBasedDomain<VertProfDomain> {
+export class VerticalProfile extends Base<VertProfDomain> {
   calculateAxesBounds(): this {
     if (!numAxisIsNormalized(this.axes.z)) {
       this.axes.z.bounds = calcNumAxisBounds(this.axes.z.values);
@@ -153,12 +143,6 @@ export class VerticalProfile extends PointBasedDomain<VertProfDomain> {
   normalize() {
     this.axes.z = normalizeNumAxis(this.axes.z);
     return this;
-  }
-  queryIndices(point: Position): Map<'x' | 'y' | 'z' | 't', number> {
-    const indices = super.queryIndices(point);
-    if (point[2] === undefined) point[2] = 0; // todo, set index to 0 instead
-    indices.set('z', indexOfNearest(denormalizeNumAxis(this.axes.z).values, point[2]));
-    return indices;
   }
   // todo split into point/multipoint
 }

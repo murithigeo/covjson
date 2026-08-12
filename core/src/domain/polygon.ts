@@ -47,17 +47,16 @@ abstract class Base<T extends PolygonDomain | PolySeriesD | MP | MPs> extends Ba
   get t(): string[] {
     return this.axes.t?.values || [];
   }
-  queryIndices(point: Position): Map<'composite' | 't', number> {
-    const indices = new Map();
-    indices.set('t', 0);
-
-    for (let i = 0; i < this.axes.composite.values.length; i++) {
-      if (inside(point, this.axes.composite.values[i]) === false) continue;
-      indices.set('composite', i);
-      break;
+  queryIndices(ref: Position | number | string): Map<'composite' | 't', number> {
+    const indices = new Map().set('composite', 0).set('t', 0).set('z', 0);
+    if (Array.isArray(ref)) {
+      for (let i = 0; i < this.axes.composite.values.length; i++) {
+        if (inside(ref, this.axes.composite.values[i]) === false) continue;
+        indices.set('composite', i);
+        break;
+      }
     }
-    // Handle polygons
-    if (!indices.has('composite')) indices.set('composite', 0);
+    if (typeof ref === 'string') indices.set('t', this.tIndex(ref));
     return indices;
   }
   normalize = undefined;
@@ -70,9 +69,6 @@ abstract class Base<T extends PolygonDomain | PolySeriesD | MP | MPs> extends Ba
 }
 
 export class Polygon extends Base<PolygonDomain> {
-  queryIndices(point: Position): Map<'composite' | 't', number> {
-    return super.queryIndices(point);
-  }
   calculateAxesBounds(): this {
     return this;
   }
@@ -88,9 +84,6 @@ export class Polygon extends Base<PolygonDomain> {
 }
 
 export class PolygonSeries extends Base<PolySeriesD> {
-  queryIndices(point: Position): Map<'composite' | 't', number> {
-    return super.queryIndices(point);
-  }
   calculateAxesBounds(): this {
     if (this.axes.z) {
       this.axes.z.bounds = calcNumAxisBounds(this.axes.z.values) as [number, number];
@@ -131,8 +124,5 @@ export class MultiPolygonSeries extends Base<MPs> {
       type: 'MultiPolygon',
       coordinates: this.axes.composite.values
     };
-  }
-  queryIndices(point: Position): Map<'composite' | 't', number> {
-    return super.queryIndices(point);
   }
 }

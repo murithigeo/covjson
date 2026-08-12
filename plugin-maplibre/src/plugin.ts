@@ -53,7 +53,7 @@ export class MaplibrePlugin extends maplibregl.GeoJSONSource {
 			}
 			this.setData({ type: 'FeatureCollection', features });
 		});
-		return this.covOptions.onLoad?.(this.covMapToCollection());
+		return load.then(() => this.covOptions.onLoad?.(this.covMapToCollection()));
 	}
 	updateCovData() {}
 

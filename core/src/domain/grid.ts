@@ -13,7 +13,7 @@ import {
 } from './utils.ts';
 import bboxPolygon from '@turf/bbox-polygon';
 import type { WithoutRegularlySpacedAxis } from './types.d.ts';
-import { indexOfNearest } from '../utils.ts';
+import { indexOfNearest, indicesOfNearest } from '../utils.ts';
 
 export class Grid extends BaseDomain<GridDomain> {
   /**
@@ -139,25 +139,23 @@ export class Grid extends BaseDomain<GridDomain> {
   get polygons(): Feature<Polygon>[] {
     return this.bboxes.map((bbox) => bboxPolygon(bbox));
   }
-  queryIndices(point: Position): Map<'x' | 'y' | 'z' | 't', number> {
-    const indices = new Map();
-    indices.set('x', indexOfNearest(this.x, point[0]));
-    indices.set('y', indexOfNearest(this.y, point[1]));
-    let z = 0;
-    if (this.axes.z && point[2] !== undefined) {
-      z = indexOfNearest(denormalizeNumAxis(this.axes.z).values, point[2]);
+
+  queryIndices(ref: Position | string | number): Map<'x' | 'y' | 'z' | 't', number> {
+    const indices = new Map().set('x', 0).set('y', 0).set('z', 0).set('t', 0);
+    let zRef = typeof ref === 'number' ? ref : undefined;
+    if (Array.isArray(ref)) {
+      indices.set('x', indexOfNearest(this.x, ref[0])).set('y', indexOfNearest(this.y, ref[1]));
+      [, , zRef] = ref;
     }
-    indices.set('z', z);
-    // todo add check for end of polygon
-    // add inside check to find the exact indices
+    if (!isUndefined(zRef)) indices.set('z', this.zIndex(zRef));
+    if (typeof ref === 'string') indices.set('t', this.tIndex(ref));
 
     return indices;
   }
   get axesCount(): Map<'x' | 'y' | 'z' | 't', number> {
-    return new Map()
-      .set('x', this.x.length)
-      .set('y', this.y.length)
-      .set('t', this.t.length)
-      .set('z', this.z.length);
+    const counts = new Map().set('x', this.x.length).set('y', this.y.length);
+    if ('t' in this.axes) counts.set('t', this.t.length);
+    if ('z' in this.axes) counts.set('z', this.z.length);
+    return counts;
   }
 }

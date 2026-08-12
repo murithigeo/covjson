@@ -23,7 +23,7 @@
 	let {
 		coverage = $bindable(),
 		page = $bindable(1),
-		pageWith = 't',
+		pageWith = $bindable('t'),
 		joystick = $bindable(false),
 		indices = $bindable()
 	}: Props = $props();
@@ -62,7 +62,6 @@
 		currentIndex = (currentIndex + max) % max;
 		indices?.set(axis, currentIndex);
 	}
-	$inspect(indices);
 </script>
 
 {#if joystick}

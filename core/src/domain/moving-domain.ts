@@ -1,4 +1,4 @@
-import { BaseDomain } from './base-domain.ts';
+import { BaseDomain, type SpatioTemporalPosition } from './base-domain.ts';
 import type { Trajectory as TrajDomain, Section as SectionDomain, Position } from 'coveragejson';
 import type { Referencing } from '../referencing.ts';
 import type { LineString } from 'geojson';
@@ -7,6 +7,9 @@ import { indexOfNearest, minMax } from '../utils.ts';
 import type { WithoutRegularlySpacedAxis } from './types.d.ts';
 import nearestPointOnLine from '@turf/nearest-point-on-line';
 
+/**
+ * With a moving domain, we can find the indices using time or using a reference point
+ */
 abstract class Base<T extends TrajDomain | SectionDomain> extends BaseDomain<T> {
   calculateAxesBounds(): this {
     return this;
@@ -47,10 +50,7 @@ abstract class Base<T extends TrajDomain | SectionDomain> extends BaseDomain<T> 
     return this.axes.composite.values.map(([t]) => t);
   }
   get axesStats(): Map<keyof T['axes'], number> {
-    return new Map([
-      ['composite', this.axes.composite.values.length],
-      ['z', this.z.length]
-    ]);
+    return new Map().set('composite', this.axes.composite.values.length).set('z', this.z.length);
   }
 }
 
@@ -60,22 +60,26 @@ export class Trajectory extends Base<TrajDomain> {
       .set('composite', this.axes.composite.values.length)
       .set('z', this.axes.z ? 1 : 0);
   }
-  queryIndices(point: Position): Map<'z' | 'composite', number> {
-    const indices = new Map();
-    const {
-      properties: { segmentIndex: composite }
-    } = nearestPointOnLine(this.geometry, point, { units: 'meters' });
-    indices.set('composite', composite);
-    indices.set('z', 0);
-    if (point[2] !== undefined && this.axes.z?.values) {
-      indices.set('z', indexOfNearest(this.axes.z.values, point[2]));
+  /**
+   *
+   * @param point We can also pass a time string instead because it can be easier
+   * @returns
+   */
+  queryIndices(ref: Position | string | number): Map<'z' | 'composite', number> {
+    const indices = new Map().set('composite', 0).set('z', 0);
+    let composite = 0;
+    if (typeof ref === 'string') composite = this.tIndex(ref);
+    else if (typeof ref === 'number') composite = this.zIndex(ref);
+    else {
+      ({
+        properties: { segmentIndex: composite }
+      } = nearestPointOnLine(this.geometry, ref));
     }
-    return indices;
+    return indices.set('composite', composite);
   }
   get z(): number[] {
-    const values = this.axes.composite.values.map(([, , , z]) => z).filter((v) => v !== undefined);
-    if (this.axes.z) values.push(this.axes.z.values[0]);
-    return values;
+    return this.axes.composite.values.map(([, , , z]) => z).filter((v) => !isUndefined(v));
+    // if (this.axes.z) values.push(this.axes.z.values[0]); // x is single value so ignore
   }
   get geometry(): LineString {
     return {
@@ -90,20 +94,22 @@ export class Trajectory extends Base<TrajDomain> {
 
 export class Section extends Base<SectionDomain> {
   get axesCount(): Map<'z' | 'composite', number> {
-    return new Map()
-      .set('composite', this.axes.composite.values.length)
-      .set('z', numAxisIsNormalized(this.axes.z) ? this.axes.z.num : this.axes.z.values.length);
+    return new Map().set('composite', this.axes.composite.values.length).set('z', this.z.length);
   }
-  queryIndices(point: Position): Map<'z' | 'composite', number> {
-    const indices = new Map();
-    const {
-      properties: { segmentIndex: composite }
-    } = nearestPointOnLine(this.geometry, point, { units: 'meters' });
-    indices.set('composite', composite).set('z', 0);
-    if (!isUndefined(point[2])) {
-      indices.set('z', indexOfNearest(denormalizeNumAxis(this.axes.z).values, point[2]));
+  queryIndices(ref: Position | number | string): Map<'z' | 'composite', number> {
+    const indices = new Map().set('composite', 0).set('z', 0);
+    let composite = 0;
+
+    let zRef = typeof ref === 'number' ? ref : undefined;
+    if (Array.isArray(ref)) {
+      ({
+        properties: { segmentIndex: composite }
+      } = nearestPointOnLine(this.geometry, ref));
+      if (!isUndefined(ref[2])) [, , zRef] = ref;
     }
-    return indices;
+    if (typeof ref === 'string') composite = this.tIndex(ref);
+    if (!isUndefined(zRef)) indices.set('z', this.zIndex(zRef));
+    return indices.set('composite', composite);
   }
 
   get z(): number[] {

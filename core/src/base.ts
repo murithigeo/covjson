@@ -1,5 +1,9 @@
 import { Referencing, type UserReferencingOptions as RefOptions } from './referencing.ts';
-import type { ReferenceSystemConnection as RSC } from 'coveragejson';
+import type {
+  Position3D,
+  ReferenceSystemConnection as RSC,
+  Position as SpatialPosition
+} from 'coveragejson';
 
 export abstract class Base<T> {
   abstract get referencing(): RSC[] | undefined;

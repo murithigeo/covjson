@@ -8,13 +8,14 @@ import type {
 } from 'coveragejson';
 import { Base } from './base.ts';
 import { Parameter, ParameterGroup } from './parameters.ts';
-import { BaseDomain, getDomain } from './domain/index.ts';
+import { BaseDomain, getDomain, isUndefined } from './domain/index.ts';
 import { load } from './load.ts';
 import type { InferDomainClass, WithoutRegularlySpacedAxis } from './domain/types.d.ts';
 import { Referencing } from './referencing.ts';
 import { NdArray } from './ranges.ts';
 import { nanoid } from 'nanoid';
 import type { Feature } from 'geojson';
+import { cartesianProduct } from './utils.ts';
 
 export class Coverage<T extends Domain = Domain> extends Base<CRG<T>> {
   get t(): string[] {
@@ -116,6 +117,7 @@ export class Coverage<T extends Domain = Domain> extends Base<CRG<T>> {
     domain: WithoutRegularlySpacedAxis<InferDomainClass<T>>;
   } {
     this.domain.denormalize?.();
+    //@ts-expect-error some bs
     return this;
   }
 
@@ -139,22 +141,27 @@ export class Coverage<T extends Domain = Domain> extends Base<CRG<T>> {
   }
 
   /**
-   * Indicates whether this coverage satisfies the temporal or spatial conditions
+   * Return a dictionary of axes which intersect with POI, elevation or time
    */
-  queryIndices(point: Position) {
-    return this.domain.queryIndices(point);
+  queryIndices(ref: Position | string | number) {
+    const indices = this.domain
+      .queryIndices(ref)
+      .entries()
+      .map(([k, v]) => [k, v < 0 ? 0 : v] as const);
+    return new Map(indices);
   }
   /**
    * Calculates the relevant axes indices given a reference point
    */
-  calculateIndices(point: Position): this {
-    this.indices = this.queryIndices(point);
+  calculateIndices(ref: Position | string | number): this {
+    this.indices = this.queryIndices(ref);
     return this;
   }
   /**
    * @todo add explicit types that it returns {ranges:Record<string,Nd>}
    */
   toPlain(): CRG<T> {
+    //@ts-expect-error domainType conflict upstream
     return structuredClone({
       type: this.type,
       domain: this.domain.toPlain() as T,
@@ -186,15 +193,22 @@ export class Coverage<T extends Domain = Domain> extends Base<CRG<T>> {
    *  const data=await coverage.getData([0,0],["QC","POTM","x"])
    *  data==={"QC":50,"POTM":100,"x":undefined}
    */
-  async getData(point: Position | Map<string, number>, rangeIds?: string[]): Promise<DataRow> {
-    if (Array.isArray(point)) point = this.queryIndices(point);
+  async getData(
+    ref: Position | Map<string, number> | string | number,
+    rangeIds?: string[]
+  ): Promise<DataRow> {
+    if (!(ref instanceof Map)) ref = this.queryIndices(ref);
     if (!rangeIds) rangeIds = this.ranges.keys().toArray();
-
     const values = rangeIds
-      .map((id) => this.ranges.get(id)?.get(point))
+      .map((id) => this.ranges.get(id)?.get(ref))
       .map(async (val, idx) => [rangeIds[idx], await val]);
 
-    return Object.fromEntries(await Promise.all(values));
+    const row = Object.fromEntries(await Promise.all(values));
+    ref.forEach((value, key) => {
+      if (!this.axesCount.has(key)) return;
+      row[`${key}Index`] = value;
+    });
+    return row;
   }
   hasRange(key: string) {
     return this.ranges.has(key);
@@ -202,7 +216,36 @@ export class Coverage<T extends Domain = Domain> extends Base<CRG<T>> {
   get axesCount(): Map<string, number> {
     return this.domain.axesCount;
   }
+
+  /**
+   * Similar to getData but allows fetching multiple dimensions in a fell swoop
+   * @param preload A list of axisNames whose whose values will be preloaded
+   * @example
+   * // In a grid, you might want to preload all z axis values while using a particular t axis value
+   * query("z") === [{z:0,POTM:10},{z:1,POTM:20}] etc
+   */
+  query(...preload: string[]) {
+    const consider = this.axesCount
+      .entries()
+      .filter(([axisName, count]) => count > 1 && preload.includes(axisName)) // count>1 means filtering out 1D values
+      .map(([axisName, count]) => [axisName, [...Array(count).keys()]] as const)
+      .toArray();
+
+    const axisIndices = consider.map(([, indices]) => indices.map((idx) => idx)); // Remove readonly marker
+    const prod = cartesianProduct<number>(...axisIndices).map(
+      (combo) => new Map(combo.map((idx, i) => [consider[i][0], idx]))
+    );
+
+    return (ref: Map<string, number> | Position | string | number, rangeIds?: string[]) => {
+      if (!(ref instanceof Map)) ref = this.queryIndices(ref);
+      const rows = prod
+        .map((indices) => new Map([...ref, ...indices]))
+        .map(async (indices) => this.getData(indices, rangeIds));
+      return Promise.all(rows);
+    };
+  }
 }
 
 export type DataValue = string | number | null | undefined;
-export type DataRow<T extends DataValue = DataValue> = Record<string, T>;
+export type DataRow<T extends DataValue = DataValue> = Record<string, T> &
+  Record<`${'x' | 'y' | 'z' | 't' | 'composite'}Index`, number>;

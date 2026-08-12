@@ -1,4 +1,4 @@
-import { BaseDomain } from './base-domain.ts';
+import { BaseDomain, type SpatioTemporalPosition } from './base-domain.ts';
 import type { MultiPointSeries as MpsD, MultiPoint as MpD, Position } from 'coveragejson';
 import { Referencing } from '../referencing.ts';
 import type { MultiPoint as MultiPointGeometry } from 'geojson';
@@ -61,15 +61,21 @@ abstract class Base<T extends MpD | MpsD> extends BaseDomain<T> {
     if (this.axes.t) this.axes.t.values = this.axes.t.values.map(referencing.trs);
     return this;
   }
-  queryIndices(point: Position): Map<keyof T['axes'], number> {
-    const indices = new Map();
-    let {
-      properties: { segmentIndex: composite }
-    } = nearestPointOnLine({ ...this.geometry, type: 'LineString' }, point);
-    // If only one multipoint, the index be -1
-    if (composite === -1) composite = 0;
-    indices.set('composite', composite);
-    return indices;
+  queryIndices(ref: Position | string | number): Map<keyof T['axes'], number> {
+    const indices = new Map().set('composite', 0).set('z', 0);
+
+    let composite = 0;
+    let zRef = typeof ref === 'number' ? ref : undefined;
+    if (Array.isArray(ref)) {
+      ({
+        properties: { segmentIndex: composite }
+      } = nearestPointOnLine({ ...this.geometry, type: 'LineString' }, ref));
+      [, , zRef] = ref;
+    }
+
+    if (typeof ref === 'string') composite = this.tIndex(ref);
+    if (!isUndefined(zRef)) indices.set('z', this.zIndex(zRef));
+    return indices.set('composite', composite);
   }
 }
 
@@ -79,9 +85,6 @@ export class MultiPoint extends Base<MpD> {
       type: 'MultiPoint',
       coordinates: this.axes.composite.values
     };
-  }
-  queryIndices(point: Position): Map<'composite' | 't', number> {
-    return super.queryIndices(point);
   }
 }
 
