@@ -4,12 +4,14 @@
 	import * as Item from '../../components/ui/item/index.ts';
 	import { ChevronsUpDown, GroupIcon } from '@lucide/svelte';
 	import { SvelteSet, SvelteMap } from 'svelte/reactivity';
+	import { Skeleton } from '../../components/ui/skeleton/index.ts';
 	import { buttonVariants } from '../../components/ui/button/index.ts';
 	import ParameterGroupComponent from '../parameter-group.svelte';
 	import ParameterComponent from '../parameter.svelte';
 	import ModeWatcher from '../mode-watcher.svelte';
 	import GearStick from '../indices-switcher.svelte';
 	import TemporalControl from '../temporal-control.svelte';
+	import LineChart from '../charts/line-chart.svelte';
 
 	let {
 		onIndicesChange,
@@ -17,18 +19,15 @@
 		detail,
 		children,
 		coveragecollection = $bindable(),
-		pageWith = $bindable('z')
+		pageWith = $bindable('z') // move from this to dynamic paging key
 	}: DashboardProps = $props();
 
 	let selected = $derived(new SvelteSet(coverage?.parameters.keys()));
 	let indices = $derived(new SvelteMap(coverage?.indices));
 	let page = $state(1);
 	$effect(() => onIndicesChange?.(coverage?.uuid, indices));
-	let dataHandler = $derived(coverage?.query(pageWith === 'z' ? 't' : 'z'));
+	let dataHandler = $derived(coverage?.query(pageWith === 'z' ? 't' : 'z', 'z'));
 	let data = $derived(dataHandler?.(indices, selected.keys().toArray()));
-	$effect(() => {
-		data?.then((data) => console.log(data));
-	});
 </script>
 
 <div class="grid grid-cols-3">
@@ -73,12 +72,15 @@
 	</div>
 	<div class="flex flex-col gap-2" id="charts">
 		<GearStick bind:coverage bind:page bind:indices bind:pageWith />
-		<TemporalControl
-			values={coveragecollection?.t || coverage?.t || []}
-			formatter={(v, res) => {
-				return v;
-			}}
-		/>
+		<TemporalControl values={coveragecollection?.t || coverage?.t || []} />
+
+		{#await data}
+			<Skeleton />
+		{:then data}
+			{#if data}
+				<LineChart {data} bind:selected />
+			{/if}
+		{/await}
 	</div>
 	<div class="h-screen w-full">
 		{@render children?.()}

@@ -1,5 +1,6 @@
 /**
  * @see https://github.com/Reading-eScience-Centre/covutils/blob/master/src/array.js
+ * @author letmaik
  */
 
 /**
@@ -33,30 +34,30 @@
  * Get the smallest and largest values in array
  */
 export function minMax(arr: (number | null)[]): [number | null, number | null] {
-	let len = arr.length;
-	let min: number | null = Infinity;
-	let max: number | null = -Infinity;
-	while (len--) {
-		const el = arr[len];
-		if (el == null) {
-			// do nothing
-		} else if (el < min) {
-			min = el;
-		} else if (el > max) {
-			max = el;
-		}
-	}
-	if (min === Infinity) {
-		min = max;
-	} else if (max === -Infinity) {
-		max = min;
-	}
-	if (min === Infinity || min === -Infinity) {
-		// all values were null
-		min = null;
-		max = null;
-	}
-	return [min, max];
+  let len = arr.length;
+  let min: number | null = Infinity;
+  let max: number | null = -Infinity;
+  while (len--) {
+    const el = arr[len];
+    if (el == null) {
+      // do nothing
+    } else if (el < min) {
+      min = el;
+    } else if (el > max) {
+      max = el;
+    }
+  }
+  if (min === Infinity) {
+    min = max;
+  } else if (max === -Infinity) {
+    max = min;
+  }
+  if (min === Infinity || min === -Infinity) {
+    // all values were null
+    min = null;
+    max = null;
+  }
+  return [min, max];
 }
 
 /**
@@ -69,37 +70,37 @@ export function minMax(arr: (number | null)[]): [number | null, number | null] {
  *   If `x` is greater (lower if descending) than the last value, both neighbors point to the last index.
  */
 export function indicesOfNearest(a: number[], x: number): [number, number] {
-	if (a.length === 0) {
-		throw new Error('Array must have at least one element');
-	}
-	let lo = -1;
-	let hi = a.length;
-	const ascending = a.length === 1 || a[0] < a[1];
-	// we have two separate code paths to help the runtime optimize the loop
-	if (ascending) {
-		while (hi - lo > 1) {
-			const mid = Math.round((lo + hi) / 2);
-			if (a[mid] <= x) {
-				lo = mid;
-			} else {
-				hi = mid;
-			}
-		}
-	} else {
-		while (hi - lo > 1) {
-			const mid = Math.round((lo + hi) / 2);
-			if (a[mid] >= x) {
-				// here's the difference
-				lo = mid;
-			} else {
-				hi = mid;
-			}
-		}
-	}
-	if (a[lo] === x) hi = lo;
-	if (lo === -1) lo = hi;
-	if (hi === a.length) hi = lo;
-	return [lo, hi];
+  if (a.length === 0) {
+    throw new Error('Array must have at least one element');
+  }
+  let lo = -1;
+  let hi = a.length;
+  const ascending = a.length === 1 || a[0] < a[1];
+  // we have two separate code paths to help the runtime optimize the loop
+  if (ascending) {
+    while (hi - lo > 1) {
+      const mid = Math.round((lo + hi) / 2);
+      if (a[mid] <= x) {
+        lo = mid;
+      } else {
+        hi = mid;
+      }
+    }
+  } else {
+    while (hi - lo > 1) {
+      const mid = Math.round((lo + hi) / 2);
+      if (a[mid] >= x) {
+        // here's the difference
+        lo = mid;
+      } else {
+        hi = mid;
+      }
+    }
+  }
+  if (a[lo] === x) hi = lo;
+  if (lo === -1) lo = hi;
+  if (hi === a.length) hi = lo;
+  return [lo, hi];
 }
 
 /**
@@ -110,23 +111,23 @@ export function indicesOfNearest(a: number[], x: number): [number, number] {
  *   If `x` happens to be exactly between two values, then the lower index is returned.
  */
 export function indexOfNearest(a: number[], x: number): number {
-	const i = indicesOfNearest(a, x);
-	const lo = i[0];
-	const hi = i[1];
-	if (Math.abs(x - a[lo]) <= Math.abs(x - a[hi])) {
-		return lo;
-	} else {
-		return hi;
-	}
+  const i = indicesOfNearest(a, x);
+  const lo = i[0];
+  const hi = i[1];
+  if (Math.abs(x - a[lo]) <= Math.abs(x - a[hi])) {
+    return lo;
+  } else {
+    return hi;
+  }
 }
 
 export function cartesianProduct<T>(...args: T[][]): T[][] {
-	return args.reduce<T[][]>((a, b) => a.flatMap((d) => b.map((e) => [...d, e])), [[]]);
+  return args.reduce<T[][]>((a, b) => a.flatMap((d) => b.map((e) => [...d, e])), [[]]);
 }
 
 /**
  * https://github.com/bobbyhadz/typescript-make-property-required/blob/main/src/index.ts
  */
 export type WithRequiredProperty<Type, Key extends keyof Type> = Type & {
-	[Property in Key]-?: Type[Property];
+  [Property in Key]-?: Type[Property];
 };

@@ -14,30 +14,38 @@
 	let onIndicesChange = $state<OnIndicesChange>();
 	$effect(() => {
 		map?.on('load', ({ target: map }) => {
-			map.addSource('cov-load-test', {
+			const source = 'cov-load-test';
+			map.addSource(source, {
 				type: 'coveragejson',
-				data: 'https://covjson.org/playground/coverages/grid-tiled.covjson',
-				layers: ['grid-outline', 'grid-layer', 'random'],
+				data: 'https://covjson.org/playground/coverages/profile.covjson',
+				layers: ['grid-outline', 'grid-layer', 'profile'],
 				listenTo: ['click'],
 				tempLayerPaint: {
-					fill: { 'fill-color': 'red' }
+					fill: { 'fill-color': 'red' },
+					symbol: { 'icon-color': 'red' }
 				},
 				onLoad: (cov: any) => (data = cov)
 			});
-			onIndicesChange = map.getSource<MaplibrePlugin>('cov-load-test')?.onIndicesChange;
+			onIndicesChange = map.getSource<MaplibrePlugin>(source)?.onIndicesChange;
 			map.addLayer({
-				source: 'cov-load-test',
+				source,
 				id: 'grid-layer',
 				type: 'fill',
 				paint: { 'fill-color': 'grey', 'fill-opacity': 0.5 }
 			});
 			map.addLayer({
-				source: 'cov-load-test',
+				source,
 				id: 'grid-outline',
 				type: 'line',
 				paint: { 'line-color': 'red', 'line-width': 0.4 }
 			});
-			map.on('click', 'grid-layer', (e) => {
+			map.addLayer({
+				source,
+				id: 'profile',
+				type: 'symbol',
+				layout: { 'icon-image': 'bulldozer' }
+			});
+			map.on('click', 'profile', (e) => {
 				if (coverage) coverage = undefined;
 				//@ts-expect-error e is patched
 				coverage = e.coverages[0];

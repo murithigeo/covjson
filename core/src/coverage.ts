@@ -6,7 +6,7 @@ import type {
   NdArray as Nd,
   Position
 } from 'coveragejson';
-import { Base } from './base.ts';
+import { Base, type MapIndices, type ReferenceArgument } from './base.ts';
 import { Parameter, ParameterGroup } from './parameters.ts';
 import { BaseDomain, getDomain, isUndefined } from './domain/index.ts';
 import { load } from './load.ts';
@@ -147,11 +147,14 @@ export class Coverage<T extends Domain = Domain> extends Base<CRG<T>> {
     const indices = this.domain
       .queryIndices(ref)
       .entries()
+      .toArray()
+      .filter(([axisName]) => this.axesCount.has(axisName))
       .map(([k, v]) => [k, v < 0 ? 0 : v] as const);
     return new Map(indices);
   }
   /**
-   * Calculates the relevant axes indices given a reference point
+   * Calculates the indices given a reference dimension and overwrites @see {indices}.
+   * Is used in the maplibre and leaflet extensions
    */
   calculateIndices(ref: Position | string | number): this {
     this.indices = this.queryIndices(ref);
@@ -193,41 +196,38 @@ export class Coverage<T extends Domain = Domain> extends Base<CRG<T>> {
    *  const data=await coverage.getData([0,0],["QC","POTM","x"])
    *  data==={"QC":50,"POTM":100,"x":undefined}
    */
-  async getData(
-    ref: Position | Map<string, number> | string | number,
-    rangeIds?: string[]
-  ): Promise<DataRow> {
+  async getData(ref: ReferenceArgument, rangeIds = this.ranges.keys().toArray()): Promise<DataRow> {
     if (!(ref instanceof Map)) ref = this.queryIndices(ref);
-    if (!rangeIds) rangeIds = this.ranges.keys().toArray();
+
     const values = rangeIds
-      .map((id) => this.ranges.get(id)?.get(ref))
-      .map(async (val, idx) => [rangeIds[idx], await val]);
+      .filter((id) => this.ranges.has(id))
+      .map(async (id) => [id, await this.ranges.get(id)!.get(ref)] as const);
 
     const row = Object.fromEntries(await Promise.all(values));
     ref.forEach((value, key) => {
       if (!this.axesCount.has(key)) return;
-      row[`${key}Index`] = value;
+
+      if (key === 't' || key === 'z') row[key] = this[key][value];
+      else row[`${key}Index`] = value;
     });
     return row;
   }
-  hasRange(key: string) {
-    return this.ranges.has(key);
-  }
+
   get axesCount(): Map<string, number> {
     return this.domain.axesCount;
   }
 
   /**
    * Similar to getData but allows fetching multiple dimensions in a fell swoop
-   * @param preload A list of axisNames whose whose values will be preloaded
+   * @param axisNames A list of axisNames whose whose values will be preloaded
    * @example
    * // In a grid, you might want to preload all z axis values while using a particular t axis value
    * query("z") === [{z:0,POTM:10},{z:1,POTM:20}] etc
    */
-  query(...preload: string[]) {
+  query(...axisNames: string[]) {
     const consider = this.axesCount
       .entries()
-      .filter(([axisName, count]) => count > 1 && preload.includes(axisName)) // count>1 means filtering out 1D values
+      .filter(([axisName, count]) => count > 1 && axisNames.includes(axisName)) // count>1 means filtering out 1D values
       .map(([axisName, count]) => [axisName, [...Array(count).keys()]] as const)
       .toArray();
 
@@ -236,16 +236,22 @@ export class Coverage<T extends Domain = Domain> extends Base<CRG<T>> {
       (combo) => new Map(combo.map((idx, i) => [consider[i][0], idx]))
     );
 
-    return (ref: Map<string, number> | Position | string | number, rangeIds?: string[]) => {
+    return (ref: ReferenceArgument, rangeIds?: string[]) => {
       if (!(ref instanceof Map)) ref = this.queryIndices(ref);
       const rows = prod
         .map((indices) => new Map([...ref, ...indices]))
         .map(async (indices) => this.getData(indices, rangeIds));
+      //todo return an object where {string:DataRow[],numeric:DataRow<number>}
       return Promise.all(rows);
     };
   }
 }
 
-export type DataValue = string | number | null | undefined;
-export type DataRow<T extends DataValue = DataValue> = Record<string, T> &
-  Record<`${'x' | 'y' | 'z' | 't' | 'composite'}Index`, number>;
+export type DataValue = string | number | null;
+export type DataRow<T extends DataValue = DataValue> = Record<string, T | null> & {
+  t?: string;
+  z?: number;
+  xIndex?: number;
+  yIndex?: number;
+  compositeIndex?: number;
+};

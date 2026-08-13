@@ -148,12 +148,20 @@ export class CoverageCollection<T extends Domain = Domain> extends Base<CovColl<
     this.#referencing = referencing;
   }
 
+  /**
+   * Simple function to retrieve a list of data values.
+   * For eagerLoading data, see @see {query}
+   */
   getData(ref: Position | string | number, rangeIds?: string[]) {
-    return this.coverages.map((cov) => cov.getData(ref, rangeIds));
+    return Promise.all(this.coverages.map((cov) => cov.getData(ref, rangeIds)));
   }
+  /**
+   * @param axisNames Axis names to preload data for
+   */
   query(...axisNames: string[]) {
+    const awaiting = this.coverages.map((cov) => cov.query(...axisNames));
     return (ref: Position | string | number, rangeIds?: string[]) =>
-      this.coverages.map((cov) => cov.query(...axisNames)(ref, rangeIds));
+      awaiting.map((query) => query(ref, rangeIds));
   }
   /**
    * Recompile list of parameters from constituent coverages

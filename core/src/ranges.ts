@@ -9,12 +9,10 @@ import ndarray, { type NdArray as NdArr } from 'ndarray';
 import { parseTemplate } from 'url-template';
 import { load } from './load.ts';
 import ops from 'ndarray-ops';
-import { cartesianProduct } from './utils.ts';
+import { cartesianProduct, minMax } from './utils.ts';
 import { TilesetNotFound } from './error.ts';
-import { minMax } from './utils.ts';
 import { isUndefined } from './domain/utils.ts';
-
-type Indices = Map<string, number>;
+import type { MapIndices } from './base.ts';
 
 interface NdArrayOptions<T extends string | number = string | number> {
   /**
@@ -77,7 +75,7 @@ export class NdArray<T extends string | number = string | number> {
    * const indices=new NdArr(...,axisNames:["t","x","y"]).reduceIndices({x:20,y:1})
    * indices=[0,20,1]
    */
-  normalizeNamedIndices(indices: Indices): number[] {
+  normalizeNamedIndices(indices: MapIndices): number[] {
     if (!this.axisNames.length) return [0]; // For 0D ranges
     return this.axisNames
       .map((an) => indices.get(an) || 0)
@@ -89,7 +87,7 @@ export class NdArray<T extends string | number = string | number> {
    * If the range is tiled and the value is undefined, then the matching tileset is loaded and the data fetched directly
    */
 
-  async get<T extends string | number | null>(indices: Indices | number[]) {
+  async get<T extends string | number | null>(indices: MapIndices | number[]) {
     if (!Array.isArray(indices)) indices = this.normalizeNamedIndices(indices);
     let value = this.ndarr.get(...indices);
     if (value !== undefined) return value;

@@ -2,16 +2,33 @@
 	import type { LineChartProps } from '../types.d.ts';
 	import * as Chart from '../../components/ui/chart/index.ts';
 	import { LineChart } from 'layerchart';
-	let { config, data, tooltip, ...props }: LineChartProps = $props();
+	let {
+		config,
+		data = $bindable(),
+		tooltip,
+		selected = $bindable(),
+		...props
+	}: LineChartProps = $props();
 </script>
 
-<!-- This component is intended to be used to visualize series data such as timeseries or vertical series -->
 <Chart.Container {config}>
-	<LineChart {data} {...props}>
-		{#if tooltip}
+	<LineChart
+		{data}
+		series={selected
+			.keys()
+			.toArray()
+			.map((key) => {
+				if (!config || !config[key]) return { key, label: key };
+				return { ...config[key], key };
+			})}
+		x="z"
+		legend
+		{...props}
+	>
+		<!-- {#if tooltip}
 			{#snippet tooltip()}
 				<Chart.Tooltip hideLabel />
 			{/snippet}
-		{/if}
+		{/if} -->
 	</LineChart>
 </Chart.Container>

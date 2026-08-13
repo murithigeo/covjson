@@ -1,9 +1,5 @@
 import { Referencing, type UserReferencingOptions as RefOptions } from './referencing.ts';
-import type {
-  Position3D,
-  ReferenceSystemConnection as RSC,
-  Position as SpatialPosition
-} from 'coveragejson';
+import type { Domain, Position, ReferenceSystemConnection as RSC } from 'coveragejson';
 
 export abstract class Base<T> {
   abstract get referencing(): RSC[] | undefined;
@@ -51,3 +47,6 @@ export abstract class Base<T> {
    */
   abstract get z(): number[];
 }
+
+export type MapIndices<D extends Domain = Domain> = Map<string | keyof D['axes'], number>;
+export type ReferenceArgument = MapIndices | number | string | Position;
