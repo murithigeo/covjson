@@ -11,7 +11,7 @@
 	import ModeWatcher from '../mode-watcher.svelte';
 	import GearStick from '../indices-switcher.svelte';
 	import TemporalControl from '../temporal-control.svelte';
-	import LineChart from '../charts/line-chart.svelte';
+	import ChartCentral from '../charts/chart-central.svelte';
 
 	let {
 		onIndicesChange,
@@ -74,13 +74,7 @@
 		<GearStick bind:coverage bind:page bind:indices bind:pageWith />
 		<TemporalControl values={coveragecollection?.t || coverage?.t || []} />
 
-		{#await data}
-			<Skeleton />
-		{:then data}
-			{#if data}
-				<LineChart {data} bind:selected />
-			{/if}
-		{/await}
+		<ChartCentral bind:indices bind:selected bind:coverage type="line" />
 	</div>
 	<div class="h-screen w-full">
 		{@render children?.()}
