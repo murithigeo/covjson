@@ -12,11 +12,22 @@ import { BaseDomain, getDomain, isUndefined } from './domain/index.ts';
 import { load } from './load.ts';
 import type { InferDomainClass, WithoutRegularlySpacedAxis } from './domain/types.d.ts';
 import { Referencing } from './referencing.ts';
-import { NdArray } from './ranges.ts';
+import { NdArray, type NdArrayOptions } from './ranges.ts';
 import { nanoid } from 'nanoid';
 import type { Feature } from 'geojson';
 import { cartesianProduct } from './utils.ts';
 
+export interface CoverageOptions {
+  /**
+   * Options to be applied to each ndarray
+   */
+  ranges?: Record<string, NdArrayOptions>;
+  /**
+   * The preferred language of any parameters
+   * @see {I18N} for more details
+   */
+  language?: string;
+}
 export class Coverage<T extends Domain = Domain> extends Base<CRG<T>> {
   get t(): string[] {
     return this.domain.t;
@@ -34,7 +45,11 @@ export class Coverage<T extends Domain = Domain> extends Base<CRG<T>> {
   ranges: Map<string, NdArray>;
   uuid: string;
   indices: Map<string, number>;
-  constructor(coverage: CRG<T | InferDomainClass<T>> & { ranges: Record<string, Nd> }) {
+  options: CoverageOptions;
+  constructor(
+    coverage: CRG<T | InferDomainClass<T>> & { ranges: Record<string, Nd> },
+    options: CoverageOptions = {}
+  ) {
     super();
     const {
       type,
@@ -50,16 +65,19 @@ export class Coverage<T extends Domain = Domain> extends Base<CRG<T>> {
     this.id = id;
     this.domain = domain instanceof BaseDomain ? domain : getDomain<T>(domain);
     this.domainType = this.domain.domainType || domainType;
-    this.ranges = new Map(
-      Object.entries(ranges).map(([id, range]) => [id.toUpperCase(), new NdArray(range)])
-    );
-    this.parameters = new Map(
-      Object.entries(parameters).map(([id, param]) => [id, new Parameter(param, id)])
-    );
+
+    this.ranges = new Map();
+    for (const id in ranges) this.ranges.set(id, new NdArray(ranges[id], options.ranges?.[id]));
+
+    this.parameters = new Map();
+    for (const id in parameters)
+      this.parameters.set(id, new Parameter(parameters[id], id, options.language));
+
     this.parameterGroups = parameterGroups.map((e) => new ParameterGroup(e));
     this.properties = properties;
     this.uuid = nanoid();
     this.indices = new Map(Object.keys(this.domain.axes).map((k) => [k, 0]));
+    this.options = options;
   }
 
   static async resolve<T extends Domain>(
@@ -91,25 +109,14 @@ export class Coverage<T extends Domain = Domain> extends Base<CRG<T>> {
     };
   }
   static async load<T extends Domain = Domain>(
-    coverage: CRG<T | string> | string
+    coverage: CRG<T | string> | string,
+    options: CoverageOptions
   ): Promise<Coverage<T>> {
     if (typeof coverage === 'string') coverage = await load<CRG<T>>(coverage);
 
-    return Coverage.resolve<T>(coverage).then((cov) => new Coverage(cov));
+    return Coverage.resolve<T>(coverage).then((cov) => new Coverage(cov, options));
   }
 
-  addParameter(id: string, value: CovParam | Parameter): this {
-    const isExisting = this.parameters.get(id);
-    if (isExisting) return this;
-    if (!(value instanceof Parameter)) value = new Parameter(value, id);
-    this.parameters.set(id, value);
-    return this;
-  }
-  addParameterGroup(group: CovPGroup | ParameterGroup) {
-    if (!(group instanceof ParameterGroup)) group = new ParameterGroup(group);
-    this.parameterGroups.push(group);
-    return this;
-  }
   /**
    * Assumes that the domain contained has implemented the method
    */

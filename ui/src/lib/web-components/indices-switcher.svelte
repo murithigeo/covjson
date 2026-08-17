@@ -17,6 +17,7 @@
 		indices: SvelteMap<string, number>;
 		/**
 		 * Renders the indices buttons as a grid reminiscent of a joystick
+		 * @deprecated
 		 */
 		joystick?: boolean;
 	}

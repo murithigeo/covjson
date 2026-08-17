@@ -9,12 +9,12 @@ import ndarray, { type NdArray as NdArr } from 'ndarray';
 import { parseTemplate } from 'url-template';
 import { load } from './load.ts';
 import ops from 'ndarray-ops';
-import { cartesianProduct, minMax } from './utils.ts';
+import { cartesianProduct, minMax, type MinMax } from './utils.ts';
 import { TilesetNotFound } from './error.ts';
 import { isUndefined } from './domain/utils.ts';
 import type { MapIndices } from './base.ts';
 
-interface NdArrayOptions<T extends string | number = string | number> {
+export interface NdArrayOptions<T extends string | number = string | number> {
   /**
    * When a indices hit requests that tileSet, the entire tileSet is loaded
    */
@@ -27,6 +27,10 @@ interface NdArrayOptions<T extends string | number = string | number> {
    *
    */
   transform?: (val: T | null, dataType: 'string' | 'float' | 'integer') => T | null;
+  /**
+   * Function to execute when a new range is appended to the coverage
+   */
+  syncMinMax?: (minMax: MinMax) => void;
 }
 
 type NdArrX<T extends string | number> = NumberNdArray | StringNdArray | ValuesNdArray<T>;
@@ -38,7 +42,7 @@ export class NdArray<T extends string | number = string | number> {
   axisNames: string[];
   dataType: ValuesNdArray<T>['dataType'];
   options: NdArrayOptions;
-
+  minMax: MinMax;
   constructor(ndarr: NdArrX<T> | TiledNdArray, options?: NdArrayOptions) {
     this.type = ndarr.type;
     this.axisNames = ndarr.axisNames || [];
@@ -47,7 +51,7 @@ export class NdArray<T extends string | number = string | number> {
     this.#tileSets = 'tileSets' in ndarr ? ndarr.tileSets : [];
     this.dataType = ndarr.dataType as ValuesNdArray<T>['dataType'];
     this.options = options || {};
-
+    this.minMax = [null, null];
     if ('values' in ndarr) this.appendRange(this.shape, Array(this.totalSize).fill(0), ndarr);
   }
   get totalSize() {
@@ -58,6 +62,7 @@ export class NdArray<T extends string | number = string | number> {
   /**
    * Get the ndarray's data.
    * If all the data has not been completely loaded, undefined values will become nulls
+   * @todo fill nulls on init
    */
   get values(): [T | null, ...(T | null)[]] {
     for (let i = 0; i < this.totalSize; i++) {
@@ -128,15 +133,14 @@ export class NdArray<T extends string | number = string | number> {
    */
   appendRange(tileShape: TileSet['tileShape'], tile: number[], range: NdArrX<T>) {
     const offsets = tile.map((v, i) => v * (tileShape[i] ?? this.shape[i]));
-    ops.assign(
-      this.ndarr.lo(...offsets).hi(...(range.shape || this.shape)), // If range has no shape, then use the one it was init with (0D)
-      ndarray(
-        range.values.map((v) =>
-          this.options.transform ? this.options.transform?.(v, this.dataType) : v
-        ),
-        range.shape
-      )
-    );
+    const {
+      shape = this.shape, // If range has no shape, then use the one it was init with (0D)
+      values
+    } = range;
+    values.forEach((v, i, arr) => (arr[i] = this.options.transform?.(v, this.dataType) || v));
+    ops.assign(this.ndarr.lo(...offsets).hi(...shape), ndarray(values, shape));
+    this.updateMinMax();
+    this.options.syncMinMax?.(this.minMax);
   }
   /**
    * Gets the indices of the tile that contains the indices provided
@@ -155,6 +159,7 @@ export class NdArray<T extends string | number = string | number> {
     const [tileSet] = this.#tileSets
       .filter(this.intersects(indices))
       .sort((a, b) => this.tilesetEffort(a) - this.tilesetEffort(b));
+
     if (!tileSet) throw new TilesetNotFound(indices);
     const tiles: number[][] = this.options.eagerLoad
       ? this.getTileCombos(tileSet)
@@ -169,12 +174,14 @@ export class NdArray<T extends string | number = string | number> {
   /**
    * All possible combinations of a tileset's shape
    */
-  getTileCombos(tileset: TileSet) {
-    return cartesianProduct(
-      ...tileset.tileShape.map((ts, i) =>
-        Array.from({ length: Math.ceil(this.shape[i] / (ts ?? this.shape[i])) }, (_, t) => t)
-      )
-    ).map((combo) => this.axisNames.map((_, i) => combo[i]));
+  getTileCombos({ tileShape }: TileSet) {
+    const uniqueCombos = tileShape
+      .map((shape, i) => shape ?? this.shape[i]) //Get non-null max value for axis
+      .map((shape, i) => Math.ceil(this.shape[i] / shape)) // Get max allowable length for axis
+      .map((shape) => [...Array(shape).keys()]); // Generate an array of all possible indices for axis
+    return cartesianProduct<number>(...uniqueCombos).map((combo) =>
+      this.axisNames.map((_, i) => combo[i])
+    ); //
   }
   toPlain(nonTiled = false): ValuesNdArray<T> | TiledNdArray {
     if (this.type === 'NdArray' || nonTiled) {
@@ -194,8 +201,8 @@ export class NdArray<T extends string | number = string | number> {
       axisNames: this.axisNames
     };
   }
-  get minMax(): [number | null, number | null] {
-    if (this.dataType === 'string') return [null, null];
-    return minMax(this.ndarr.data as number[]);
+  updateMinMax(): void {
+    if (this.dataType === 'string') return;
+    this.minMax = minMax([...(this.ndarr.data as number[]), ...this.minMax]);
   }
 }

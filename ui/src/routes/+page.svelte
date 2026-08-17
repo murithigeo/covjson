@@ -17,7 +17,7 @@
 			const source = 'cov-load-test';
 			map.addSource(source, {
 				type: 'coveragejson',
-				data: 'https://covjson.org/playground/coverages/profile.covjson',
+				data: window.location.href + 'data.json',
 				layers: ['grid-outline', 'grid-layer', 'profile'],
 				listenTo: ['click'],
 				tempLayerPaint: {

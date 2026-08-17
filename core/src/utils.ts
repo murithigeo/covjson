@@ -30,6 +30,7 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+export type MinMax = [number | null, number | null];
 /**
  * Get the smallest and largest values in array
  */

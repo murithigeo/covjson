@@ -2,13 +2,7 @@
 	import type { LineChartProps } from './types.d.ts';
 	import { LineChart } from 'layerchart';
 
-	let {
-		config,
-		data = $bindable(),
-		tooltip,
-		series = $bindable(),
-		...props
-	}: LineChartProps = $props();
+	let { data = $bindable(), series = $bindable(), ...props }: LineChartProps = $props();
 </script>
 
 <LineChart {data} {series} {...props}>

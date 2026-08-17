@@ -7,27 +7,31 @@ import type {
   Position
 } from 'coveragejson';
 import { Parameter, ParameterGroup } from './parameters.ts';
-import { Coverage, type DataRow } from './coverage.ts';
+import { Coverage, type CoverageOptions, type DataRow } from './coverage.ts';
 import { Referencing, type UserReferencingOptions } from './referencing.ts';
 import { Base } from './base.ts';
 import type { FeatureCollection } from 'geojson';
 import type { InferDomainClass } from './domain/types.d.ts';
-import { minMax } from './utils.ts';
+import { minMax, type MinMax, type WithRequiredProperty } from './utils.ts';
 
 export class CoverageCollection<T extends Domain = Domain> extends Base<CovColl<T>> {
   _reproject(): this {
-    throw Error('Method not implemented.');
+    throw Error('Method not implemented. Use reproject instead');
   }
   type: 'CoverageCollection';
   coverages: Coverage<T>[];
   #referencing?: ReferenceSystemConnection[] | undefined;
   domainType?: InferDomainClass<T>['domainType'];
+  #parameters: Map<string, Parameter>;
   parameterGroups: ParameterGroup[];
   properties: Record<string, unknown>;
+  minMax: Record<string, MinMax>;
+  options: WithRequiredProperty<CoverageOptions, 'ranges'>;
   constructor(
     doc: Omit<CovColl, 'coverages'> & {
       coverages: ((CRG<T> & { ranges: Record<string, Nd> }) | Coverage<T>)[];
-    }
+    },
+    options: CoverageOptions
   ) {
     super();
     const {
@@ -39,43 +43,59 @@ export class CoverageCollection<T extends Domain = Domain> extends Base<CovColl<
       parameters = {},
       ...properties
     } = doc;
+    this.options = options;
     this.type = type;
     this.domainType = domainType;
-
-    // todo make this a set or copy to coverages
     this.parameterGroups = parameterGroups.map((e) => new ParameterGroup(e));
     this.#referencing = referencing;
     this.properties = properties;
-    const parameters_ = new Map(
-      Object.entries(parameters).map(([id, param]) => [id, new Parameter(param, id)])
-    );
+    this.#parameters = new Map();
+    for (const id in this.parameters) {
+      this.#parameters.set(id, new Parameter(parameters[id], id, this.options.language));
+    }
+
+    /**
+     * Piggy back on the options to get make minMax dynamic
+     */
+    this.options.ranges = this.options.ranges || {};
+    for (const id in this.#parameters.keys()) {
+      let { syncMinMax, ...props } = this.options.ranges[id] || {};
+      syncMinMax = (minMax) => {
+        syncMinMax?.(minMax);
+        this.updateMinMax(id, minMax);
+      };
+    }
     this.coverages = coverages.map((cov) => {
-      const cov_ = cov instanceof Coverage ? cov : new Coverage(cov);
+      const cov_ = cov instanceof Coverage ? cov : new Coverage(cov, options);
       if (!cov_.domain.referencing && this.referencing) cov_.domain.referencing = this.referencing;
       // Ensure that each coverage has a copy of the parameters and parameterGroups
-      parameters_.entries().forEach(([k, v]) => cov_.addParameter(k, v));
-      this.parameterGroups.forEach((v) => cov_.addParameterGroup(v));
+      this.parameters.entries().forEach(([k, v]) => cov_.parameters.set(k, v));
+      this.parameterGroups.forEach((v) => cov_.parameterGroups.push(v));
       return cov_;
     });
+    this.minMax = {};
   }
-
-  static async load<T extends Domain>(doc: CovColl<T | string>): Promise<CoverageCollection<T>> {
-    const coverages = await Promise.all(doc.coverages.map((cov) => Coverage.resolve(cov)));
-    return new CoverageCollection({
-      ...doc,
-      coverages
-    });
+  updateMinMax(id: string, minMax: MinMax) {
+    this.minMax[id] = minMax([...minMax, ...this.minMax[id]]);
+  }
+  static async load<T extends Domain>(
+    doc: CovColl<T | string>,
+    options: CoverageOptions
+  ): Promise<CoverageCollection<T>> {
+    return new CoverageCollection(
+      {
+        ...doc,
+        coverages: await Promise.all(doc.coverages.map((cov) => Coverage.resolve(cov)))
+      },
+      options
+    );
   }
   denormalize() {
-    for (const coverage of this.coverages) {
-      coverage.denormalize();
-    }
+    for (const coverage of this.coverages) coverage.denormalize();
     return this;
   }
   normalize() {
-    for (const coverage of this.coverages) {
-      coverage.normalize();
-    }
+    for (const coverage of this.coverages) coverage.normalize();
   }
   reproject(referencing: Referencing, force: true): this;
   reproject(referencing: Referencing, force?: false): Promise<this>;
@@ -168,22 +188,12 @@ export class CoverageCollection<T extends Domain = Domain> extends Base<CovColl<
    * If the parameter is referenced by more than 1 coverage, it is deleted from all coverages
    */
   get parameters(): Map<string, Parameter> {
-    return new Map(this.coverages.flatMap((c) => [...c.parameters]));
-  }
-  /**
-   * A summary of the collection's ranges
-   */
-  get rangeStats() {
-    const stats: Record<string, { count: number } & Record<'min' | 'max', number | null>> = {};
-    this.parameters.keys().forEach((key) => {
-      const covs = this.coverages.filter((cov) => cov.hasRange(key));
-      const [min, max] = minMax(covs.flatMap((cov) => cov.ranges.get(key)!.minMax));
-      stats[key] = {
-        count: covs.length,
-        min,
-        max
-      };
-    });
-    return stats;
+    for (const cov of this.coverages) {
+      cov.parameters.forEach((v, k) => {
+        if (this.#parameters.has(k)) return;
+        this.#parameters.set(k, v);
+      });
+    }
+    return this.#parameters;
   }
 }

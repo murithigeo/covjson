@@ -1,9 +1,5 @@
 <script lang="ts">
-	import type {
-		MetadataRenderProps,
-		MetadataRenderDetail,
-		ParameterToggleEventDetail
-	} from './types.d.ts';
+	import type { MetadataRenderProps } from './types.d.ts';
 	import type { ParameterGroup } from 'coveragejson';
 	import { Checkbox } from '../components/ui/checkbox/index.ts';
 	import ObservedProperty from './observed-property.svelte';
@@ -12,10 +8,7 @@
 	import * as Item from '../components/ui/item/index.ts';
 	import * as Collapsible from '../components/ui/collapsible/index.ts';
 	import { ChevronsUpDown, LanguagesIcon } from '@lucide/svelte';
-	import {
-		ObservedProperty as ObsClass,
-		ParameterGroup as PGroupClass
-	} from '@murithigeo/covjson-core';
+	import { ParameterGroup as PGroupClass } from '@murithigeo/covjson-core';
 	import { SvelteSet } from 'svelte/reactivity';
 	import { buttonVariants } from '../components/ui/button/index.ts';
 	interface Props extends MetadataRenderProps<PGroupClass | ParameterGroup> {

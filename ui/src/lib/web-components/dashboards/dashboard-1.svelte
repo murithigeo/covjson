@@ -4,13 +4,11 @@
 	import * as Item from '../../components/ui/item/index.ts';
 	import { ChevronsUpDown, GroupIcon } from '@lucide/svelte';
 	import { SvelteSet, SvelteMap } from 'svelte/reactivity';
-	import { Skeleton } from '../../components/ui/skeleton/index.ts';
 	import { buttonVariants } from '../../components/ui/button/index.ts';
 	import ParameterGroupComponent from '../parameter-group.svelte';
 	import ParameterComponent from '../parameter.svelte';
 	import ModeWatcher from '../mode-watcher.svelte';
 	import GearStick from '../indices-switcher.svelte';
-	import TemporalControl from '../temporal-control.svelte';
 	import ChartCentral from '../charts/chart-central.svelte';
 
 	let {
@@ -72,8 +70,6 @@
 	</div>
 	<div class="flex flex-col gap-2" id="charts">
 		<GearStick bind:coverage bind:page bind:indices bind:pageWith />
-		<TemporalControl values={coveragecollection?.t || coverage?.t || []} />
-
 		<ChartCentral bind:indices bind:selected bind:coverage type="line" />
 	</div>
 	<div class="h-screen w-full">
