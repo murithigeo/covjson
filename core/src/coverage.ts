@@ -17,6 +17,9 @@ import { nanoid } from 'nanoid';
 import type { Feature } from 'geojson';
 import { cartesianProduct } from './utils.ts';
 
+/**
+ * Add a function to forcibly set each ranges minMax externally
+ */
 export interface CoverageOptions {
   /**
    * Options to be applied to each ndarray

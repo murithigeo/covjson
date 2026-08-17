@@ -25,6 +25,9 @@ export class CoverageCollection<T extends Domain = Domain> extends Base<CovColl<
   #parameters: Map<string, Parameter>;
   parameterGroups: ParameterGroup[];
   properties: Record<string, unknown>;
+  /**
+   * Key is the range name and value the bounds.
+   */
   minMax: Record<string, MinMax>;
   options: WithRequiredProperty<CoverageOptions, 'ranges'>;
   constructor(
@@ -43,7 +46,7 @@ export class CoverageCollection<T extends Domain = Domain> extends Base<CovColl<
       parameters = {},
       ...properties
     } = doc;
-    this.options = options;
+    this.options = { ...options, ranges: options.ranges || {} };
     this.type = type;
     this.domainType = domainType;
     this.parameterGroups = parameterGroups.map((e) => new ParameterGroup(e));
@@ -53,30 +56,32 @@ export class CoverageCollection<T extends Domain = Domain> extends Base<CovColl<
     for (const id in this.parameters) {
       this.#parameters.set(id, new Parameter(parameters[id], id, this.options.language));
     }
+    this.minMax = {};
 
     /**
      * Piggy back on the options to get make minMax dynamic
      */
-    this.options.ranges = this.options.ranges || {};
     for (const id in this.#parameters.keys()) {
-      let { syncMinMax, ...props } = this.options.ranges[id] || {};
-      syncMinMax = (minMax) => {
-        syncMinMax?.(minMax);
+      const option = this.options.ranges[id] || {};
+      option.syncMinMax = (minMax) => {
         this.updateMinMax(id, minMax);
+        return option.syncMinMax?.(minMax);
       };
+      this.minMax[id] = [null, null];
+      this.options.ranges[id] = option;
     }
     this.coverages = coverages.map((cov) => {
-      const cov_ = cov instanceof Coverage ? cov : new Coverage(cov, options);
-      if (!cov_.domain.referencing && this.referencing) cov_.domain.referencing = this.referencing;
-      // Ensure that each coverage has a copy of the parameters and parameterGroups
-      this.parameters.entries().forEach(([k, v]) => cov_.parameters.set(k, v));
-      this.parameterGroups.forEach((v) => cov_.parameterGroups.push(v));
-      return cov_;
+      if (!(cov instanceof Coverage)) cov = new Coverage(cov, options);
+      if (!cov.domain.referencing && this.referencing) cov.domain.referencing = this.referencing;
+      cov.ranges.keys().forEach((id) => {
+        if (!cov.parameters.has(id)) cov.parameters.set(id, this.parameters.get(id)!);
+        // todo copy Parameter Groups too
+      });
+      return cov;
     });
-    this.minMax = {};
   }
-  updateMinMax(id: string, minMax: MinMax) {
-    this.minMax[id] = minMax([...minMax, ...this.minMax[id]]);
+  updateMinMax(id: string, newBounds: MinMax) {
+    this.minMax[id] = minMax([...newBounds, ...this.minMax[id]]);
   }
   static async load<T extends Domain>(
     doc: CovColl<T | string>,
