@@ -17,8 +17,8 @@
 			const source = 'cov-load-test';
 			map.addSource(source, {
 				type: 'coveragejson',
-				data: window.location.href + 'data.json',
-				layers: ['grid-outline', 'grid-layer', 'profile'],
+				data: window.location.href + 'section-sample.covjson',
+				layers: ['grid-outline', 'grid-layer', 'section'],
 				listenTo: ['click'],
 				tempLayerPaint: {
 					fill: { 'fill-color': 'red' },
@@ -27,25 +27,34 @@
 				onLoad: (cov: any) => (data = cov)
 			});
 			onIndicesChange = map.getSource<MaplibrePlugin>(source)?.onIndicesChange;
+			// map.addLayer({
+			// 	source,
+			// 	id: 'grid-layer',
+			// 	type: 'fill',
+			// 	paint: { 'fill-color': 'grey', 'fill-opacity': 0.5 }
+			// });
+			// map.addLayer({
+			// 	source,
+			// 	id: 'grid-outline',
+			// 	type: 'line',
+			// 	paint: { 'line-color': 'red', 'line-width': 0.4 }
+			// });
+			// map.addLayer({
+			// 	source,
+			// 	id: 'profile',
+			// 	type: 'symbol',
+			// 	layout: { 'icon-image': 'bulldozer' }
+			// });
 			map.addLayer({
 				source,
-				id: 'grid-layer',
-				type: 'fill',
-				paint: { 'fill-color': 'grey', 'fill-opacity': 0.5 }
-			});
-			map.addLayer({
-				source,
-				id: 'grid-outline',
-				type: 'line',
-				paint: { 'line-color': 'red', 'line-width': 0.4 }
-			});
-			map.addLayer({
-				source,
-				id: 'profile',
+				id: 'section',
 				type: 'symbol',
-				layout: { 'icon-image': 'bulldozer' }
+				layout: {
+					'icon-image': 'bulldozer'
+				}
 			});
-			map.on('click', 'profile', (e) => {
+			map.on('click', 'section', (e) => {
+				// console.log(e.coverages);
 				if (coverage) coverage = undefined;
 				//@ts-expect-error e is patched
 				coverage = e.coverages[0];

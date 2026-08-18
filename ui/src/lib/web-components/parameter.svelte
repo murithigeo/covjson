@@ -26,7 +26,6 @@
 		data = $bindable(),
 		disabled,
 		detail,
-		class: className,
 		checked = $bindable(true),
 		selected = $bindable()
 	}: Props = $props();

@@ -19,7 +19,6 @@
 		coveragecollection = $bindable(),
 		pageWith = $bindable('z') // move from this to dynamic paging key
 	}: DashboardProps = $props();
-
 	let selected = $derived(new SvelteSet(coverage?.parameters.keys()));
 	let indices = $derived(new SvelteMap(coverage?.indices));
 	let page = $state(1);
@@ -62,8 +61,8 @@
 				</Item.Actions>
 			</Item.Root>
 			<Collapsible.Content>
-				{#each coverage?.parameters as [id, param] (id)}
-					<ParameterComponent data={param} bind:selected {detail} />
+				{#each coverage?.parameters as [id, data] (id)}
+					<ParameterComponent {data} bind:selected {detail} />
 				{/each}
 			</Collapsible.Content>
 		</Collapsible.Root>

@@ -2,29 +2,32 @@ import type { Domain } from 'coveragejson';
 import { inferDomainType } from './utils.ts';
 import type { InferDomainClass } from './types.d.ts';
 import { Grid } from './grid.ts';
-import { Section, Trajectory } from './moving-domain.ts';
-import { MultiPoint, MultiPointSeries } from './multipoint.ts';
+import { Trajectory } from './trajectory.ts';
+import { MultiPoint, MultiPointSeries, Section } from './multipoint.ts';
 import { Point, PointSeries, VerticalProfile } from './point.ts';
 import { Polygon, PolygonSeries, MultiPolygon, MultiPolygonSeries } from './polygon.ts';
-import { load } from '../load.ts';
+import type { CoverageOptions } from '../coverage.ts';
 export * from './base-domain.ts';
-export * from './moving-domain.ts';
+export * from './trajectory.ts';
 export * from './multipoint.ts';
 export * from './point.ts';
 export * from './polygon.ts';
 export * from './grid.ts';
 export * from './utils.ts';
 export type * from './types.d.ts';
-export function getDomain<D extends Domain = Domain>(domain: D): InferDomainClass<D>;
-export function getDomain<D extends Domain = Domain>(domain: string): Promise<InferDomainClass<D>>;
-export function getDomain<D extends Domain = Domain>(domain: D | string) {
-  if (typeof domain === 'string') {
-    return load<D>(domain).then((dom) => getDomain(dom));
-  }
+
+export function getDomain<D extends Domain = Domain>(
+  domain: D,
+  options?: Pick<CoverageOptions, 'gridType'>
+): InferDomainClass<D>;
+export function getDomain<D extends Domain = Domain>(
+  domain: D,
+  options?: Pick<CoverageOptions, 'gridType'>
+) {
   domain.domainType = domain.domainType || inferDomainType(domain);
   switch (domain.domainType) {
     case 'Grid':
-      return new Grid(domain);
+      return new Grid(domain, options?.gridType);
     case 'Trajectory':
       return new Trajectory(domain);
     case 'Point':

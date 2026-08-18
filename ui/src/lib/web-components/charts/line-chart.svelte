@@ -1,14 +1,8 @@
 <script lang="ts">
-	import type { LineChartProps } from './types.d.ts';
-	import { LineChart } from 'layerchart';
+	import { LineChart, type LineChartProps } from 'layerchart';
+	import type { DataRow } from '@murithigeo/covjson-core';
 
-	let { data = $bindable(), series = $bindable(), ...props }: LineChartProps = $props();
+	let { data = $bindable(), series = $bindable(), ...props }: LineChartProps<DataRow> = $props();
 </script>
 
-<LineChart {data} {series} {...props}>
-	<!-- {#if tooltip}
-			{#snippet tooltip()}
-				<Chart.Tooltip hideLabel />
-			{/snippet}
-		{/if} -->
-</LineChart>
+<LineChart {...props} {data} {series}></LineChart>

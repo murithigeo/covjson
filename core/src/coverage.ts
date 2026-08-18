@@ -1,14 +1,7 @@
-import type {
-  Coverage as CRG,
-  Domain,
-  Parameter as CovParam,
-  ParameterGroup as CovPGroup,
-  NdArray as Nd,
-  Position
-} from 'coveragejson';
-import { Base, type MapIndices, type ReferenceArgument } from './base.ts';
+import type { Coverage as CRG, Domain, NdArray as Nd, Position } from 'coveragejson';
+import { Base, type ReferenceArgument } from './base.ts';
 import { Parameter, ParameterGroup } from './parameters.ts';
-import { BaseDomain, getDomain, isUndefined } from './domain/index.ts';
+import { BaseDomain, getDomain, type GridType } from './domain/index.ts';
 import { load } from './load.ts';
 import type { InferDomainClass, WithoutRegularlySpacedAxis } from './domain/types.d.ts';
 import { Referencing } from './referencing.ts';
@@ -30,6 +23,11 @@ export interface CoverageOptions {
    * @see {I18N} for more details
    */
   language?: string;
+  /**
+   * @link https://en.wikipedia.org/wiki/Arakawa_grids
+   * @default C
+   */
+  gridType?: GridType;
 }
 export class Coverage<T extends Domain = Domain> extends Base<CRG<T>> {
   get t(): string[] {
@@ -42,7 +40,7 @@ export class Coverage<T extends Domain = Domain> extends Base<CRG<T>> {
   id?: string | undefined;
   domain: InferDomainClass<T>;
   properties: Record<string, unknown>;
-  domainType: T['domainType'];
+  domainType: NonNullable<T['domainType']>;
   parameters: Map<string, Parameter>;
   parameterGroups: ParameterGroup[];
   ranges: Map<string, NdArray>;
@@ -66,15 +64,19 @@ export class Coverage<T extends Domain = Domain> extends Base<CRG<T>> {
     } = coverage;
     this.type = type;
     this.id = id;
-    this.domain = domain instanceof BaseDomain ? domain : getDomain<T>(domain);
+    this.domain = domain instanceof BaseDomain ? domain : getDomain<T>(domain, options);
     this.domainType = this.domain.domainType || domainType;
 
     this.ranges = new Map();
-    for (const id in ranges) this.ranges.set(id, new NdArray(ranges[id], options.ranges?.[id]));
+    for (const id in ranges)
+      this.ranges.set(id.toUpperCase(), new NdArray(ranges[id], options.ranges?.[id]));
 
     this.parameters = new Map();
     for (const id in parameters)
-      this.parameters.set(id, new Parameter(parameters[id], id, options.language));
+      this.parameters.set(
+        id.toUpperCase(),
+        new Parameter(parameters[id], id.toUpperCase(), options.language)
+      );
 
     this.parameterGroups = parameterGroups.map((e) => new ParameterGroup(e));
     this.properties = properties;
@@ -113,7 +115,7 @@ export class Coverage<T extends Domain = Domain> extends Base<CRG<T>> {
   }
   static async load<T extends Domain = Domain>(
     coverage: CRG<T | string> | string,
-    options: CoverageOptions
+    options?: CoverageOptions
   ): Promise<Coverage<T>> {
     if (typeof coverage === 'string') coverage = await load<CRG<T>>(coverage);
 
@@ -154,20 +156,19 @@ export class Coverage<T extends Domain = Domain> extends Base<CRG<T>> {
    * Return a dictionary of axes which intersect with POI, elevation or time
    */
   queryIndices(ref: Position | string | number) {
-    const indices = this.domain
-      .queryIndices(ref)
-      .entries()
-      .toArray()
-      .filter(([axisName]) => this.axesCount.has(axisName))
-      .map(([k, v]) => [k, v < 0 ? 0 : v] as const);
-    return new Map(indices);
+    const indices: Map<string, number> = this.domain.queryIndices(ref);
+    for (const [axisName, index] of indices) {
+      if (!this.axesCount.has(axisName)) indices.delete(axisName);
+      if (index < 0) indices.set(axisName, 0);
+    }
+    return indices;
   }
   /**
    * Calculates the indices given a reference dimension and overwrites @see {indices}.
    * Is used in the maplibre and leaflet extensions
    */
   calculateIndices(ref: Position | string | number): this {
-    this.indices = this.queryIndices(ref);
+    this.indices = new Map(this.queryIndices(ref).entries());
     return this;
   }
   /**
@@ -210,6 +211,7 @@ export class Coverage<T extends Domain = Domain> extends Base<CRG<T>> {
     if (!(ref instanceof Map)) ref = this.queryIndices(ref);
 
     const values = rangeIds
+      .map((id) => id.toUpperCase())
       .filter((id) => this.ranges.has(id))
       .map(async (id) => [id, await this.ranges.get(id)!.get(ref)] as const);
 

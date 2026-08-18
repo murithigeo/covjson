@@ -1,4 +1,4 @@
-import { Coverage } from './coverage.ts';
+import { Coverage, type CoverageOptions } from './coverage.ts';
 import type { CoverageJSON } from 'coveragejson';
 import { CoverageCollection } from './coverage-collection.ts';
 import { getDomain } from './domain/index.ts';
@@ -12,21 +12,21 @@ export * from './ranges.ts';
 export * from './load.ts';
 export * from './utils.ts';
 
-export default function getCoverageJson<T extends CoverageJSON>(doc: T) {
+export default function getCoverageJson<T extends CoverageJSON>(doc: T, options?: CoverageOptions) {
   switch (doc.type) {
     case 'Domain':
       return getDomain(doc);
     case 'CoverageCollection':
-      return CoverageCollection.load(doc);
+      return CoverageCollection.load(doc, options);
     case 'Coverage':
-      return Coverage.load(doc);
+      return Coverage.load(doc, options);
     default:
       return new NdArray(doc);
   }
 }
 
 /**
- * A function to be called when the current indices on the coverage change. 
+ * A function to be called when the current indices on the coverage change.
  * For integrating UI with mapping libraries i.e. to change view of the map or to highlight the clicked axis values
  */
 export type OnIndicesChange = (coverage?: string | Coverage, indices?: Map<string, number>) => void;

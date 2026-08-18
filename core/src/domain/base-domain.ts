@@ -10,8 +10,7 @@ import type {
   VerticalProfile,
   Trajectory,
   ReferenceSystemConnection,
-  Position,
-  Position3D
+  Position
 } from 'coveragejson';
 import { Base } from '../base.ts';
 import type { Referencing } from '../referencing.ts';
@@ -79,11 +78,11 @@ export abstract class BaseDomain<D extends Domain = Domain> extends Base<D> {
    */
   abstract get geometry(): D extends Point | PointSeries | VerticalProfile
     ? GeoJSON.Point
-    : D extends Trajectory | Section
+    : D extends Trajectory
       ? GeoJSON.LineString
       : D extends Polygon | PolygonSeries
         ? GeoJSON.Polygon
-        : D extends MultiPoint | MultiPointSeries
+        : D extends MultiPoint | MultiPointSeries | Section
           ? GeoJSON.MultiPoint
           : GeoJSON.MultiPolygon;
   _reproject(referencing: Referencing): this {

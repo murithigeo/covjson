@@ -34,7 +34,7 @@ export class CoverageCollection<T extends Domain = Domain> extends Base<CovColl<
     doc: Omit<CovColl, 'coverages'> & {
       coverages: ((CRG<T> & { ranges: Record<string, Nd> }) | Coverage<T>)[];
     },
-    options: CoverageOptions
+    options?: CoverageOptions
   ) {
     super();
     const {
@@ -46,15 +46,18 @@ export class CoverageCollection<T extends Domain = Domain> extends Base<CovColl<
       parameters = {},
       ...properties
     } = doc;
-    this.options = { ...options, ranges: options.ranges || {} };
+    this.options = { ...options, ranges: options?.ranges || {} };
     this.type = type;
     this.domainType = domainType;
     this.parameterGroups = parameterGroups.map((e) => new ParameterGroup(e));
     this.#referencing = referencing;
     this.properties = properties;
     this.#parameters = new Map();
-    for (const id in this.parameters) {
-      this.#parameters.set(id, new Parameter(parameters[id], id, this.options.language));
+    for (const id in parameters) {
+      this.#parameters.set(
+        id.toUpperCase(),
+        new Parameter(parameters[id], id.toUpperCase(), this.options.language)
+      );
     }
     this.minMax = {};
 
@@ -74,7 +77,7 @@ export class CoverageCollection<T extends Domain = Domain> extends Base<CovColl<
       if (!(cov instanceof Coverage)) cov = new Coverage(cov, options);
       if (!cov.domain.referencing && this.referencing) cov.domain.referencing = this.referencing;
       cov.ranges.keys().forEach((id) => {
-        if (!cov.parameters.has(id)) cov.parameters.set(id, this.parameters.get(id)!);
+        if (!cov.parameters.has(id)) cov.parameters.set(id, this.#parameters.get(id)!);
         // todo copy Parameter Groups too
       });
       return cov;
@@ -85,7 +88,7 @@ export class CoverageCollection<T extends Domain = Domain> extends Base<CovColl<
   }
   static async load<T extends Domain>(
     doc: CovColl<T | string>,
-    options: CoverageOptions
+    options?: CoverageOptions
   ): Promise<CoverageCollection<T>> {
     return new CoverageCollection(
       {

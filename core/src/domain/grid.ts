@@ -13,9 +13,23 @@ import {
 } from './utils.ts';
 import bboxPolygon from '@turf/bbox-polygon';
 import type { WithoutRegularlySpacedAxis } from './types.d.ts';
-import { indexOfNearest, indicesOfNearest } from '../utils.ts';
+import { indexOfNearest } from '../utils.ts';
 
+/**
+ * center: (Default) Values denote center of grid cell. Maps to Arakawa C-Grid
+ * top-left: Values denote the top-left corner of cell
+ * bottom-left: Values denote the bottom-left corner
+ * top-right: Values denote top-right corner
+ * bottom-right: Values denote bottom-right
+ * mid: Values denote midpoints of the cells
+ */
+export type GridType = 'center' | `${'top' | 'bottom'}-${'left' | 'right'}` | 'mid';
 export class Grid extends BaseDomain<GridDomain> {
+  gridType: GridType;
+  constructor(domain: GridDomain, gridType: GridType = 'center') {
+    super(domain);
+    this.gridType = gridType;
+  }
   /**
    * Normalize axes individually
    */
@@ -158,4 +172,14 @@ export class Grid extends BaseDomain<GridDomain> {
     if ('z' in this.axes) counts.set('z', this.z.length);
     return counts;
   }
+  // bottomLeft() {
+  //   //We already have xmin,ymin
+  //   let bboxes: BBox[] = [];
+  //   for (let i = 0; i < this.x.length; i++) {
+  //     for (let j = 0; j < this.y.length; j++) {
+  //       //xmax=i+1,ymax=j+1 (Only need the bounds for last elements)
+  //     }
+  //   }
+  // }
+  bottomRight() {}
 }

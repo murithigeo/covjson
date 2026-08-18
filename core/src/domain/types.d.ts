@@ -1,6 +1,6 @@
 import { Grid } from './grid.ts';
-import { Section, Trajectory } from './moving-domain.ts';
-import { MultiPoint, MultiPointSeries } from './multipoint.ts';
+import { Trajectory } from './trajectory.ts';
+import { MultiPoint, MultiPointSeries, Section } from './multipoint.ts';
 import { Point, PointSeries } from './point.ts';
 import { Polygon, PolygonSeries, MultiPolygon, MultiPolygonSeries } from './polygon.ts';
 import { VerticalProfile } from './point.ts';
@@ -20,7 +20,6 @@ import type {
   RegularlySpacedAxis,
   VerticalProfile as VertProfile
 } from 'coveragejson';
-import type { BaseDomain } from './base-domain.ts';
 
 export type InferDomainClass<D extends Domain> = D extends Gd
   ? Grid
@@ -44,9 +43,7 @@ export type InferDomainClass<D extends Domain> = D extends Gd
                     ? MultiPolygonSeries
                     : D extends Sect
                       ? Section
-                      : D extends VertProfile
-                        ? VerticalProfile
-                        : never;
+                      : VerticalProfile;
 
 export type MakeDomainTypeRequired<D extends Domain> = D & {
   domainType: NonNullable<D['domainType']>;

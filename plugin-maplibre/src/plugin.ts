@@ -95,7 +95,12 @@ export class MaplibrePlugin extends maplibregl.GeoJSONSource {
 			.map(({ properties }) => properties.uuid as string)
 			.map((id) => this._coverages.get(id.toString()))
 			.filter((v) => v !== undefined)
-			.map((v) => v.calculateIndices(point));
+
+			.map((v) =>
+				v
+					.clone() // Handles error where indices remain  at 0
+					.calculateIndices(point)
+			);
 	}
 	onIndicesChange: OnIndicesChange = (coverage, indices) => {
 		if (typeof coverage === 'string') {
