@@ -191,7 +191,7 @@ export class ParameterGroup extends Metadata<CoverageJSON.ParameterGroup> {
   constructor(obj: CoverageJSON.ParameterGroup, locale?: string) {
     super();
     this.id = obj.id;
-    if ('observedProperty' in obj)
+    if ('observedProperty' in obj && obj.observedProperty)
       this.observedProperty = new ObservedProperty(obj.observedProperty, locale);
     this.label = new I18N(Object.entries(obj.label || {}), locale);
     this.description = new I18N(Object.entries(obj.description || {}), locale);

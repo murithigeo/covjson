@@ -18,7 +18,7 @@
 		children
 	}: DashboardProps = $props();
 	let selected = $derived(new SvelteSet(coverage?.parameters.keys()));
-
+	$inspect(coverage);
 	let rangeMinMaxes = $derived(new SvelteMap<string, MinMax>());
 </script>
 

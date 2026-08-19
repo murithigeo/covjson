@@ -42,7 +42,10 @@
 
 <Collapsible.Root {disabled}>
 	<Item.Root class="w-full">
-		<Item.Media><Checkbox bind:checked {onCheckedChange} /></Item.Media>
+		<Item.Media>
+			<!-- Not updating if p-group deselected -->
+			<Checkbox bind:checked {onCheckedChange} /></Item.Media
+		>
 		<Item.Content
 			><Item.Title lang={label.query()?.tag}
 				>{label.query()?.value || parameter.key || parameter.id}</Item.Title

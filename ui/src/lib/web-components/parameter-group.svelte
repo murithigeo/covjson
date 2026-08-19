@@ -13,9 +13,8 @@
 	import { buttonVariants } from '../components/ui/button/index.ts';
 	interface Props extends MetadataRenderProps<PGroupClass | ParameterGroup> {
 		selected?: SvelteSet<string>;
-		disabled?: boolean;
 	}
-	let { data = $bindable(), detail, disabled, selected = $bindable() }: Props = $props();
+	let { data = $bindable(), detail, selected = $bindable() }: Props = $props();
 	let pGroup = $derived.by(() => {
 		if (data instanceof PGroupClass) return data;
 		return new PGroupClass(data);
@@ -34,7 +33,7 @@
 	};
 </script>
 
-<Collapsible.Root {disabled} class="w-full max-w-sm border">
+<Collapsible.Root>
 	<Field.Field orientation="horizontal">
 		<Checkbox bind:checked bind:indeterminate value={id} {id} {onCheckedChange} />
 		<Field.Label for={id}>{id}</Field.Label>

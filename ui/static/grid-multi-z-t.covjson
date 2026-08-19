@@ -1,5 +1,17 @@
 {
+	"$schema": "https://schemas.opengis.net/covjson/1.0/coveragejson.json",
 	"type": "Coverage",
+	"parameterGroups": [
+		{
+			"label": {
+				"en-Ke": "Random"
+			},
+			"members": [
+				"temperature",
+				"humidity"
+			]
+		}
+	],
 	"domain": {
 		"type": "Domain",
 		"domainType": "Grid",
