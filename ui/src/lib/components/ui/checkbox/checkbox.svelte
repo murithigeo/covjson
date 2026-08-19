@@ -1,8 +1,7 @@
 <script lang="ts">
 	import { Checkbox as CheckboxPrimitive } from 'bits-ui';
 	import { cn, type WithoutChildrenOrChild } from '$lib/utils.js';
-	import { CheckIcon } from 'phosphor-svelte';
-	import { MinusIcon } from 'phosphor-svelte';
+	import { SquareMinusIcon, CheckIcon } from '@lucide/svelte';
 
 	let {
 		ref = $bindable(null),
@@ -32,7 +31,7 @@
 			{#if checked}
 				<CheckIcon />
 			{:else if indeterminate}
-				<MinusIcon />
+				<SquareMinusIcon />
 			{/if}
 		</div>
 	{/snippet}

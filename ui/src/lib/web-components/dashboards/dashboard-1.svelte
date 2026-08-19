@@ -1,5 +1,6 @@
 <script lang="ts">
 	import type { DashboardProps } from './types.d.ts';
+	import { type MinMax, minMax as getMinMax } from '@murithigeo/covjson-core';
 	import * as Collapsible from '../../components/ui/collapsible/index.ts';
 	import * as Item from '../../components/ui/item/index.ts';
 	import { ChevronsUpDown, GroupIcon } from '@lucide/svelte';
@@ -8,25 +9,20 @@
 	import ParameterGroupComponent from '../parameter-group.svelte';
 	import ParameterComponent from '../parameter.svelte';
 	import ModeWatcher from '../mode-watcher.svelte';
-	import GearStick from '../indices-switcher.svelte';
 	import ChartCentral from '../charts/chart-central.svelte';
 
 	let {
 		onIndicesChange,
 		data: coverage = $bindable(),
 		detail,
-		children,
-		coveragecollection = $bindable(),
-		pageWith = $bindable('z') // move from this to dynamic paging key
+		children
 	}: DashboardProps = $props();
 	let selected = $derived(new SvelteSet(coverage?.parameters.keys()));
-	let indices = $derived(new SvelteMap(coverage?.indices));
-	let page = $state(1);
-	$effect(() => onIndicesChange?.(coverage?.uuid, indices));
-	let dataHandler = $derived(coverage?.query(pageWith === 'z' ? 't' : 'z', 'z'));
-	let data = $derived(dataHandler?.(indices, selected.keys().toArray()));
+
+	let rangeMinMaxes = $derived(new SvelteMap<string, MinMax>());
 </script>
 
+<!-- May be instead of color, use a number to indicate which slot is set to -->
 <div class="grid grid-cols-3">
 	<div class="flex flex-col" id="parameter-preview">
 		<ModeWatcher />
@@ -68,8 +64,7 @@
 		</Collapsible.Root>
 	</div>
 	<div class="flex flex-col gap-2" id="charts">
-		<GearStick bind:coverage bind:page bind:indices bind:pageWith />
-		<ChartCentral bind:indices bind:selected bind:coverage type="line" />
+		<ChartCentral bind:selected bind:coverage type="line" {onIndicesChange} bind:rangeMinMaxes />
 	</div>
 	<div class="h-screen w-full">
 		{@render children?.()}

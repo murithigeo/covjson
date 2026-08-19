@@ -4,19 +4,14 @@
 	import * as ButtonGroup from '../components/ui/button-group/index.ts';
 	import { Button } from '../components/ui/button/index.ts';
 	import { Label } from '../components/ui/label/index.ts';
-	import { TimerReset, Play, Pause, Repeat, RepeatOff } from '@lucide/svelte';
+	import { TimerResetIcon, RepeatIcon, RepeatOffIcon, PlayIcon, PauseIcon } from '@lucide/svelte';
 	/**
 	 * @todo slider:svelte/motion for play
 	 */
 	interface Props {
-		/**
-		 * Assumes that the values are sorted
-		 */
 		values: string[];
-		/**
-		 * The current temporal value
-		 */
-		onValueChange?: (val: string) => void;
+		value?: string;
+		onIndexChange?: (index: number) => void;
 		/**
 		 * How to format the current value
 		 */
@@ -38,8 +33,9 @@
 		selected = $bindable(),
 		values = $bindable(),
 		duration = $bindable(2000),
-		onValueChange,
-		loop = $bindable(false)
+		onIndexChange,
+		loop = $bindable(false),
+		value = $bindable(values[0])
 	}: Props = $props();
 	/**
 	 * Disallow if values are not loopable
@@ -47,7 +43,9 @@
 	let disabled = $derived(values.length < 2);
 	let index = $state(0);
 	let player = $state<NodeJS.Timeout>();
-
+	$effect(() => {
+		value = values[index];
+	});
 	const setPlayState = () => {
 		if (player) pause();
 		else play();
@@ -65,12 +63,13 @@
 		pause();
 		index = 0;
 	};
-	$effect(() => onValueChange?.(values[index]));
+	$effect(() => {});
 	const increment = () => {
 		index += 1;
 		index = (index + values.length) % values.length;
 		if (index === 0 && !loop) pause();
 	};
+	$effect(() => onIndexChange?.(index));
 	const setLoop = () => (loop = !loop);
 </script>
 
@@ -80,17 +79,17 @@
 	<ButtonGroup.Root>
 		<Button onclick={setPlayState} {disabled}>
 			{#if player}
-				<Pause />
+				<PauseIcon />
 			{:else}
-				<Play />
+				<PlayIcon />
 			{/if}
 		</Button>
-		<Button onclick={stop} {disabled}><TimerReset /></Button>
+		<Button onclick={stop} {disabled}><TimerResetIcon /></Button>
 		<Button onclick={setLoop} {disabled}
 			>{#if loop}
-				<RepeatOff />
+				<RepeatOffIcon />
 			{:else}
-				<Repeat />
+				<RepeatIcon />
 			{/if}</Button
 		>
 	</ButtonGroup.Root>

@@ -17,7 +17,7 @@
 			const source = 'cov-load-test';
 			map.addSource(source, {
 				type: 'coveragejson',
-				data: window.location.href + 'section-sample.covjson',
+				data: window.location.href + 'grid-multi-z-t.covjson',
 				layers: ['grid-outline', 'grid-layer', 'section'],
 				listenTo: ['click'],
 				tempLayerPaint: {
@@ -27,18 +27,18 @@
 				onLoad: (cov: any) => (data = cov)
 			});
 			onIndicesChange = map.getSource<MaplibrePlugin>(source)?.onIndicesChange;
-			// map.addLayer({
-			// 	source,
-			// 	id: 'grid-layer',
-			// 	type: 'fill',
-			// 	paint: { 'fill-color': 'grey', 'fill-opacity': 0.5 }
-			// });
-			// map.addLayer({
-			// 	source,
-			// 	id: 'grid-outline',
-			// 	type: 'line',
-			// 	paint: { 'line-color': 'red', 'line-width': 0.4 }
-			// });
+			map.addLayer({
+				source,
+				id: 'grid-layer',
+				type: 'fill',
+				paint: { 'fill-color': 'grey', 'fill-opacity': 0.5 }
+			});
+			map.addLayer({
+				source,
+				id: 'grid-outline',
+				type: 'line',
+				paint: { 'line-color': 'red', 'line-width': 0.4 }
+			});
 			// map.addLayer({
 			// 	source,
 			// 	id: 'profile',
