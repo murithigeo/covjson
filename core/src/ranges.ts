@@ -27,10 +27,6 @@ export interface NdArrayOptions<T extends string | number = string | number> {
    *
    */
   transform?: (val: T | null, dataType: 'string' | 'float' | 'integer') => T | null;
-  /**
-   * Function to execute when a new range is appended to the coverage
-   */
-  syncMinMax?: (minMax: MinMax) => void;
 }
 
 type NdArrX<T extends string | number> = NumberNdArray | StringNdArray | ValuesNdArray<T>;
@@ -140,7 +136,6 @@ export class NdArray<T extends string | number = string | number> {
     values.forEach((v, i, arr) => (arr[i] = this.options.transform?.(v, this.dataType) || v));
     ops.assign(this.ndarr.lo(...offsets).hi(...shape), ndarray(values, shape));
     this.updateMinMax();
-    this.options.syncMinMax?.(this.minMax);
   }
   /**
    * Gets the indices of the tile that contains the indices provided

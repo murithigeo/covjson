@@ -13,6 +13,7 @@ import { Base } from './base.ts';
 import type { FeatureCollection } from 'geojson';
 import type { InferDomainClass } from './domain/types.d.ts';
 import { minMax, type MinMax, type WithRequiredProperty } from './utils.ts';
+import { isUndefined } from './domain/utils.ts';
 
 export class CoverageCollection<T extends Domain = Domain> extends Base<CovColl<T>> {
   _reproject(): this {
@@ -65,13 +66,7 @@ export class CoverageCollection<T extends Domain = Domain> extends Base<CovColl<
      * Piggy back on the options to get make minMax dynamic
      */
     for (const id in this.#parameters.keys()) {
-      const option = this.options.ranges[id] || {};
-      option.syncMinMax = (minMax) => {
-        this.updateMinMax(id, minMax);
-        return option.syncMinMax?.(minMax);
-      };
       this.minMax[id] = [null, null];
-      this.options.ranges[id] = option;
     }
     this.coverages = coverages.map((cov) => {
       if (!(cov instanceof Coverage)) cov = new Coverage(cov, options);
@@ -180,8 +175,16 @@ export class CoverageCollection<T extends Domain = Domain> extends Base<CovColl<
    * Simple function to retrieve a list of data values.
    * For eagerLoading data, see @see {query}
    */
-  getData(ref: Position | string | number, rangeIds?: string[]) {
-    return Promise.all(this.coverages.map((cov) => cov.getData(ref, rangeIds)));
+  async getData(ref: Position | string | number, rangeIds?: string[]) {
+    const data = await Promise.all(this.coverages.map((cov) => cov.getData(ref, rangeIds)));
+    for (const [id] of this.parameters) {
+      const values = data
+        .map((row) => row[id])
+        .filter((v) => !isUndefined(v))
+        .filter((v) => !(typeof v === 'string'));
+      this.minMax[id] = minMax([...values, ...(this.minMax[id] || [])]);
+    }
+    return data;
   }
   /**
    * @param axisNames Axis names to preload data for
