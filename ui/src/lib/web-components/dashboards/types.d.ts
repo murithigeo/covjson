@@ -9,6 +9,7 @@ export interface DashboardProps extends PartialBy<MetadataRenderProps<Coverage>,
 	 */
 	onIndicesChange?: OnIndicesChange;
 	children?: Snippet;
+	maxSlots?: number;
 }
 
 type PartialBy<T, K extends keyof T> = Omit<T, K> & Partial<Pick<T, K>>;

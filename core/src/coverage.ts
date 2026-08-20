@@ -29,7 +29,10 @@ export interface CoverageOptions {
    */
   gridType?: GridType;
 }
-export class Coverage<T extends Domain = Domain> extends Base<CRG<T>> {
+export class Coverage<
+  D extends Domain = Domain,
+  ID extends InferDomainClass<D> = InferDomainClass<D>
+> extends Base<CRG<D>> {
   get t(): string[] {
     return this.domain.t;
   }
@@ -38,9 +41,9 @@ export class Coverage<T extends Domain = Domain> extends Base<CRG<T>> {
   }
   type: 'Coverage';
   id?: string | undefined;
-  domain: InferDomainClass<T>;
+  domain: ID;
   properties: Record<string, unknown>;
-  domainType: NonNullable<T['domainType']>;
+  domainType: ID['domainType'];
   parameters: Map<string, Parameter>;
   parameterGroups: ParameterGroup[];
   ranges: Map<string, NdArray>;
@@ -48,7 +51,7 @@ export class Coverage<T extends Domain = Domain> extends Base<CRG<T>> {
   indices: Map<string, number>;
   options: CoverageOptions;
   constructor(
-    coverage: CRG<T | InferDomainClass<T>> & { ranges: Record<string, Nd> },
+    coverage: CRG<D | ID> & { ranges: Record<string, Nd> },
     options: CoverageOptions = {}
   ) {
     super();
@@ -64,7 +67,7 @@ export class Coverage<T extends Domain = Domain> extends Base<CRG<T>> {
     } = coverage;
     this.type = type;
     this.id = id;
-    this.domain = domain instanceof BaseDomain ? domain : getDomain<T>(domain, options);
+    this.domain = domain instanceof BaseDomain ? domain : getDomain<D>(domain, options);
     this.domainType = this.domain.domainType || domainType;
 
     this.ranges = new Map();
@@ -126,7 +129,7 @@ export class Coverage<T extends Domain = Domain> extends Base<CRG<T>> {
    * Assumes that the domain contained has implemented the method
    */
   denormalize(): Omit<this, 'domain'> & {
-    domain: WithoutRegularlySpacedAxis<InferDomainClass<T>>;
+    domain: WithoutRegularlySpacedAxis<ID>;
   } {
     this.domain.denormalize?.();
     //@ts-expect-error some bs
@@ -139,15 +142,16 @@ export class Coverage<T extends Domain = Domain> extends Base<CRG<T>> {
   }
 
   get feature(): Feature<
-    InferDomainClass<T>['geometry'],
-    { uuid: string; domainType: InferDomainClass<T>['domainType'] }
+    ID['geometry'],
+    { uuid: string; domainType: ID['domainType']; parameters: string[] }
   > {
     return {
       type: 'Feature',
       geometry: this.domain.geometry,
       properties: {
         uuid: this.uuid,
-        domainType: this.domainType // Allow filtering for maplibregl
+        domainType: this.domainType, // Allow filtering for maplibregl
+        parameters: this.ranges.keys().toArray()
       }
     };
   }
@@ -174,11 +178,11 @@ export class Coverage<T extends Domain = Domain> extends Base<CRG<T>> {
   /**
    * @todo add explicit types that it returns {ranges:Record<string,Nd>}
    */
-  toPlain(): CRG<T> {
+  toPlain(): CRG<D> {
     //@ts-expect-error domainType conflict upstream
     return structuredClone({
       type: this.type,
-      domain: this.domain.toPlain() as T,
+      domain: this.domain.toPlain(),
       ranges: this.ranges.entries().reduce((l, r) => ({ ...l, [r[0]]: r[1].toPlain() }), {}),
       domainType: this.domain.domainType,
       parameters: this.parameters

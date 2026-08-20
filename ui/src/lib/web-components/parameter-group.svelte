@@ -4,7 +4,6 @@
 	import { Checkbox } from '../components/ui/checkbox/index.ts';
 	import ObservedProperty from './observed-property.svelte';
 	import LocaleTable from './locale-table.svelte';
-	import * as Field from '../components/ui/field/index.ts';
 	import * as Item from '../components/ui/item/index.ts';
 	import * as Collapsible from '../components/ui/collapsible/index.ts';
 	import { ChevronsUpDown, LanguagesIcon } from '@lucide/svelte';
@@ -13,13 +12,19 @@
 	import { buttonVariants } from '../components/ui/button/index.ts';
 	interface Props extends MetadataRenderProps<PGroupClass | ParameterGroup> {
 		selected?: SvelteSet<string>;
+		open?: boolean;
 	}
-	let { data = $bindable(), detail, selected = $bindable() }: Props = $props();
+	let {
+		data = $bindable(),
+		detail,
+		open = $bindable(false),
+		selected = $bindable()
+	}: Props = $props();
 	let pGroup = $derived.by(() => {
 		if (data instanceof PGroupClass) return data;
 		return new PGroupClass(data);
 	});
-	let id = $derived(pGroup.id || pGroup.members.join('/'));
+	let id = $derived(pGroup.id);
 	let checked = $derived(pGroup.members.every((member) => selected?.has(member)));
 	let indeterminate = $derived(!checked && pGroup.members.some((member) => selected?.has(member)));
 
@@ -33,34 +38,36 @@
 	};
 </script>
 
-<Collapsible.Root>
-	<Field.Field orientation="horizontal">
-		<Checkbox bind:checked bind:indeterminate value={id} {id} {onCheckedChange} />
-		<Field.Label for={id}>{id}</Field.Label>
-		<Collapsible.Trigger class={buttonVariants({ variant: 'ghost' })}
-			><ChevronsUpDown /></Collapsible.Trigger
-		>
-	</Field.Field>
-	<Collapsible.Content>
-		<Field.Group>
-			<Field.Set class="ml-5">
-				<Field.Description>Parameters in this Group</Field.Description>
-				<Field.Group class="gap-3">
-					{#each pGroup.members as member (member)}
-						{@const id = `pgroup:${member}`}
-						<Field.Field orientation="horizontal">
-							<Checkbox
-								onCheckedChange={(checked) => onCheckedChange(checked, member)}
-								{id}
-								checked={selected?.has(member)}
-							/>
-							<Field.Label for={id}>{member}</Field.Label>
-						</Field.Field>
-					{/each}
-				</Field.Group>
-			</Field.Set>
-		</Field.Group>
-		<Collapsible.Root disabled={false} class="border">
+<Collapsible.Root bind:open>
+	<Item.Root class="w-full">
+		<Item.Media>
+			<Checkbox bind:checked bind:indeterminate value={id} {id} {onCheckedChange} />
+		</Item.Media>
+		<Item.Content>
+			<Item.Title lang="en">{id || 'No ID'}</Item.Title>
+		</Item.Content>
+		<Item.Actions>
+			<Collapsible.Trigger class={buttonVariants({ variant: 'ghost' })}>
+				<ChevronsUpDown />
+			</Collapsible.Trigger>
+		</Item.Actions>
+	</Item.Root>
+	<Collapsible.Content class="ml-4">
+		<!-- Add items to toggle members -->
+		<div class="flex flex-row space-x-1">
+			{#each pGroup.members as member (member)}
+				<Item.Root>
+					<Item.Media>
+						<Checkbox checked={selected?.has(member)} />
+					</Item.Media>
+					<Item.Content
+						><a href="#param-{member}" class="hover:underline"><Item.Title>{member}</Item.Title></a
+						></Item.Content
+					>
+				</Item.Root>
+			{/each}
+		</div>
+		<Collapsible.Root disabled={false} class="border-b border-l">
 			<Item.Root class="sm">
 				<Item.Media><LanguagesIcon class="size-5" /></Item.Media>
 				<Item.Content>

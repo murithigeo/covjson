@@ -1,5 +1,6 @@
 <script lang="ts">
-	import { type SvelteSet, SvelteMap } from 'svelte/reactivity';
+	import { SvelteSet, SvelteMap } from 'svelte/reactivity';
+	import * as Card from '$lib/components/ui/card/index.js';
 	import {
 		Coverage,
 		type DataRow,
@@ -8,12 +9,23 @@
 		minMax,
 		isUndefined
 	} from '@murithigeo/covjson-core';
-	import { type ChartConfig, Container as ChartContainer } from '$lib/components/ui/chart/index.js';
-	import LineChart from './line-chart.svelte';
-	import ArcChart from './arc-chart.svelte';
+	import * as Chart from '$lib/components/ui/chart/index.js';
+
 	import IndicesCentral from './indices-central.svelte';
 	import { Skeleton } from '$lib/components/ui/skeleton/index.js';
-	import type { LineChartProps, ArcChartProps } from 'layerchart';
+	import { type LineChartProps, type ArcChartProps, LineChart, ArcChart } from 'layerchart';
+	// Source - https://stackoverflow.com/a/1484514
+	// Posted by Anatoliy, modified by community. See post 'Timeline' for change history
+	// Retrieved 2026-08-20, License - CC BY-SA 3.0
+
+	function getRandomColor() {
+		var letters = '0123456789ABCDEF';
+		var color = '#';
+		for (var i = 0; i < 6; i++) {
+			color += letters[Math.floor(Math.random() * 16)];
+		}
+		return color;
+	}
 
 	interface Props {
 		/**
@@ -34,7 +46,7 @@
 	}: Props = $props();
 
 	let config = $derived.by(() => {
-		const config: ChartConfig = {};
+		const config: Chart.ChartConfig = {};
 		coverage?.parameters?.entries().forEach(([key, value], i) => {
 			config[key] = {
 				label: value.label.query()?.value || key,
@@ -46,12 +58,12 @@
 
 	let axesCount = $derived(new SvelteMap(coverage?.axesCount));
 	let indices = $derived(new SvelteMap(coverage?.indices));
-	let t = $derived(coverage?.t || []);
+	let t = $derived(new SvelteSet(coverage?.t));
 	let domainType = $derived(coverage?.domainType);
 	$effect(() => onIndicesChange?.(coverage, indices));
 
 	const updateMinMax = (data: DataRow[]) => {
-		if (!coverage) return;
+		if (!coverage || !data.length) return;
 
 		for (const [rangeId, range] of coverage.ranges) {
 			for (const row of data) {
@@ -65,7 +77,7 @@
 	let dataPromise = $derived.by(async () => {
 		let preloadAxis = ['z']; // todo Generate a Grid with multiple z/t values and check validity
 		const data = await coverage?.query(...preloadAxis)(indices, selected?.keys().toArray());
-		updateMinMax(data);
+		updateMinMax(data || []);
 		return data || [];
 	});
 
@@ -115,28 +127,42 @@
 						.toArray()
 				)
 			: undefined;
+		props.brush = { axis: 'both' };
+		props.transform = { mode: 'domain', axis: 'x' };
 		return props;
 	});
 
 	let nonSeriesPreset = $derived.by<ArcChartProps<DataRow> | undefined>(() => {});
 </script>
 
+<!-- If active coverages are the same, make sure to only use one preview -->
 <!-- Add button to allow user to explicitly opt into preloading -->
 <!-- todo Legend for categorical values and color customization (gradient th)-->
 <!-- Render the indices switcher module right here so as to support multiple coverages -->
 <!-- Button on each component to remove the module -->
 <!-- Add padding so that all chart data is visible -->
-<div class="flex flex-col space-y-3">
-	<ChartContainer {config} class="mr-6">
-		{#await dataPromise}
+<Card.Root>
+	<Card.Content class="flex flex-col space-y-3">
+		{#if !coverage}
 			<Skeleton />
-		{:then data}
-			{#if ['Point', 'MultiPoint', 'Polygon', undefined].includes(coverage?.domain.domainType)}
-				<ArcChart {data} {...nonSeriesPreset} />
-			{:else}
-				<LineChart {data} {...seriesPreset} />
-			{/if}
-		{/await}
-	</ChartContainer>
-	<IndicesCentral bind:axesCount bind:indices bind:tvalues={t} bind:domainType />
-</div>
+		{:else}
+			<Chart.Container {config} class="w-full max-w-sm">
+				{#await dataPromise then data}
+					{#if ['Point', 'MultiPoint', 'Polygon', undefined].includes(coverage?.domain.domainType)}
+						<ArcChart {data} {...nonSeriesPreset} />
+					{:else}
+						<LineChart {data} {...seriesPreset} class="h-full w-full">
+							{#snippet tooltip()}
+								<Chart.Tooltip hideLabel />
+							{/snippet}
+							{#snippet legend()}{/snippet}
+						</LineChart>
+					{/if}
+				{/await}
+			</Chart.Container>
+		{/if}
+	</Card.Content>
+	<Card.Footer>
+		<IndicesCentral bind:axesCount bind:indices bind:tvalues={t} bind:domainType />
+	</Card.Footer>
+</Card.Root>

@@ -5,11 +5,15 @@
 	import { Button } from '../components/ui/button/index.ts';
 	import { Label } from '../components/ui/label/index.ts';
 	import { TimerResetIcon, RepeatIcon, RepeatOffIcon, PlayIcon, PauseIcon } from '@lucide/svelte';
+	import type { Snippet } from 'svelte';
+	import type { SvelteSet } from 'svelte/reactivity';
+	import type { ClassValue } from 'clsx';
+	import { cn } from '$lib/utils.js';
 	/**
 	 * @todo slider:svelte/motion for play
 	 */
 	interface Props {
-		values: string[];
+		values: SvelteSet<string>;
 		value?: string;
 		onIndexChange?: (index: number) => void;
 		/**
@@ -28,24 +32,37 @@
 		 *
 		 */
 		loop?: boolean;
+		children?: Snippet;
+		class?: ClassValue;
 	}
 	let {
 		selected = $bindable(),
-		values = $bindable(),
+		values: set = $bindable(),
 		duration = $bindable(2000),
 		onIndexChange,
 		loop = $bindable(false),
-		value = $bindable(values[0])
+		value = $bindable(),
+		children,
+		class: className
 	}: Props = $props();
+	let values = $derived(
+		set
+			.keys()
+			.toArray()
+			.sort((a, b) => new Date(a).getTime() - new Date(b).getTime())
+	);
 	/**
 	 * Disallow if values are not loopable
 	 */
 	let disabled = $derived(values.length < 2);
 	let index = $state(0);
+	const getIndex = () => index;
+	const setIndex = (i: number) => {
+		index = i;
+		value = values[i];
+	};
 	let player = $state<NodeJS.Timeout>();
-	$effect(() => {
-		value = values[index];
-	});
+
 	const setPlayState = () => {
 		if (player) pause();
 		else play();
@@ -63,7 +80,6 @@
 		pause();
 		index = 0;
 	};
-	$effect(() => {});
 	const increment = () => {
 		index += 1;
 		index = (index + values.length) % values.length;
@@ -73,24 +89,27 @@
 	const setLoop = () => (loop = !loop);
 </script>
 
-<div class="flex w-full flex-col place-items-center space-y-3">
-	<Slider max={values.length - 1} type="single" bind:value={index} />
+<div class={cn('flex w-full flex-col place-items-center space-y-3', className)}>
+	<Slider max={values.length - 1} type="single" bind:value={getIndex, setIndex} />
 	<Label>{values[index]}</Label>
-	<ButtonGroup.Root>
-		<Button onclick={setPlayState} {disabled}>
-			{#if player}
-				<PauseIcon />
-			{:else}
-				<PlayIcon />
-			{/if}
-		</Button>
-		<Button onclick={stop} {disabled}><TimerResetIcon /></Button>
-		<Button onclick={setLoop} {disabled}
-			>{#if loop}
-				<RepeatOffIcon />
-			{:else}
-				<RepeatIcon />
-			{/if}</Button
-		>
-	</ButtonGroup.Root>
+	<div class="flex flex-row items-center space-x-2">
+		<ButtonGroup.Root>
+			<Button onclick={setPlayState} {disabled}>
+				{#if player}
+					<PauseIcon />
+				{:else}
+					<PlayIcon />
+				{/if}
+			</Button>
+			<Button onclick={stop} {disabled}><TimerResetIcon /></Button>
+			<Button onclick={setLoop} {disabled}
+				>{#if loop}
+					<RepeatOffIcon />
+				{:else}
+					<RepeatIcon />
+				{/if}</Button
+			>
+		</ButtonGroup.Root>
+		{@render children?.()}
+	</div>
 </div>

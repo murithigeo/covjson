@@ -1,11 +1,12 @@
 <script lang="ts">
 	import { ArrowLeftIcon, ArrowUpIcon, ArrowRightIcon, ArrowDownIcon } from '@lucide/svelte';
-	import { SvelteMap } from 'svelte/reactivity';
+	import { SvelteMap, SvelteSet } from 'svelte/reactivity';
 	import type { DomainTypes } from 'coveragejson';
 	import TemporalControl from '../temporal-control.svelte';
 	import { type ButtonProps, Button } from '$lib/components/ui/button/index.js';
 	import * as ButtonGroup from '$lib/components/ui/button-group/index.js';
-
+	import type { ClassValue } from 'clsx';
+	import { cn } from '$lib/utils';
 	interface Props {
 		indices: SvelteMap<string, number>;
 		axesCount: Map<string, number>;
@@ -17,7 +18,8 @@
 		/**
 		 * Coverage's t values
 		 */
-		tvalues: string[];
+		tvalues: SvelteSet<string>;
+		class?: ClassValue;
 	}
 
 	let {
@@ -25,7 +27,8 @@
 		axesCount = $bindable(),
 		domainType = $bindable(),
 		t = $bindable(),
-		tvalues = $bindable()
+		tvalues = $bindable(),
+		class: className
 	}: Props = $props();
 
 	let limits = $derived.by(() => {
@@ -83,23 +86,22 @@
 				indices.set('t', index);
 		}
 	}
-	$inspect(indices);
 </script>
 
-<div class="flex flex-col items-center">
-	<TemporalControl bind:values={tvalues} onIndexChange={updateTemporalIndex} />
-
-	<ButtonGroup.Root>
-		<ButtonGroup.Root orientation="horizontal">
-			{@render left()}
-			{@render right()}
+<TemporalControl bind:values={tvalues} onIndexChange={updateTemporalIndex} class={cn(className)}>
+	{#snippet children()}
+		<ButtonGroup.Root>
+			<ButtonGroup.Root orientation="horizontal">
+				{@render left()}
+				{@render right()}
+			</ButtonGroup.Root>
+			<ButtonGroup.Root orientation="horizontal">
+				{@render up()}
+				{@render down()}
+			</ButtonGroup.Root>
 		</ButtonGroup.Root>
-		<ButtonGroup.Root orientation="horizontal">
-			{@render up()}
-			{@render down()}
-		</ButtonGroup.Root>
-	</ButtonGroup.Root>
-</div>
+	{/snippet}
+</TemporalControl>
 {#snippet right()}
 	<Button
 		{...buttonProps}

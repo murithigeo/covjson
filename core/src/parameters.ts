@@ -100,24 +100,7 @@ export class ObservedProperty extends Metadata<Obs> {
     this.description = new I18N(Object.entries(obs.description || {}), locale);
     if (obs.categories) this.categories = obs.categories.map((e) => new Category(e, locale));
   }
-  categoryIndex(id: string) {
-    if (!this.categories) return -1;
-    return this.categories?.findIndex((i) => i.id === id);
-  }
-  /**
-   * Destructive
-   */
-  addCategory(
-    category: CoverageJSON.Category | Category
-  ): WithRequiredProperty<this, 'categories'> {
-    if (!(category instanceof Category)) category = new Category(category);
 
-    const idx = this.categoryIndex(category.id);
-    this.categories = this.categories || [];
-    if (idx) this.categories[idx] = category;
-    else this.categories.push(category);
-    return this;
-  }
   toPlain(): Obs {
     return {
       id: this.id,

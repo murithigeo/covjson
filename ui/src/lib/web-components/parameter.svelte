@@ -18,13 +18,13 @@
 
 	interface Props extends MetadataRenderProps<Parameter | PrClass> {
 		checked?: boolean;
-		disabled?: boolean;
+		open?: boolean;
 		selected?: SvelteSet<string>;
 	}
 
 	let {
 		data = $bindable(),
-		disabled,
+		open = $bindable(false),
 		detail,
 		checked = $bindable(true),
 		selected = $bindable()
@@ -34,20 +34,22 @@
 	let parameter = $derived(data instanceof PrClass ? data : new PrClass(data));
 	const key = $derived(parameter.key || uid);
 
-	let id = $derived(`param:${key}`);
+	let id = $derived(`param-${key}`);
 	const label = $derived(parameter.label);
 	const onCheckedChange = (checked: boolean) =>
 		checked ? selected?.add(key) : selected?.delete(key);
 </script>
 
-<Collapsible.Root {disabled}>
+<Collapsible.Root class="border" bind:open>
 	<Item.Root class="w-full">
 		<Item.Media>
 			<!-- Not updating if p-group deselected -->
-			<Checkbox bind:checked {onCheckedChange} /></Item.Media
+			<Checkbox checked={selected?.has(key)} {onCheckedChange} /></Item.Media
 		>
-		<Item.Content
-			><Item.Title lang={label.query()?.tag}
+		<Item.Content>
+			<!-- use header tag  & actual value to make scrolling from parameterGroups easier -->
+			<!-- Use  -->
+			<Item.Title lang={label.query()?.tag}
 				>{label.query()?.value || parameter.key || parameter.id}</Item.Title
 			></Item.Content
 		><Item.Actions>
@@ -56,94 +58,92 @@
 			</Collapsible.Trigger>
 		</Item.Actions>
 	</Item.Root>
-	<Collapsible.Content>
-		<div class="ml-4">
-			<Collapsible.Root
-				disabled={!parameter.label.size && !parameter.description.size}
-				id="{id}:i18n"
-			>
-				<Item.Root size="sm" variant="outline">
-					<Item.Media><LanguagesIcon class="size-5" /></Item.Media>
-					<Item.Content>
-						<Item.Title lang="en">Internationalization</Item.Title>
-					</Item.Content>
-					<Item.Actions>
-						<Collapsible.Trigger
-							class={buttonVariants({ variant: 'ghost' })}
-							disabled={!parameter.label.size && !parameter.description.size}
-						>
-							<ChevronsUpDown />
-						</Collapsible.Trigger>
-					</Item.Actions>
-				</Item.Root>
-				<Collapsible.Content class="border-l">
-					<LocaleTable
-						data={{
-							label: parameter.label,
-							description: parameter.description
-						}}
-						{detail}
-					/>
-				</Collapsible.Content>
-			</Collapsible.Root>
+	<Collapsible.Content class="ml-4">
+		<Collapsible.Root
+			disabled={!parameter.label.size && !parameter.description.size}
+			id="{id}:i18n"
+		>
+			<Item.Root size="sm" variant="outline">
+				<Item.Media><LanguagesIcon class="size-5" /></Item.Media>
+				<Item.Content>
+					<Item.Title lang="en">Internationalization</Item.Title>
+				</Item.Content>
+				<Item.Actions>
+					<Collapsible.Trigger
+						class={buttonVariants({ variant: 'ghost' })}
+						disabled={!parameter.label.size && !parameter.description.size}
+					>
+						<ChevronsUpDown />
+					</Collapsible.Trigger>
+				</Item.Actions>
+			</Item.Root>
+			<Collapsible.Content class="border-l">
+				<LocaleTable
+					data={{
+						label: parameter.label,
+						description: parameter.description
+					}}
+					{detail}
+				/>
+			</Collapsible.Content>
+		</Collapsible.Root>
 
-			<Collapsible.Root id="{id}:unit">
-				<Item.Root size="sm" variant="outline">
-					<Item.Media><RulerDimensionLineIcon class="size-5" /></Item.Media>
-					<Item.Content>
-						<Item.Title>Unit</Item.Title>
-					</Item.Content>
-					<Item.Actions>
-						<Collapsible.Trigger
-							class={buttonVariants({ variant: 'ghost' })}
-							disabled={!parameter.unit}
-						>
-							<ChevronsUpDown />
-						</Collapsible.Trigger>
-					</Item.Actions>
-				</Item.Root>
-				{#if parameter.unit}
-					<Collapsible.Content>
-						{#if parameter.unit.symbol}
-							<Item.Root>
-								<Item.Content>
-									<Item.Title lang="en">{parameter.unit.symbol.value}</Item.Title>
-									<Item.Description>
-										{#if parameter.unit.symbol?.type}
-											<a href={parameter.unit.symbol.type} rel="external"
-												>{parameter.unit.symbol.type}</a
-											>
-										{:else}
-											No Serialization Scheme
-										{/if}
-									</Item.Description>
-								</Item.Content>
-							</Item.Root>
-						{/if}
-						<LocaleTable data={{ label: parameter.unit.label }} {detail} />
-					</Collapsible.Content>
-				{/if}
-			</Collapsible.Root>
-			<Collapsible.Root id="{id}:observed-property">
-				<Item.Root size="sm" variant="outline">
-					<Item.Media>
-						<SunSnowIcon />
-					</Item.Media>
-					<Item.Content>
-						<Item.Title lang="en">Observed Property</Item.Title>
-					</Item.Content>
-					<Item.Actions>
-						<Collapsible.Trigger class={buttonVariants({ variant: 'ghost' })}>
-							<ChevronsUpDown />
-						</Collapsible.Trigger>
-					</Item.Actions>
-				</Item.Root>
+		<Collapsible.Root id="{id}:unit">
+			<Item.Root size="sm" variant="outline">
+				<Item.Media><RulerDimensionLineIcon class="size-5" /></Item.Media>
+				<Item.Content>
+					<Item.Title>Unit</Item.Title>
+				</Item.Content>
+				<Item.Actions>
+					<Collapsible.Trigger
+						class={buttonVariants({ variant: 'ghost' })}
+						disabled={!parameter.unit}
+					>
+						<ChevronsUpDown />
+					</Collapsible.Trigger>
+				</Item.Actions>
+			</Item.Root>
+			{#if parameter.unit}
 				<Collapsible.Content>
-					{#if parameter.observedProperty}
-						<ObservedProperty data={parameter.observedProperty} {detail} />
+					{#if parameter.unit.symbol}
+						<Item.Root>
+							<Item.Content>
+								<Item.Title lang="en">{parameter.unit.symbol.value}</Item.Title>
+								<Item.Description>
+									{#if parameter.unit.symbol?.type}
+										<a href={parameter.unit.symbol.type} rel="external"
+											>{parameter.unit.symbol.type}</a
+										>
+									{:else}
+										No Serialization Scheme
+									{/if}
+								</Item.Description>
+							</Item.Content>
+						</Item.Root>
 					{/if}
+					<LocaleTable data={{ label: parameter.unit.label }} {detail} />
 				</Collapsible.Content>
-			</Collapsible.Root>
-		</div>
+			{/if}
+		</Collapsible.Root>
+		<Collapsible.Root id="{id}:observed-property">
+			<Item.Root size="sm" variant="outline">
+				<Item.Media>
+					<SunSnowIcon />
+				</Item.Media>
+				<Item.Content>
+					<Item.Title lang="en">Observed Property</Item.Title>
+				</Item.Content>
+				<Item.Actions>
+					<Collapsible.Trigger class={buttonVariants({ variant: 'ghost' })}>
+						<ChevronsUpDown />
+					</Collapsible.Trigger>
+				</Item.Actions>
+			</Item.Root>
+			<Collapsible.Content>
+				{#if parameter.observedProperty}
+					<ObservedProperty data={parameter.observedProperty} {detail} />
+				{/if}
+			</Collapsible.Content>
+		</Collapsible.Root>
 	</Collapsible.Content>
 </Collapsible.Root>

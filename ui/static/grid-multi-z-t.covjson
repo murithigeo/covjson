@@ -3,6 +3,7 @@
 	"type": "Coverage",
 	"parameterGroups": [
 		{
+			"type": "ParameterGroup",
 			"label": {
 				"en-Ke": "Random"
 			},
