@@ -1,5 +1,10 @@
 <script lang="ts">
-	import { type TemporalResolution, parseDateString } from '@murithigeo/covjson-core';
+	import {
+		type TemporalResolution,
+		indexOfNearest,
+		isUndefined,
+		parseDateString
+	} from '@murithigeo/covjson-core';
 	import { Slider } from '../components/ui/slider/index.ts';
 	import * as ButtonGroup from '../components/ui/button-group/index.ts';
 	import { Button } from '../components/ui/button/index.ts';
@@ -34,6 +39,7 @@
 		loop?: boolean;
 		children?: Snippet;
 		class?: ClassValue;
+		globalT?: string;
 	}
 	let {
 		selected = $bindable(),
@@ -43,7 +49,8 @@
 		loop = $bindable(false),
 		value = $bindable(),
 		children,
-		class: className
+		class: className,
+		globalT = $bindable()
 	}: Props = $props();
 	let values = $derived(
 		set
@@ -60,6 +67,19 @@
 	const setIndex = (i: number) => {
 		index = i;
 		value = values[i];
+	};
+	$effect(() => syncGlobalT2LocalT(globalT));
+	$inspect(globalT);
+	const syncGlobalT2LocalT = (t?: string) => {
+		// console.log()
+		if (isUndefined(t)) return;
+		const bestMatch = indexOfNearest(
+			values.map((v) => new Date(v).getTime()),
+			new Date(t).getTime()
+		);
+		console.log({ bestMatch });
+		if (bestMatch === -1) return;
+		index = bestMatch;
 	};
 	let player = $state<NodeJS.Timeout>();
 

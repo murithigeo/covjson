@@ -3,7 +3,7 @@ import type { Map } from 'leaflet';
 import { type OnIndicesChange, Coverage, CoverageCollection } from '@murithigeo/covjson-core';
 import type { MetadataRenderProps } from '../types.d.ts';
 import type { Snippet } from 'svelte';
-export interface DashboardProps extends PartialBy<MetadataRenderProps<Coverage>, 'data'> {
+export interface DashboardProps extends PartialBy<MetadataRenderProps<Coverage[]>, 'data'> {
 	/**
 	 * Point this to the layer's onIndicesChange func
 	 */

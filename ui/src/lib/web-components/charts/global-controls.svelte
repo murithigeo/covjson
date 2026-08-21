@@ -11,6 +11,7 @@
 	}
 
 	let { t = $bindable(), tvalues = $bindable(), class: className }: Props = $props();
+	$inspect({ t });
 </script>
 
 <TemporalControl bind:values={tvalues} bind:value={t} class={cn('place-items-center', className)}>

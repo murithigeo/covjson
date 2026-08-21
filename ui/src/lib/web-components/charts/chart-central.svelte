@@ -10,7 +10,6 @@
 		isUndefined
 	} from '@murithigeo/covjson-core';
 	import * as Chart from '$lib/components/ui/chart/index.js';
-
 	import IndicesCentral from './indices-central.svelte';
 	import { Skeleton } from '$lib/components/ui/skeleton/index.js';
 	import { type LineChartProps, type ArcChartProps, LineChart, ArcChart } from 'layerchart';
@@ -36,12 +35,14 @@
 		selected?: SvelteSet<string>;
 		onIndicesChange?: OnIndicesChange;
 		rangeMinMaxes?: SvelteMap<string, MinMax>;
+		t?: string;
 	}
 
 	let {
 		coverage = $bindable(),
 		selected = $bindable(),
 		onIndicesChange,
+		t = $bindable(),
 		rangeMinMaxes = $bindable()
 	}: Props = $props();
 
@@ -58,7 +59,6 @@
 
 	let axesCount = $derived(new SvelteMap(coverage?.axesCount));
 	let indices = $derived(new SvelteMap(coverage?.indices));
-	let t = $derived(new SvelteSet(coverage?.t));
 	let domainType = $derived(coverage?.domainType);
 	$effect(() => onIndicesChange?.(coverage, indices));
 
@@ -128,7 +128,7 @@
 				)
 			: undefined;
 		props.brush = { axis: 'both' };
-		props.transform = { mode: 'domain', axis: 'x' };
+		props.transform = { mode: 'domain', axis: 'both' };
 		return props;
 	});
 
@@ -138,7 +138,6 @@
 <!-- If active coverages are the same, make sure to only use one preview -->
 <!-- Add button to allow user to explicitly opt into preloading -->
 <!-- todo Legend for categorical values and color customization (gradient th)-->
-<!-- Render the indices switcher module right here so as to support multiple coverages -->
 <!-- Button on each component to remove the module -->
 <!-- Add padding so that all chart data is visible -->
 <Card.Root>
@@ -146,7 +145,7 @@
 		{#if !coverage}
 			<Skeleton />
 		{:else}
-			<Chart.Container {config} class="w-full max-w-sm">
+			<Chart.Container {config}>
 				{#await dataPromise then data}
 					{#if ['Point', 'MultiPoint', 'Polygon', undefined].includes(coverage?.domain.domainType)}
 						<ArcChart {data} {...nonSeriesPreset} />
@@ -155,7 +154,6 @@
 							{#snippet tooltip()}
 								<Chart.Tooltip hideLabel />
 							{/snippet}
-							{#snippet legend()}{/snippet}
 						</LineChart>
 					{/if}
 				{/await}
@@ -163,6 +161,12 @@
 		{/if}
 	</Card.Content>
 	<Card.Footer>
-		<IndicesCentral bind:axesCount bind:indices bind:tvalues={t} bind:domainType />
+		<IndicesCentral
+			bind:axesCount
+			bind:indices
+			tvalues={new SvelteSet(coverage?.t)}
+			bind:domainType
+			bind:t
+		/>
 	</Card.Footer>
 </Card.Root>

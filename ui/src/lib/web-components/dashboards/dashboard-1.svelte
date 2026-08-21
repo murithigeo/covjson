@@ -12,16 +12,20 @@
 	import GlobalControls from '../charts/global-controls.svelte';
 	let {
 		onIndicesChange,
-		data: coverage = $bindable(),
+		data = $bindable(),
 		detail,
 		children,
 		maxSlots = $bindable()
 	}: DashboardProps = $props();
-	let selected = $derived(new SvelteSet(coverage?.parameters.keys()));
+	let parameters = $derived(new SvelteMap(data?.flatMap((cov) => [...cov.parameters])));
+	let selected = $derived(new SvelteSet(parameters.keys()));
+	let parameterGroups = $derived(new SvelteSet(data?.flatMap((cov) => cov.parameterGroups)));
+	// On click, disable parameters not in coverage
+	let currentCoverageIndex = $state<string>();
 	/**
 	 * Holds all valid temporal value strings
 	 */
-	let tvalues = $derived(new SvelteSet<string>(coverage?.t));
+	let tvalues = $derived(new SvelteSet(data?.flatMap((cov) => cov.t)));
 	/**
 	 * Holds the absolute minimums and maximums of each parameter
 	 */
@@ -30,12 +34,13 @@
 	 * The current temporal value independent of the values in coverage
 	 */
 	let t = $state<string>();
+	$inspect({ t });
 </script>
 
 <!-- May be instead of color, use a number to indicate which slot is set to -->
 <div class="grid grid-cols-3">
-	<div class="mr-2 flex flex-col" id="parameter-preview">
-		<Collapsible.Root id="parameter-group-list" disabled={!coverage?.parameterGroups.length} open>
+	<div class="sticky top-0 mr-2 flex h-screen flex-col overflow-y-auto" id="parameter-preview">
+		<Collapsible.Root id="parameter-group-list" disabled={!parameterGroups.size} open>
 			<Item.Root size="sm" variant="outline">
 				<Item.Media><GroupIcon class="size-5" /></Item.Media>
 				<Item.Content>
@@ -48,7 +53,7 @@
 				</Item.Actions>
 			</Item.Root>
 			<Collapsible.Content class="ml-2">
-				{#each coverage?.parameterGroups as group, i (i)}
+				{#each parameterGroups as group, i (i)}
 					<ParameterGroupComponent data={group} bind:selected {detail} open={!i} />
 				{/each}
 			</Collapsible.Content>
@@ -66,17 +71,28 @@
 				</Item.Actions>
 			</Item.Root>
 			<Collapsible.Content class="ml-2">
-				{#each coverage?.parameters as [id, data], index (id)}
+				{#each parameters as [id, data], index (id)}
 					<ParameterComponent {data} bind:selected {detail} open={!index} />
 				{/each}
 			</Collapsible.Content>
 		</Collapsible.Root>
 	</div>
-	<div class="flex w-full max-w-sm flex-col space-y-2" id="charts">
+	<div class="flex h-screen w-full max-w-sm flex-col gap-2" id="charts">
 		<GlobalControls bind:tvalues bind:t class="sticky top-0 bg-[--background]/80" />
-		<ChartCentral bind:selected bind:coverage type="line" {onIndicesChange} bind:rangeMinMaxes />
+		<div class=" h-full space-y-3 overflow-y-auto">
+			{#each data as coverage, i (i)}
+				<ChartCentral
+					bind:selected
+					{coverage}
+					type="line"
+					{onIndicesChange}
+					bind:rangeMinMaxes
+					bind:t
+				/>
+			{/each}
+		</div>
 	</div>
-	<div class="h-screen w-full">
+	<div class="sticky top-0 h-screen w-full">
 		{@render children?.()}
 	</div>
 </div>

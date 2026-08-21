@@ -2,15 +2,15 @@
 	import { MapLibre, type Map } from 'svelte-maplibre';
 	import maplibregl from 'maplibre-gl';
 	import { MaplibrePlugin } from '@murithigeo/covjson-maplibre';
-	import { Coverage, CoverageCollection, type OnIndicesChange } from '@murithigeo/covjson-core';
+	import { Coverage, type OnIndicesChange } from '@murithigeo/covjson-core';
 	import Dashboard1 from '$lib/web-components/dashboards/dashboard-1.svelte';
-	let data = $state<CoverageCollection>();
 	const { addSourceType } = maplibregl;
 	//@ts-expect-error incompatibility with inbuilt maplibre type
 	addSourceType('coveragejson', MaplibrePlugin).catch(() => {});
 
+	//todo handle duplication of coverages on HMR
 	let map = $state<Map>();
-	let coverage = $state<Coverage>();
+	let coverages = $state<Coverage[]>();
 	let onIndicesChange = $state<OnIndicesChange>();
 	$effect(() => {
 		map?.on('load', ({ target: map }) => {
@@ -23,8 +23,7 @@
 				tempLayerPaint: {
 					fill: { 'fill-color': 'red' },
 					symbol: { 'icon-color': 'red' }
-				},
-				onLoad: (cov: any) => (data = cov)
+				}
 			});
 			onIndicesChange = map.getSource<MaplibrePlugin>(source)?.onIndicesChange;
 			map.addLayer({
@@ -55,15 +54,14 @@
 			});
 			map.on('click', 'section', (e) => {
 				// console.log(e.coverages);
-				if (coverage) coverage = undefined;
-				//@ts-expect-error e is patched
-				coverage = e.coverages[0];
+				if (coverages) coverages = [];
+				coverages = e.coverages;
 			});
 		});
 	});
 </script>
 
-<Dashboard1 bind:data={coverage} bind:coveragecollection={data} {onIndicesChange}>
+<Dashboard1 bind:data={coverages} {onIndicesChange}>
 	<MapLibre
 		class="h-full w-full"
 		bind:map

@@ -10,6 +10,7 @@ import type { Position } from 'coveragejson';
 import { loadCovJson } from './util.ts';
 import type { Point, Polygon } from 'geojson';
 
+//todo add hmr discerner. If URL already exists and tries to load again, invalid existing data
 export class MaplibrePlugin extends maplibregl.GeoJSONSource {
 	_coverages: Map<string, Coverage>;
 	covOptions: WithRequiredProperty<BasicPluginOptions, 'layers' | 'listenTo'>;
@@ -95,7 +96,6 @@ export class MaplibrePlugin extends maplibregl.GeoJSONSource {
 			.map(({ properties }) => properties.uuid as string)
 			.map((id) => this._coverages.get(id.toString()))
 			.filter((v) => v !== undefined)
-
 			.map((v) =>
 				v
 					.clone() // Handles error where indices remain  at 0

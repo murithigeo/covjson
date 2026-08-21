@@ -58,12 +58,13 @@
 			{#each pGroup.members as member (member)}
 				<Item.Root>
 					<Item.Media>
-						<Checkbox checked={selected?.has(member)} />
+						<Checkbox
+							checked={selected?.has(member)}
+							onCheckedChange={(checked) => onCheckedChange(checked, member)}
+						/>
 					</Item.Media>
-					<Item.Content
-						><a href="#param-{member}" class="hover:underline"><Item.Title>{member}</Item.Title></a
-						></Item.Content
-					>
+					<!-- Use scrollTo instead -->
+					<Item.Content><Item.Title>{member}</Item.Title></Item.Content>
 				</Item.Root>
 			{/each}
 		</div>

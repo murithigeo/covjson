@@ -6,7 +6,7 @@
 	import { type ButtonProps, Button } from '$lib/components/ui/button/index.js';
 	import * as ButtonGroup from '$lib/components/ui/button-group/index.js';
 	import type { ClassValue } from 'clsx';
-	import { cn } from '$lib/utils';
+	import { cn } from '$lib/utils.js';
 	interface Props {
 		indices: SvelteMap<string, number>;
 		axesCount: Map<string, number>;
@@ -62,20 +62,6 @@
 		indices?.set(axis, currentIndex);
 	}
 
-	// let tNum = $derived.by<number | undefined>(() => {
-	// 	switch (domainType) {
-	// 		case 'Section':
-	// 		case 'Trajectory':
-	// 			return axesCount.get('composite');
-	// 		default:
-	// 			return axesCount.get('t');
-	// 	}
-	// });
-	/**
-	 * Synchronize the global t value with coverage t value
-	 * For Section, then changing the value of t should also change active node
-	 */
-	function syncT() {}
 	function updateTemporalIndex(index: number) {
 		switch (domainType) {
 			case 'Trajectory':
@@ -88,7 +74,12 @@
 	}
 </script>
 
-<TemporalControl bind:values={tvalues} onIndexChange={updateTemporalIndex} class={cn(className)}>
+<TemporalControl
+	bind:values={tvalues}
+	onIndexChange={updateTemporalIndex}
+	class={cn(className)}
+	bind:globalT={t}
+>
 	{#snippet children()}
 		<ButtonGroup.Root>
 			<ButtonGroup.Root orientation="horizontal">
