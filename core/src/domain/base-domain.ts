@@ -51,7 +51,7 @@ export abstract class BaseDomain<D extends Domain = Domain> extends Base<D> {
   /**
    * Number of axis values in the domain
    */
-  abstract get axesCount(): Map<keyof D['axes'], number>;
+  abstract get axesSize(): Map<keyof D['axes'], number>;
   /**
    * Note that this is a clone of the class's core deets
    */

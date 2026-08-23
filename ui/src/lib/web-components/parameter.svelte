@@ -1,6 +1,6 @@
 <script lang="ts">
 	import type { Parameter } from 'coveragejson';
-	import { Parameter as PrClass } from '@murithigeo/covjson-core';
+	import { Parameter as PrClass, type MinMax, isUndefined } from '@murithigeo/covjson-core';
 	import LocaleTable from './locale-table.svelte';
 	import ObservedProperty from './observed-property.svelte';
 	import * as Collapsible from '../components/ui/collapsible/index.ts';
@@ -8,6 +8,9 @@
 	import { Checkbox } from '../components/ui/checkbox/index.ts';
 	import { buttonVariants } from '../components/ui/button/index.ts';
 	import { type SvelteSet } from 'svelte/reactivity';
+	import { Badge } from '$lib/components/ui/badge/index.js';
+	import { Label } from '$lib/components/ui/label/index.js';
+
 	import {
 		RulerDimensionLineIcon,
 		ChevronsUpDown,
@@ -20,14 +23,18 @@
 		checked?: boolean;
 		open?: boolean;
 		selected?: SvelteSet<string>;
+		minMax?: MinMax;
+		dataType?: 'float' | 'string' | 'integer';
 	}
 
 	let {
 		data = $bindable(),
 		open = $bindable(false),
 		detail,
+		minMax = $bindable(),
 		checked = $bindable(true),
-		selected = $bindable()
+		selected = $bindable(),
+		dataType
 	}: Props = $props();
 
 	const uid = $props.id();
@@ -43,7 +50,6 @@
 <Collapsible.Root class="border" bind:open>
 	<Item.Root class="w-full">
 		<Item.Media>
-			<!-- Not updating if p-group deselected -->
 			<Checkbox checked={selected?.has(key)} {onCheckedChange} /></Item.Media
 		>
 		<Item.Content>
@@ -51,8 +57,18 @@
 			<!-- Use  -->
 			<Item.Title lang={label.query()?.tag}
 				>{label.query()?.value || parameter.key || parameter.id}</Item.Title
-			></Item.Content
-		><Item.Actions>
+			>
+			<Item.Description class="flex flex-row space-x-2">
+				<Badge variant="outline">dataType</Badge><Label>{dataType}</Label>
+				<Badge variant="outline">min</Badge><Label
+					>{isUndefined(minMax?.[0]) ? 'NULL' : minMax[0]}</Label
+				>
+				<!-- Add units if any -->
+				<Badge variant="outline">max</Badge><Label
+					>{isUndefined(minMax?.[1]) ? 'NULL' : minMax[1]}</Label
+				>
+			</Item.Description>
+		</Item.Content><Item.Actions>
 			<Collapsible.Trigger class={buttonVariants({ variant: 'ghost' })}>
 				<ChevronsUpDown />
 			</Collapsible.Trigger>

@@ -28,14 +28,5 @@
     },
     "allowScripts": {
         "msw@2.15.0": true
-    },
-    "dependencies": {
-        "@turf/bearing": "^7.3.5",
-        "@turf/distance": "^7.3.5",
-        "@turf/line-offset": "^7.3.5",
-        "d3-scale": "^4.0.2",
-        "layerchart": "^2.2.0",
-        "turf": "^3.0.14",
-        "uninstall": "^0.0.0"
     }
 }

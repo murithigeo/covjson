@@ -166,7 +166,7 @@ export class Grid extends BaseDomain<GridDomain> {
 
     return indices;
   }
-  get axesCount(): Map<'x' | 'y' | 'z' | 't', number> {
+  get axesSize(): Map<'x' | 'y' | 'z' | 't', number> {
     const counts = new Map().set('x', this.x.length).set('y', this.y.length);
     if ('t' in this.axes) counts.set('t', this.t.length);
     if ('z' in this.axes) counts.set('z', this.z.length);

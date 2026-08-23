@@ -1,15 +1,16 @@
 <script lang="ts">
+	import { indexOfNearest, isUndefined } from '@murithigeo/covjson-core';
 	import { ArrowLeftIcon, ArrowUpIcon, ArrowRightIcon, ArrowDownIcon } from '@lucide/svelte';
 	import { SvelteMap, SvelteSet } from 'svelte/reactivity';
 	import type { DomainTypes } from 'coveragejson';
-	import TemporalControl from '../temporal-control.svelte';
+	import TemporalControl from '../sliders/temporal-control.svelte';
 	import { type ButtonProps, Button } from '$lib/components/ui/button/index.js';
 	import * as ButtonGroup from '$lib/components/ui/button-group/index.js';
 	import type { ClassValue } from 'clsx';
 	import { cn } from '$lib/utils.js';
 	interface Props {
 		indices: SvelteMap<string, number>;
-		axesCount: Map<string, number>;
+		axesSize: Map<string, number>;
 		domainType: DomainTypes;
 		/**
 		 * Current global t value
@@ -24,7 +25,7 @@
 
 	let {
 		indices = $bindable(),
-		axesCount = $bindable(),
+		axesSize = $bindable(),
 		domainType = $bindable(),
 		t = $bindable(),
 		tvalues = $bindable(),
@@ -36,8 +37,8 @@
 		switch (domainType) {
 			case 'Grid':
 				limits
-					.set('horizontal', { axis: 'x', value: axesCount.get('x') || 0 })
-					.set('vertical', { axis: 'y', value: axesCount.get('y') || 0 });
+					.set('horizontal', { axis: 'x', value: axesSize.get('x') || 0 })
+					.set('vertical', { axis: 'y', value: axesSize.get('y') || 0 });
 				break;
 			case 'Polygon':
 			case 'PolygonSeries':
@@ -45,7 +46,7 @@
 			case 'MultiPointSeries':
 			case 'MultiPolygon':
 			case 'MultiPolygonSeries':
-				limits.set('horizontal', { axis: 'composite', value: axesCount.get('composite') || 0 });
+				limits.set('horizontal', { axis: 'composite', value: axesSize.get('composite') || 0 });
 				break;
 		}
 		return limits;
@@ -62,23 +63,48 @@
 		indices?.set(axis, currentIndex);
 	}
 
-	function updateTemporalIndex(index: number) {
+	// function updateTemporalIndex(index: number) {
+	// 	switch (domainType) {
+	// 		case 'Trajectory':
+	// 		case 'Section':
+	// 			indices.set('composite', index);
+	// 			break;
+	// 		default:
+	// 			indices.set('t', index);
+	// 	}
+	// }
+	$effect(() => {
 		switch (domainType) {
-			case 'Trajectory':
 			case 'Section':
-				indices.set('composite', index);
+			case 'Trajectory':
+				indices.set('composite', tIndex);
 				break;
 			default:
-				indices.set('t', index);
+				indices.set('t', tIndex);
 		}
-	}
+	});
+	let tIndex = $state(0);
+	const syncTemporal = (t?: string) => {
+		if (isUndefined(t)) return;
+		const asEpoch = tvalues
+			.keys()
+			.map((t) => new Date(t).getTime())
+			.toArray();
+		const bestMatch = indexOfNearest(asEpoch, new Date(t).getTime());
+		console.log({ t, bestMatch });
+		if (bestMatch > -1) tIndex = bestMatch;
+		// console.log({bestmatch})
+	};
+	$effect(() => syncTemporal(t));
+
+	$inspect({ t, tIndex });
 </script>
 
 <TemporalControl
 	bind:values={tvalues}
-	onIndexChange={updateTemporalIndex}
+	// onIndexChange={updateTemporalIndex}
 	class={cn(className)}
-	bind:globalT={t}
+	bind:index={tIndex}
 >
 	{#snippet children()}
 		<ButtonGroup.Root>

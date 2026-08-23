@@ -162,7 +162,7 @@ export class Coverage<
   queryIndices(ref: Position | string | number) {
     const indices: Map<string, number> = this.domain.queryIndices(ref);
     for (const [axisName, index] of indices) {
-      if (!this.axesCount.has(axisName)) indices.delete(axisName);
+      if (!this.axesSize.has(axisName)) indices.delete(axisName);
       if (index < 0) indices.set(axisName, 0);
     }
     return indices;
@@ -221,7 +221,7 @@ export class Coverage<
 
     const row = Object.fromEntries(await Promise.all(values));
     ref.forEach((value, key) => {
-      if (!this.axesCount.has(key)) return;
+      if (!this.axesSize.has(key)) return;
 
       if (key === 't' || key === 'z') row[key] = this[key][value];
       else row[`${key}Index`] = value;
@@ -229,8 +229,8 @@ export class Coverage<
     return row;
   }
 
-  get axesCount(): Map<string, number> {
-    return this.domain.axesCount;
+  get axesSize(): Map<string, number> {
+    return this.domain.axesSize;
   }
 
   /**
@@ -241,7 +241,7 @@ export class Coverage<
    * query("z") === [{z:0,POTM:10},{z:1,POTM:20}] etc
    */
   query(...axisNames: string[]) {
-    const consider = this.axesCount
+    const consider = this.axesSize
       .entries()
       .filter(([axisName, count]) => count > 1 && axisNames.includes(axisName)) // count>1 means filtering out 1D values
       .map(([axisName, count]) => [axisName, [...Array(count).keys()]] as const)

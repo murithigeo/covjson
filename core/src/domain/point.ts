@@ -59,7 +59,7 @@ abstract class Base<T extends PointD | PSeriesD | VertProfDomain> extends BaseDo
     if (typeof ref === 'string') indices.set('t', this.tIndex(ref));
     return indices;
   }
-  get axesCount(): Map<keyof T['axes'], number> {
+  get axesSize(): Map<keyof T['axes'], number> {
     return new Map().set('x', 0).set('y', 0).set('t', this.t.length).set('z', this.z.length);
   }
 }

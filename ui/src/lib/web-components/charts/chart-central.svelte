@@ -11,8 +11,15 @@
 	} from '@murithigeo/covjson-core';
 	import * as Chart from '$lib/components/ui/chart/index.js';
 	import IndicesCentral from './indices-central.svelte';
+	import * as Item from '$lib/components/ui/item/index.js';
+	import { Badge } from '$lib/components/ui/badge/index.js';
 	import { Skeleton } from '$lib/components/ui/skeleton/index.js';
 	import { type LineChartProps, type ArcChartProps, LineChart, ArcChart } from 'layerchart';
+	import * as Collapsible from '$lib/components/ui/collapsible/index.js';
+	import { buttonVariants } from '$lib/components/ui/button/index.js';
+	import { ChevronsUpDownIcon, PinIcon, DeleteIcon, PinOffIcon } from '@lucide/svelte';
+	import { Button } from '$lib/components/ui/button/index.js';
+	import * as ButtonGroup from '$lib/components/ui/button-group/index.js';
 	// Source - https://stackoverflow.com/a/1484514
 	// Posted by Anatoliy, modified by community. See post 'Timeline' for change history
 	// Retrieved 2026-08-20, License - CC BY-SA 3.0
@@ -27,15 +34,13 @@
 	}
 
 	interface Props {
-		/**
-		 * @deprecated Remove the illusion of choice
-		 */
-		type: 'line' | 'bar';
-		coverage?: Coverage;
+		coverage: Coverage;
 		selected?: SvelteSet<string>;
 		onIndicesChange?: OnIndicesChange;
 		rangeMinMaxes?: SvelteMap<string, MinMax>;
 		t?: string;
+		pinned?: SvelteMap<string, Coverage>;
+		onRemove?: (uuid: string) => void;
 	}
 
 	let {
@@ -43,7 +48,9 @@
 		selected = $bindable(),
 		onIndicesChange,
 		t = $bindable(),
-		rangeMinMaxes = $bindable()
+		rangeMinMaxes = $bindable(),
+		pinned = $bindable(),
+		onRemove
 	}: Props = $props();
 
 	let config = $derived.by(() => {
@@ -57,13 +64,13 @@
 		return config;
 	});
 
-	let axesCount = $derived(new SvelteMap(coverage?.axesCount));
+	let axesSize = $derived(new SvelteMap(coverage?.axesSize));
 	let indices = $derived(new SvelteMap(coverage?.indices));
 	let domainType = $derived(coverage?.domainType);
 	$effect(() => onIndicesChange?.(coverage, indices));
 
 	const updateMinMax = (data: DataRow[]) => {
-		if (!coverage || !data.length) return;
+		if (!data.length) return;
 
 		for (const [rangeId, range] of coverage.ranges) {
 			for (const row of data) {
@@ -85,7 +92,6 @@
 		//todo synch the minMax to this component
 		// Or use the range's minMax but remember to add disclaimer
 		const props: LineChartProps<DataRow> = {};
-		if (!coverage) return props;
 		props.series = [];
 		props.props = {};
 		for (const key in config)
@@ -133,36 +139,55 @@
 	});
 
 	let nonSeriesPreset = $derived.by<ArcChartProps<DataRow> | undefined>(() => {});
+
+	const handlePin = () => {
+		if (pinned?.has(coverage.uuid)) return pinned.delete(coverage.uuid);
+		return pinned?.set(coverage.uuid, coverage);
+	};
 </script>
 
-<!-- If active coverages are the same, make sure to only use one preview -->
+<!-- done:(used an array) If active coverages are the same, make sure to only use one preview -->
 <!-- Add button to allow user to explicitly opt into preloading -->
 <!-- todo Legend for categorical values and color customization (gradient th)-->
 <!-- Button on each component to remove the module -->
 <!-- Add padding so that all chart data is visible -->
 <Card.Root>
-	<Card.Content class="flex flex-col space-y-3">
-		{#if !coverage}
-			<Skeleton />
-		{:else}
-			<Chart.Container {config}>
-				{#await dataPromise then data}
-					{#if ['Point', 'MultiPoint', 'Polygon', undefined].includes(coverage?.domain.domainType)}
-						<ArcChart {data} {...nonSeriesPreset} />
+	<Card.Header>
+		<Card.Title></Card.Title>
+		<Card.Action>
+			<ButtonGroup.Root>
+				<Button onclick={handlePin}
+					>{#if pinned?.has(coverage.uuid)}<PinOffIcon />
 					{:else}
-						<LineChart {data} {...seriesPreset} class="h-full w-full">
-							{#snippet tooltip()}
-								<Chart.Tooltip hideLabel />
-							{/snippet}
-						</LineChart>
-					{/if}
-				{/await}
-			</Chart.Container>
-		{/if}
+						<PinIcon />
+					{/if}</Button
+				>
+				<Button
+					onclick={() => {
+						onRemove?.(coverage.uuid);
+					}}><DeleteIcon /></Button
+				>
+			</ButtonGroup.Root>
+		</Card.Action>
+	</Card.Header>
+	<Card.Content class="flex flex-col space-y-3">
+		<Chart.Container {config}>
+			{#await dataPromise then data}
+				{#if ['Point', 'MultiPoint', 'Polygon', undefined].includes(coverage?.domain.domainType)}
+					<ArcChart {data} {...nonSeriesPreset} />
+				{:else}
+					<LineChart {data} {...seriesPreset} class="h-full w-full">
+						{#snippet tooltip()}
+							<Chart.Tooltip hideLabel />
+						{/snippet}
+					</LineChart>
+				{/if}
+			{/await}
+		</Chart.Container>
 	</Card.Content>
 	<Card.Footer>
 		<IndicesCentral
-			bind:axesCount
+			bind:axesSize
 			bind:indices
 			tvalues={new SvelteSet(coverage?.t)}
 			bind:domainType

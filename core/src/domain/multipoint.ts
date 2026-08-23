@@ -48,7 +48,7 @@ abstract class Base<T extends MpD | MpsD> extends BaseDomain<T> {
   get t(): string[] {
     return this.axes.t?.values || [];
   }
-  get axesCount(): Map<keyof T['axes'], number> {
+  get axesSize(): Map<keyof T['axes'], number> {
     return new Map().set('composite', this.axes.composite.values.length).set('t', this.t.length);
   }
   _reproject(referencing: Referencing): this {
@@ -122,7 +122,7 @@ export class Section extends BaseDomain<SectionDomain> {
     this.axes.z = denormalizeNumAxis(this.axes.z);
     return this;
   }
-  get axesCount(): Map<'z' | 'composite', number> {
+  get axesSize(): Map<'z' | 'composite', number> {
     return new Map().set('composite', this.axes.composite.values.length).set('z', this.z.length);
   }
   queryIndices(ref: Position | number | string): Map<'z' | 'composite', number> {

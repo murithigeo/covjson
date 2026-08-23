@@ -8,7 +8,6 @@
 	import { Slider } from '../components/ui/slider/index.ts';
 	import * as ButtonGroup from '../components/ui/button-group/index.ts';
 	import { Button } from '../components/ui/button/index.ts';
-	import { Label } from '../components/ui/label/index.ts';
 	import { TimerResetIcon, RepeatIcon, RepeatOffIcon, PlayIcon, PauseIcon } from '@lucide/svelte';
 	import type { Snippet } from 'svelte';
 	import type { SvelteSet } from 'svelte/reactivity';
@@ -111,7 +110,7 @@
 
 <div class={cn('flex w-full flex-col place-items-center space-y-3', className)}>
 	<Slider max={values.length - 1} type="single" bind:value={getIndex, setIndex} />
-	<Label>{values[index]}</Label>
+	{values[index]}
 	<div class="flex flex-row items-center space-x-2">
 		<ButtonGroup.Root>
 			<Button onclick={setPlayState} {disabled}>

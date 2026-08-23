@@ -1,15 +1,14 @@
 <script lang="ts">
-	import { Category as CategoryClass } from '@murithigeo/covjson-core';
+	import { Category as CatClass } from '@murithigeo/covjson-core';
 	import type { Category } from 'coveragejson';
 	import * as Table from '../components/ui/table/index.ts';
 	import type { MetadataRenderProps } from './types.d.ts';
 
-	type Data = CategoryClass | Category;
-	type Props = MetadataRenderProps<Data[]>;
-
-	let { data = $bindable(), detail = 'simple' }: Props = $props();
-	const toCat = (cat: Data) => (cat instanceof CategoryClass ? cat : new CategoryClass(cat));
-	let categories = $derived<CategoryClass[]>(data.map(toCat));
+	type Data = CatClass | Category;
+	let { data = $bindable(), detail = 'simple' }: MetadataRenderProps<Data[]> = $props();
+	let categories = $derived.by(() => {
+		return data.map((v) => (v instanceof CatClass ? v : new CatClass(v)));
+	});
 </script>
 
 <Table.Root>
@@ -25,8 +24,8 @@
 	<Table.Body>
 		{#each categories as { id, label, description } (id)}
 			{#if detail === 'full'}
-				{@const rowspan = label.size+ description.size}
-				{#each label as [lang,value],i  (lang)}
+				{@const rowspan = label.size + description.size}
+				{#each label as [lang, value], i (lang)}
 					<Table.Row>
 						{#if i === 0}
 							<Table.Cell {rowspan} class="border-r">{id}</Table.Cell>
@@ -37,12 +36,10 @@
 					</Table.Row>
 				{/each}
 
-				{#each description as [lang,value],i (lang)}
+				{#each description as [lang, value], i (lang)}
 					<Table.Row>
 						{#if i === 0}
-							<Table.Cell rowspan={description.size} class="border-r"
-								>Description</Table.Cell
-							>
+							<Table.Cell rowspan={description.size} class="border-r">Description</Table.Cell>
 						{/if}
 						<Table.Cell>{description.getTagName(lang)}</Table.Cell>
 						<Table.Cell {lang}>{value}</Table.Cell>
