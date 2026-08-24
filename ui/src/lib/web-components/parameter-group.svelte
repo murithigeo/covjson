@@ -1,15 +1,16 @@
 <script lang="ts">
 	import type { MetadataRenderProps } from './types.d.ts';
 	import type { ParameterGroup } from 'coveragejson';
-	import { Checkbox } from '../components/ui/checkbox/index.ts';
+	import { Checkbox } from '$lib/components/ui/checkbox/index.js';
 	import ObservedProperty from './observed-property.svelte';
 	import LocaleTable from './locale-table.svelte';
-	import * as Item from '../components/ui/item/index.ts';
-	import * as Collapsible from '../components/ui/collapsible/index.ts';
+	import * as Item from '$lib/components/ui/item/index.js';
+	import * as Collapsible from '$lib/components/ui/collapsible/index.js';
 	import { ChevronsUpDown, LanguagesIcon } from '@lucide/svelte';
 	import { ParameterGroup as PGroupClass } from '@murithigeo/covjson-core';
 	import { SvelteSet } from 'svelte/reactivity';
-	import { buttonVariants } from '../components/ui/button/index.ts';
+	import { buttonVariants } from '$lib/components/ui/button/index.js';
+	import * as Card from '$lib/components/ui/card/index.js';
 	interface Props extends MetadataRenderProps<PGroupClass | ParameterGroup> {
 		selected?: SvelteSet<string>;
 		open?: boolean;
@@ -53,43 +54,50 @@
 		</Item.Actions>
 	</Item.Root>
 	<Collapsible.Content class="ml-4">
-		<!-- Add items to toggle members -->
-		<div class="flex flex-row space-x-1">
-			{#each pGroup.members as member (member)}
-				<Item.Root>
-					<Item.Media>
-						<Checkbox
-							checked={selected?.has(member)}
-							onCheckedChange={(checked) => onCheckedChange(checked, member)}
-						/>
-					</Item.Media>
-					<!-- Use scrollTo instead -->
-					<Item.Content><Item.Title>{member}</Item.Title></Item.Content>
-				</Item.Root>
-			{/each}
-		</div>
-		<Collapsible.Root disabled={false} class="border-b border-l">
-			<Item.Root class="sm">
-				<Item.Media><LanguagesIcon class="size-5" /></Item.Media>
-				<Item.Content>
-					<Item.Title lang="en">Internationalization</Item.Title>
-				</Item.Content>
-				<Item.Actions
-					><Collapsible.Trigger class={buttonVariants({ variant: 'ghost' })}>
-						<ChevronsUpDown />
-					</Collapsible.Trigger></Item.Actions
-				>
-			</Item.Root>
-			<Collapsible.Content>
-				<div class="ml-5">
-					<LocaleTable data={{ label: pGroup.label, description: pGroup.description }} {detail} />
+		<Card.Root>
+			<Card.Content>
+				<!-- Add items to toggle members -->
+				<div class="flex flex-row space-x-1">
+					{#each pGroup.members as member (member)}
+						<Item.Root>
+							<Item.Media>
+								<Checkbox
+									checked={selected?.has(member)}
+									onCheckedChange={(checked) => onCheckedChange(checked, member)}
+								/>
+							</Item.Media>
+							<!-- Use scrollTo instead -->
+							<Item.Content><Item.Title>{member}</Item.Title></Item.Content>
+						</Item.Root>
+					{/each}
 				</div>
-			</Collapsible.Content>
-		</Collapsible.Root>
-		<Collapsible.Root disabled={!pGroup.observedProperty}>
-			{#if pGroup.observedProperty}
-				<ObservedProperty data={pGroup.observedProperty} {detail} />
-			{/if}
-		</Collapsible.Root>
+				<Collapsible.Root>
+					<Item.Root class="sm">
+						<Item.Media><LanguagesIcon class="size-5" /></Item.Media>
+						<Item.Content>
+							<Item.Title lang="en">Internationalization</Item.Title>
+						</Item.Content>
+						<Item.Actions
+							><Collapsible.Trigger class={buttonVariants({ variant: 'ghost' })}>
+								<ChevronsUpDown />
+							</Collapsible.Trigger></Item.Actions
+						>
+					</Item.Root>
+					<Collapsible.Content>
+						<div class="ml-5">
+							<LocaleTable
+								data={{ label: pGroup.label, description: pGroup.description }}
+								{detail}
+							/>
+						</div>
+					</Collapsible.Content>
+				</Collapsible.Root>
+				<Collapsible.Root disabled={!pGroup.observedProperty}>
+					{#if pGroup.observedProperty}
+						<ObservedProperty data={pGroup.observedProperty} {detail} />
+					{/if}
+				</Collapsible.Root>
+			</Card.Content>
+		</Card.Root>
 	</Collapsible.Content>
 </Collapsible.Root>

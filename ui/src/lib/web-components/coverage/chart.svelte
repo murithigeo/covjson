@@ -17,67 +17,45 @@
 		indices: SvelteMap<string, number>;
 		selected?: SvelteSet<string>;
 		rangeMinMaxes?: SvelteMap<string, MinMax>;
+		config: Chart.ChartConfig;
 	}
 
 	let {
 		coverage = $bindable(),
+		config = $bindable(),
 		indices = $bindable(),
 		selected = $bindable(new SvelteSet(coverage.ranges.keys())),
 		rangeMinMaxes = $bindable(
 			new SvelteMap(coverage.ranges.entries().map(([id, { minMax }]) => [id, minMax]))
 		)
 	}: Props = $props();
-	// Source - https://stackoverflow.com/a/1484514
-	// Posted by Anatoliy, modified by community. See post 'Timeline' for change history
-	// Retrieved 2026-08-20, License - CC BY-SA 3.0
 
-	function getRandomColor() {
-		var letters = '0123456789ABCDEF';
-		var color = '#';
-		for (var i = 0; i < 6; i++) {
-			color += letters[Math.floor(Math.random() * 16)];
-		}
-		return color;
-	}
 	const updateMinMax = (data: DataRow[]) => {
 		for (const [rangeId, range] of coverage.ranges) {
 			if (range.dataType === 'string') continue;
 			const values = data
 				.map((d) => d[rangeId])
 				.filter((v) => !isUndefined(v) && typeof v === 'number');
-			rangeMinMaxes.set(rangeId, minMax([...values, ...(rangeMinMaxes.get(rangeId) || [])]));
+			const v = [...values, ...(rangeMinMaxes.get(rangeId) || [null, null])].filter(
+				(v) => v !== null
+			);
+			const bounds = [Math.min(...v), Math.max(...v)] as const;
+			rangeMinMaxes.set(rangeId, bounds);
 		}
 	};
 	let dataPromise = $derived.by(async () => {
-		const preloadAxis = ['z'];
-		const data = await coverage.query(...preloadAxis)(indices, selected.keys().toArray());
+		// const preloadAxis = ['z'];
+		const data = await coverage.query()(indices, selected.keys().toArray());
 		updateMinMax(data);
 		return data;
 	});
-
-	const config = $derived<Chart.ChartConfig>(
-		coverage.parameters
-			.entries()
-			.filter(([id]) => selected.has(id))
-			.toArray()
-			.reduce(
-				(l, [id, param]) => ({
-					...l,
-					[id]: {
-						color: getRandomColor(),
-						label: param.label.query()?.value || id
-					}
-				}),
-				{}
-			)
-	);
 
 	let seriesPreset = $derived.by<LineChartProps<DataRow>>(() => {
 		const props: LineChartProps<DataRow> = {};
 		props.series = [];
 		props.props = {};
 		for (const key in config)
-			props.series.push({ ...config[key], key, selected: selected?.has(key) });
+			props.series.push({ ...config[key], key, selected: selected.has(key) });
 		props.props = { xAxis: {} };
 		switch (coverage.domainType) {
 			case 'Grid':
@@ -110,7 +88,7 @@
 			? minMax(
 					rangeMinMaxes
 						.entries()
-						.filter(([key]) => selected?.has(key))
+						.filter(([key]) => selected.has(key))
 						.flatMap(([, val]) => val)
 						.toArray()
 				)
@@ -119,18 +97,34 @@
 		props.transform = { mode: 'domain', axis: 'both' };
 		return props;
 	});
+	let nonSeriesPreset = (data: DataRow) => {
+		const props: ArcChartProps<DataRow> = {};
+		props.series = Object.entries(config).map(([key, config]) => ({
+			...config,
+			key,
+			maxValue: rangeMinMaxes.get(key)?.[1],
+			selected: selected.has(key),
+			maxValue: Math.max(rangeMinMaxes.values().map(([, max]) => max)),
+			data: [data[key]]
+		}));
+		return props;
+	};
 </script>
 
-<Chart.Container {config}>
+<Chart.Container {config} class="h-full w-full">
 	{#await dataPromise}
 		<Skeleton />
 	{:then data}
 		{#if !data.length}
 			<span class="w-full">No Data Loaded</span>
 		{:else if data.length === 1}
-			<ArcChart {...nonSeriesPreset} />
+			<ArcChart {...nonSeriesPreset(data[0])} />
 		{:else}
-			<LineChart {...seriesPreset} />
+			<LineChart {...seriesPreset} {data}>
+				{#snippet tooltip()}
+					<Chart.Tooltip hideLabel />
+				{/snippet}
+			</LineChart>
 		{/if}
 	{/await}
 </Chart.Container>

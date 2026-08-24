@@ -1,6 +1,7 @@
 <script lang="ts">
 	import type { ObservedProperty } from 'coveragejson';
-	import * as Card from '../components/ui/card/index.ts';
+	import * as Card from '$lib/components/ui/card/index.js';
+	import { Label } from '$lib/components/ui/label/index.js';
 	import { ObservedProperty as ObsClass } from '@murithigeo/covjson-core';
 	import LocaleTable from './locale-table.svelte';
 	import CategoryTable from './category-table.svelte';
@@ -24,7 +25,7 @@
 			{obs.id || l?.value || 'No Id Provided'}
 		</Card.Title>
 		<Card.Description lang={d?.tag}>
-			{d?.value || 'No Description found'}
+			<Label>{d?.value || 'No Description found'}</Label>
 		</Card.Description>
 	</Card.Header>
 	<Card.Content>

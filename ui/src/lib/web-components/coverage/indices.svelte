@@ -8,7 +8,7 @@
 	interface Props {
 		now?: string;
 		coverage: Coverage;
-		indices?: SvelteMap<string, number>;
+		indices: SvelteMap<string, number>;
 	}
 
 	let { now = $bindable(), coverage = $bindable(), indices = $bindable() }: Props = $props();
@@ -23,9 +23,10 @@
 						value: coverage.axesSize.get('x') || 0
 					})
 					.set('vertical', {
-						axis: 'x',
-						value: coverage.axesSize.get('x') || 0
+						axis: 'y',
+						value: coverage.axesSize.get('y') || 0
 					});
+				break;
 			case 'Polygon':
 			case 'PolygonSeries':
 			case 'MultiPoint':
@@ -53,7 +54,7 @@
 		indices?.set(axis, currentIndex);
 	}
 	const onTemporalSliderIndexChange = (index: number) => {
-		switch (coverage.domainType) {
+		switch (coverage.domain.domainType) {
 			case 'Trajectory':
 			case 'Section':
 				indices.set('composite', index);
@@ -70,27 +71,27 @@
 			<Button
 				{...buttonProps}
 				onclick={() => crementIndices('-', 'horizontal')}
-				disabled={limits.get('horizontal')?.value < 2}
+				disabled={(limits.get('horizontal')?.value || 0) < 2}
 				><ArrowLeftIcon />
 			</Button>
 			<Button
 				{...buttonProps}
 				onclick={() => crementIndices('+', 'horizontal')}
-				disabled={limits.get('horizontal')?.value < 2}
+				disabled={(limits.get('horizontal')?.value || 0) < 2}
 			>
 				<ArrowRightIcon />
 			</Button>
 			<Button
 				{...buttonProps}
 				onclick={() => crementIndices('+', 'vertical')}
-				disabled={!limits.get('vertical')?.value}
+				disabled={(limits.get('vertical')?.value || 0) < 2}
 			>
 				<ArrowUpIcon />
 			</Button>
 			<Button
 				{...buttonProps}
 				onclick={() => crementIndices('-', 'vertical')}
-				disabled={!limits.get('vertical')?.value}
+				disabled={(limits.get('vertical')?.value || 0) < 2}
 			>
 				<ArrowDownIcon />
 			</Button>

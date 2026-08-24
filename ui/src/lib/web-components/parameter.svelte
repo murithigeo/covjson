@@ -3,6 +3,7 @@
 	import { Parameter as PrClass, type MinMax, isUndefined } from '@murithigeo/covjson-core';
 	import LocaleTable from './locale-table.svelte';
 	import ObservedProperty from './observed-property.svelte';
+	import * as Card from '$lib/components/ui/card/index.js';
 	import * as Collapsible from '../components/ui/collapsible/index.ts';
 	import * as Item from '../components/ui/item/index.ts';
 	import { Checkbox } from '../components/ui/checkbox/index.ts';
@@ -25,6 +26,7 @@
 		selected?: SvelteSet<string>;
 		minMax?: MinMax;
 		dataType?: 'float' | 'string' | 'integer';
+		color?: string;
 	}
 
 	let {
@@ -34,7 +36,8 @@
 		minMax = $bindable(),
 		checked = $bindable(true),
 		selected = $bindable(),
-		dataType
+		dataType,
+		color = $bindable()
 	}: Props = $props();
 
 	const uid = $props.id();
@@ -45,6 +48,12 @@
 	const label = $derived(parameter.label);
 	const onCheckedChange = (checked: boolean) =>
 		checked ? selected?.add(key) : selected?.delete(key);
+	let minMaxFormatted = $derived(
+		minMax
+			?.map((v) => v?.toString())
+			.map((v) => (isUndefined(v) ? 'NULL' : `${v}${parameter.unit?.symbol?.value || ''}`))
+			.map((v) => v.trimEnd())
+	);
 </script>
 
 <Collapsible.Root class="border" bind:open>
@@ -58,15 +67,10 @@
 			<Item.Title lang={label.query()?.tag}
 				>{label.query()?.value || parameter.key || parameter.id}</Item.Title
 			>
-			<Item.Description class="flex flex-row space-x-2">
-				<Badge variant="outline">dataType</Badge><Label>{dataType}</Label>
-				<Badge variant="outline">min</Badge><Label
-					>{isUndefined(minMax?.[0]) ? 'NULL' : minMax[0]}</Label
-				>
-				<!-- Add units if any -->
-				<Badge variant="outline">max</Badge><Label
-					>{isUndefined(minMax?.[1]) ? 'NULL' : minMax[1]}</Label
-				>
+			<Item.Description class="flex flex-row gap-x-2">
+				<Badge variant="outline"><p class={`text-[${color}]`}>{dataType}</p></Badge>
+				<Label><Badge variant="outline">min</Badge>{minMaxFormatted?.[0]}</Label>
+				<Label><Badge variant="outline">max</Badge>{minMaxFormatted?.[1]}</Label>
 			</Item.Description>
 		</Item.Content><Item.Actions>
 			<Collapsible.Trigger class={buttonVariants({ variant: 'ghost' })}>
@@ -74,92 +78,96 @@
 			</Collapsible.Trigger>
 		</Item.Actions>
 	</Item.Root>
-	<Collapsible.Content class="ml-4">
-		<Collapsible.Root
-			disabled={!parameter.label.size && !parameter.description.size}
-			id="{id}:i18n"
-		>
-			<Item.Root size="sm" variant="outline">
-				<Item.Media><LanguagesIcon class="size-5" /></Item.Media>
-				<Item.Content>
-					<Item.Title lang="en">Internationalization</Item.Title>
-				</Item.Content>
-				<Item.Actions>
-					<Collapsible.Trigger
-						class={buttonVariants({ variant: 'ghost' })}
-						disabled={!parameter.label.size && !parameter.description.size}
-					>
-						<ChevronsUpDown />
-					</Collapsible.Trigger>
-				</Item.Actions>
-			</Item.Root>
-			<Collapsible.Content class="border-l">
-				<LocaleTable
-					data={{
-						label: parameter.label,
-						description: parameter.description
-					}}
-					{detail}
-				/>
-			</Collapsible.Content>
-		</Collapsible.Root>
+	<Collapsible.Content>
+		<Card.Root>
+			<Card.Content>
+				<Collapsible.Root
+					disabled={!parameter.label.size && !parameter.description.size}
+					id="{id}:i18n"
+				>
+					<Item.Root size="sm" variant="outline">
+						<Item.Media><LanguagesIcon class="size-5" /></Item.Media>
+						<Item.Content>
+							<Item.Title lang="en">Internationalization</Item.Title>
+						</Item.Content>
+						<Item.Actions>
+							<Collapsible.Trigger
+								class={buttonVariants({ variant: 'ghost' })}
+								disabled={!parameter.label.size && !parameter.description.size}
+							>
+								<ChevronsUpDown />
+							</Collapsible.Trigger>
+						</Item.Actions>
+					</Item.Root>
+					<Collapsible.Content class="border-l">
+						<LocaleTable
+							data={{
+								label: parameter.label,
+								description: parameter.description
+							}}
+							{detail}
+						/>
+					</Collapsible.Content>
+				</Collapsible.Root>
 
-		<Collapsible.Root id="{id}:unit">
-			<Item.Root size="sm" variant="outline">
-				<Item.Media><RulerDimensionLineIcon class="size-5" /></Item.Media>
-				<Item.Content>
-					<Item.Title>Unit</Item.Title>
-				</Item.Content>
-				<Item.Actions>
-					<Collapsible.Trigger
-						class={buttonVariants({ variant: 'ghost' })}
-						disabled={!parameter.unit}
-					>
-						<ChevronsUpDown />
-					</Collapsible.Trigger>
-				</Item.Actions>
-			</Item.Root>
-			{#if parameter.unit}
-				<Collapsible.Content>
-					{#if parameter.unit.symbol}
-						<Item.Root>
-							<Item.Content>
-								<Item.Title lang="en">{parameter.unit.symbol.value}</Item.Title>
-								<Item.Description>
-									{#if parameter.unit.symbol?.type}
-										<a href={parameter.unit.symbol.type} rel="external"
-											>{parameter.unit.symbol.type}</a
-										>
-									{:else}
-										No Serialization Scheme
-									{/if}
-								</Item.Description>
-							</Item.Content>
-						</Item.Root>
+				<Collapsible.Root id="{id}:unit">
+					<Item.Root size="sm" variant="outline">
+						<Item.Media><RulerDimensionLineIcon class="size-5" /></Item.Media>
+						<Item.Content>
+							<Item.Title>Unit</Item.Title>
+						</Item.Content>
+						<Item.Actions>
+							<Collapsible.Trigger
+								class={buttonVariants({ variant: 'ghost' })}
+								disabled={!parameter.unit}
+							>
+								<ChevronsUpDown />
+							</Collapsible.Trigger>
+						</Item.Actions>
+					</Item.Root>
+					{#if parameter.unit}
+						<Collapsible.Content>
+							{#if parameter.unit.symbol}
+								<Item.Root>
+									<Item.Content>
+										<Item.Title lang="en"><Label>{parameter.unit.symbol.value}</Label></Item.Title>
+										<Item.Description>
+											{#if parameter.unit.symbol?.type}
+												<a href={parameter.unit.symbol.type} rel="external"
+													>{parameter.unit.symbol.type}</a
+												>
+											{:else}
+												No Serialization Scheme
+											{/if}
+										</Item.Description>
+									</Item.Content>
+								</Item.Root>
+							{/if}
+							<LocaleTable data={{ label: parameter.unit.label }} {detail} />
+						</Collapsible.Content>
 					{/if}
-					<LocaleTable data={{ label: parameter.unit.label }} {detail} />
-				</Collapsible.Content>
-			{/if}
-		</Collapsible.Root>
-		<Collapsible.Root id="{id}:observed-property">
-			<Item.Root size="sm" variant="outline">
-				<Item.Media>
-					<SunSnowIcon />
-				</Item.Media>
-				<Item.Content>
-					<Item.Title lang="en">Observed Property</Item.Title>
-				</Item.Content>
-				<Item.Actions>
-					<Collapsible.Trigger class={buttonVariants({ variant: 'ghost' })}>
-						<ChevronsUpDown />
-					</Collapsible.Trigger>
-				</Item.Actions>
-			</Item.Root>
-			<Collapsible.Content>
-				{#if parameter.observedProperty}
-					<ObservedProperty data={parameter.observedProperty} {detail} />
-				{/if}
-			</Collapsible.Content>
-		</Collapsible.Root>
+				</Collapsible.Root>
+				<Collapsible.Root id="{id}:observed-property">
+					<Item.Root size="sm" variant="outline">
+						<Item.Media>
+							<SunSnowIcon />
+						</Item.Media>
+						<Item.Content>
+							<Item.Title lang="en">Observed Property</Item.Title>
+						</Item.Content>
+						<Item.Actions>
+							<Collapsible.Trigger class={buttonVariants({ variant: 'ghost' })}>
+								<ChevronsUpDown />
+							</Collapsible.Trigger>
+						</Item.Actions>
+					</Item.Root>
+					<Collapsible.Content>
+						{#if parameter.observedProperty}
+							<ObservedProperty data={parameter.observedProperty} {detail} />
+						{/if}
+					</Collapsible.Content>
+				</Collapsible.Root>
+			</Card.Content>
+		</Card.Root>
 	</Collapsible.Content>
 </Collapsible.Root>

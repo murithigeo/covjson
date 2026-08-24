@@ -21,7 +21,7 @@
 
 	let {
 		values = $bindable(),
-		maxIndex = $bindable(set.size),
+		maxIndex = $bindable(values.length),
 		minIndex = $bindable(0),
 		min = $bindable(),
 		max = $bindable(),

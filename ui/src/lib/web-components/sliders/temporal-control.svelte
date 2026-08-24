@@ -37,14 +37,19 @@
 		onIndexChange
 	}: Props = $props();
 	let minIndex = $state(0);
-	let maxIndex = $derived(values.size - 1);
-	$effect(() => {
-		const bestMatch = indexOfNearest(values, now);
-	});
+	let maxIndex = $derived(values.length - 1);
+	$effect(() => onIndexChange?.(index));
+	// $effect(() => {
+	// 	if (values.length < 1) return;
+	// 	// const bestMatch = indexOfNearest(
+	// 	// 	values.map((v) => new Date(v).getTime),
+	// 	// 	new Date(now).getTime()
+	// 	// );
+	// });
 	/**
 	 * Disable playback if single valued
 	 */
-	let disabled = $derived(values.size < 2);
+	let disabled = $derived(values.length < 2);
 
 	let player = $state<NodeJS.Timeout>();
 	const pause = () => {
@@ -56,8 +61,8 @@
 	const increment = () => {
 		index += 1;
 		// todo: now that we have the min and max, ensure looping occurs within bounds
-		index = (index + values.size) % values.size;
-		if (index === values.size - 1 && !loop) pause();
+		index = (index + values.length) % values.length;
+		if (index === values.length - 1 && !loop) pause();
 	};
 	const play = () => {
 		if (disabled) return;
