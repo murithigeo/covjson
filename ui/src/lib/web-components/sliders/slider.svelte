@@ -1,11 +1,11 @@
 <script lang="ts" generics="T extends string|number">
-	import { Slider } from 'bits-ui';
+	import { Slider, type SliderRootProps } from 'bits-ui';
 	import { SeparatorVerticalIcon, SignpostIcon } from '@lucide/svelte';
 	import type { ClassValue } from 'clsx';
 	import { cn } from '$lib/utils.js';
 
 	type Index = [number, number, number];
-	interface Props {
+	interface Props extends Pick<SliderRootProps, 'step' | 'onValueCommit'> {
 		min?: T;
 		max?: T;
 		index?: Index;
@@ -15,7 +15,7 @@
 		class?: ClassValue;
 		orientation?: 'horizontal' | 'vertical';
 		step?: number | number[];
-		onIndexChange?: (index: number) => void;
+		onIndexChange?: (index: Index) => void;
 	}
 
 	let {
@@ -31,28 +31,12 @@
 		onIndexChange
 	}: Props = $props();
 
-	// const setIndex = ([start, i, stop]: number[]) => {
-	// 	if (start > stop) [start, stop] = [stop, start];
-	// 	i = Math.min(Math.max(i, start), stop);
-	// 	onIndexChange?.(i);
-	// 	minIndex = start;
-	// 	maxIndex = stop;
-	// 	index = i;
-	// 	value = values[i];
-	// 	min = values[start];
-	// 	max = values[stop];
-	// };
-	// const getIndex = () => [minIndex, index, maxIndex];
-	$effect(() => onIndexChange?.(index[1]));
+	$effect(() => onIndexChange?.(index));
 </script>
 
 <Slider.Root
 	{step}
-	data-slot="slider"
-	class={cn(
-		'relative flex w-full touch-none items-center select-none data-disabled:opacity-50 data-vertical:h-full data-vertical:min-h-40 data-vertical:w-auto data-vertical:flex-col',
-		className
-	)}
+	{orientation}
 	type="multiple"
 	bind:value={index}
 	autoSort={false}
