@@ -8,10 +8,8 @@
 	import * as Item from '../components/ui/item/index.ts';
 	import { Checkbox } from '../components/ui/checkbox/index.ts';
 	import { buttonVariants } from '../components/ui/button/index.ts';
-	import { type SvelteSet } from 'svelte/reactivity';
 	import { Badge } from '$lib/components/ui/badge/index.js';
 	import { Label } from '$lib/components/ui/label/index.js';
-
 	import {
 		RulerDimensionLineIcon,
 		ChevronsUpDown,
@@ -19,58 +17,54 @@
 		LanguagesIcon
 	} from '@lucide/svelte';
 	import type { MetadataRenderProps } from './types.d.ts';
+	import { getDashCtx } from './dashboards/ctx.svelte.ts';
 
 	interface Props extends MetadataRenderProps<Parameter | PrClass> {
-		checked?: boolean;
 		open?: boolean;
-		selected?: SvelteSet<string>;
-		minMax?: MinMax;
-		dataType?: 'float' | 'string' | 'integer';
-		color?: string;
+		key: string;
 	}
 
-	let {
-		data = $bindable(),
-		open = $bindable(false),
-		detail,
-		minMax = $bindable(),
-		checked = $bindable(true),
-		selected = $bindable(),
-		dataType,
-		color = $bindable()
-	}: Props = $props();
+	let { data = $bindable(), open = $bindable(false), key }: Props = $props();
 
-	const uid = $props.id();
-	let parameter = $derived(data instanceof PrClass ? data : new PrClass(data));
-	const key = $derived(parameter.key || uid);
-
-	let id = $derived(`param-${key}`);
+	const ctx = getDashCtx();
+	let parameter = $derived(data instanceof PrClass ? data : new PrClass(data, key));
 	const label = $derived(parameter.label);
-	const onCheckedChange = (checked: boolean) =>
-		checked ? selected?.add(key) : selected?.delete(key);
-	let minMaxFormatted = $derived(
-		minMax
-			?.map((v) => v?.toString())
-			.map((v) => (isUndefined(v) ? 'NULL' : `${v}${parameter.unit?.symbol?.value || ''}`))
-			.map((v) => v.trimEnd())
-	);
+	const statFormatter = (stat?: string | number | null) => {
+		if (isUndefined(stat) || stat === null) return 'NULL';
+		const symbol = parameter.unit?.symbol?.value;
+		if (typeof stat === 'number') stat = stat.toFixed(2);
+		if (symbol) {
+			if (typeof stat === 'string') ` ${symbol}`;
+			stat += symbol;
+		}
+		return stat;
+	};
+	let rangeInfo = $derived(ctx.rangeInfo.get(key));
 </script>
 
 <Collapsible.Root class="border" bind:open>
-	<Item.Root class="w-full">
+	<Item.Root class="w-full" id="parameter:{key}">
 		<Item.Media>
-			<Checkbox checked={selected?.has(key)} {onCheckedChange} /></Item.Media
+			<Checkbox
+				checked={ctx.selected.has(key)}
+				onCheckedChange={() => ctx.updateParameterSelectionStatus(key)}
+			/></Item.Media
 		>
 		<Item.Content>
-			<!-- use header tag  & actual value to make scrolling from parameterGroups easier -->
-			<!-- Use  -->
 			<Item.Title lang={label.query()?.tag}
-				>{label.query()?.value || parameter.key || parameter.id}</Item.Title
-			>
-			<Item.Description class="flex flex-row gap-x-2">
-				<Badge variant="outline"><p class={`text-[${color}]`}>{dataType}</p></Badge>
-				<Label><Badge variant="outline">min</Badge>{minMaxFormatted?.[0]}</Label>
-				<Label><Badge variant="outline">max</Badge>{minMaxFormatted?.[1]}</Label>
+				><Label>{label.query()?.value || parameter.key || parameter.id}</Label>
+				<Badge variant="outline"
+					><p class={`text-[${ctx.rangeInfo.get(key)?.color || ''}]`}>
+						{rangeInfo?.dataType || 'dType Undefined'}
+					</p></Badge
+				>
+			</Item.Title>
+			<Item.Description class="grid w-full grid-cols-2 gap-2">
+				<Label><Badge variant="outline">min</Badge>{statFormatter(rangeInfo?.min)}</Label>
+				<Label><Badge variant="outline">max</Badge>{statFormatter(rangeInfo?.max)}</Label>
+				<Label><Badge variant="outline">Average</Badge>{statFormatter(rangeInfo?.avg)}</Label>
+				<Label><Badge variant="outline">median</Badge>{statFormatter(rangeInfo?.median)}</Label>
+				<div></div>
 			</Item.Description>
 		</Item.Content><Item.Actions>
 			<Collapsible.Trigger class={buttonVariants({ variant: 'ghost' })}>
@@ -81,10 +75,7 @@
 	<Collapsible.Content>
 		<Card.Root>
 			<Card.Content>
-				<Collapsible.Root
-					disabled={!parameter.label.size && !parameter.description.size}
-					id="{id}:i18n"
-				>
+				<Collapsible.Root disabled={!parameter.label.size && !parameter.description.size}>
 					<Item.Root size="sm" variant="outline">
 						<Item.Media><LanguagesIcon class="size-5" /></Item.Media>
 						<Item.Content>
@@ -105,12 +96,11 @@
 								label: parameter.label,
 								description: parameter.description
 							}}
-							{detail}
 						/>
 					</Collapsible.Content>
 				</Collapsible.Root>
 
-				<Collapsible.Root id="{id}:unit">
+				<Collapsible.Root>
 					<Item.Root size="sm" variant="outline">
 						<Item.Media><RulerDimensionLineIcon class="size-5" /></Item.Media>
 						<Item.Content>
@@ -143,11 +133,11 @@
 									</Item.Content>
 								</Item.Root>
 							{/if}
-							<LocaleTable data={{ label: parameter.unit.label }} {detail} />
+							<LocaleTable data={{ label: parameter.unit.label }} />
 						</Collapsible.Content>
 					{/if}
 				</Collapsible.Root>
-				<Collapsible.Root id="{id}:observed-property">
+				<Collapsible.Root>
 					<Item.Root size="sm" variant="outline">
 						<Item.Media>
 							<SunSnowIcon />
@@ -163,7 +153,7 @@
 					</Item.Root>
 					<Collapsible.Content>
 						{#if parameter.observedProperty}
-							<ObservedProperty data={parameter.observedProperty} {detail} />
+							<ObservedProperty data={parameter.observedProperty} />
 						{/if}
 					</Collapsible.Content>
 				</Collapsible.Root>

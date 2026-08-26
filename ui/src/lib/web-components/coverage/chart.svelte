@@ -1,56 +1,46 @@
 <script lang="ts">
 	// Houses the logic to load and visualize data
-	import {
-		Coverage,
-		type MinMax,
-		minMax,
-		type DataRow,
-		isUndefined
-	} from '@murithigeo/covjson-core';
+	import { Coverage, minMax, type DataRow, isUndefined } from '@murithigeo/covjson-core';
 	import { SvelteMap, SvelteSet } from 'svelte/reactivity';
-	import { LineChart, ArcChart, type LineChartProps, type ArcChartProps } from 'layerchart';
+	import { LineChart, BarChart, type LineChartProps, type BarChartProps } from 'layerchart';
 	import * as Chart from '$lib/components/ui/chart/index.js';
 	import { Skeleton } from '$lib/components/ui/skeleton/index.js';
+	import { getDashCtx } from '../dashboards/ctx.svelte.ts';
+	import { getCoverageCtx } from './coverage-ctx.svelte.ts';
+	import EmptyChart from '../empty/chart.svelte';
 
 	interface Props {
 		coverage: Coverage;
-		indices: SvelteMap<string, number>;
-		selected?: SvelteSet<string>;
-		rangeMinMaxes?: SvelteMap<string, MinMax>;
-		config: Chart.ChartConfig;
 	}
+	let { coverage = $bindable() }: Props = $props();
+	const ctx = getDashCtx();
+	const covCtx = getCoverageCtx();
+	let indices = $derived(covCtx.indices);
+	let selected = $derived(ctx.selected);
+	let config = $derived(ctx.chartConfig);
+	const isNull = (v: any): v is null => v === null;
 
-	let {
-		coverage = $bindable(),
-		config = $bindable(),
-		indices = $bindable(),
-		selected = $bindable(new SvelteSet(coverage.ranges.keys())),
-		rangeMinMaxes = $bindable(
-			new SvelteMap(coverage.ranges.entries().map(([id, { minMax }]) => [id, minMax]))
-		)
-	}: Props = $props();
-
-	const updateMinMax = (data: DataRow[]) => {
-		for (const [rangeId, range] of coverage.ranges) {
-			if (range.dataType === 'string') continue;
-			const values = data
-				.map((d) => d[rangeId])
-				.filter((v) => !isUndefined(v) && typeof v === 'number');
-			const v = [...values, ...(rangeMinMaxes.get(rangeId) || [null, null])].filter(
-				(v) => v !== null
-			);
-			const bounds = [Math.min(...v), Math.max(...v)] as const;
-			rangeMinMaxes.set(rangeId, bounds);
+	let preloadAxis = $derived.by<string[]>(() => {
+		const preloadAxis = Array<string>();
+		if (coverage.domainType === 'Grid') {
+			const { z, t } = coverage;
+			// Load all t values for this map of indices because t is the x-axis
+			if (z.length > 1 && t.length < 2) preloadAxis.push('t');
+			// Else chart against z axis
+			else preloadAxis.push('z');
 		}
-	};
+		return preloadAxis;
+	});
 	let dataPromise = $derived.by(async () => {
-		// const preloadAxis = ['z'];
-		const data = await coverage.query()(indices, selected.keys().toArray());
-		updateMinMax(data);
+		const data = await coverage.query(...preloadAxis)(indices, selected.keys().toArray());
+		coverage.ranges.forEach((value, key) => {
+			if (!selected.has(key)) return;
+			ctx.updateRangeData(key, coverage.uuid, value);
+		});
 		return data;
 	});
 
-	let seriesPreset = $derived.by<LineChartProps<DataRow>>(() => {
+	let lineChartProps = (data: DataRow[]) => {
 		const props: LineChartProps<DataRow> = {};
 		props.series = [];
 		props.props = {};
@@ -84,43 +74,35 @@
 				break;
 		}
 		// props.annotations = [{ type: 'line' }];
-		props.yDomain = rangeMinMaxes
-			? minMax(
-					rangeMinMaxes
-						.entries()
-						.filter(([key]) => selected.has(key))
-						.flatMap(([, val]) => val)
-						.toArray()
-				)
-			: undefined;
+		props.yDomain = minMax(
+			ctx.rangeInfo
+				.entries()
+				.filter(([key]) => ctx.selected.has(key))
+				.flatMap(([, { min, max }]) => [min, max])
+				.toArray()
+		);
 		props.brush = { axis: 'both' };
 		props.transform = { mode: 'domain', axis: 'both' };
 		return props;
-	});
-	let nonSeriesPreset = (data: DataRow) => {
-		const props: ArcChartProps<DataRow> = {};
-		props.series = Object.entries(config).map(([key, config]) => ({
-			...config,
-			key,
-			maxValue: rangeMinMaxes.get(key)?.[1],
-			selected: selected.has(key),
-			maxValue: Math.max(rangeMinMaxes.values().map(([, max]) => max)),
-			data: [data[key]]
-		}));
+	};
+
+	let barChartProps = () => {
+		const props: BarChartProps<DataRow> = {};
+
 		return props;
 	};
 </script>
 
-<Chart.Container {config} class="h-full w-full">
+<Chart.Container {config} class="h-full w-full ">
 	{#await dataPromise}
-		<Skeleton />
+		<EmptyChart loaded={false} />
 	{:then data}
 		{#if !data.length}
-			<span class="w-full">No Data Loaded</span>
+			<EmptyChart loaded />
 		{:else if data.length === 1}
-			<ArcChart {...nonSeriesPreset(data[0])} />
+			<BarChart {...barChartProps(data)} {data} />
 		{:else}
-			<LineChart {...seriesPreset} {data}>
+			<LineChart {...lineChartProps()} {data}>
 				{#snippet tooltip()}
 					<Chart.Tooltip hideLabel />
 				{/snippet}

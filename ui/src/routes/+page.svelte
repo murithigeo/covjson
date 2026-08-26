@@ -18,6 +18,7 @@
 			map.addSource(source, {
 				type: 'coveragejson',
 				data: window.location.href + 'grid-multi-z-t.covjson',
+				// data: 'https://covjson.org/playground/coverages/grid-tiled.covjson',
 				layers: ['grid-outline', 'grid-layer', 'section'],
 				listenTo: ['click'],
 				tempLayerPaint: {

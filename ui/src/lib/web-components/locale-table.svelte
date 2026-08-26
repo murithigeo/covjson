@@ -3,10 +3,11 @@
 	import { I18N } from '@murithigeo/covjson-core';
 	import { cn } from '$lib/utils.js';
 	import type { MetadataRenderProps } from './types.d.ts';
-
+	import { getDashCtx } from './dashboards/ctx.svelte.ts';
+	const ctx = getDashCtx();
 	type Props = MetadataRenderProps<Record<string, I18N>>;
 
-	let { data = $bindable(), detail, class: className }: Props = $props();
+	let { data = $bindable(), class: className }: Props = $props();
 	let numOfRows = $derived(Object.values(data).reduce((l, r) => l + r.size, 0));
 </script>
 
@@ -21,7 +22,7 @@
 	<Table.Body>
 		{#if numOfRows}
 			{#each Object.entries(data) as [field, i18n] (field)}
-				{#if detail === 'full'}
+				{#if ctx.detail === 'full'}
 					{#each i18n as [lang, value], index (lang)}
 						<Table.Row>
 							{#if !index}
@@ -36,7 +37,7 @@
 					<Table.Row>
 						<Table.Cell class="capitalize">{field}</Table.Cell>
 						{#if !value}
-							<Table.Cell colspan={2} class="items-center flex flex-col">No Match Found</Table.Cell>
+							<Table.Cell colspan={2} class="flex flex-col items-center">No Match Found</Table.Cell>
 						{:else}
 							<Table.Cell>{i18n.getTagName(value.tag)}</Table.Cell>
 							<Table.Cell>{value.value}</Table.Cell>

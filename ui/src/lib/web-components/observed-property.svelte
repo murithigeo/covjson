@@ -7,10 +7,9 @@
 	import CategoryTable from './category-table.svelte';
 	import { cn } from '$lib/utils.js';
 	import type { MetadataRenderProps } from './types.d.ts';
-
 	type Data = ObservedProperty | ObsClass;
 
-	let { data, detail, class: className }: MetadataRenderProps<Data> = $props();
+	let { data, class: className }: MetadataRenderProps<Data> = $props();
 	const toObs = () => (data instanceof ObsClass ? data : new ObsClass(data));
 	const obs = $derived(toObs());
 	let label = $derived(obs.label);
@@ -34,14 +33,13 @@
 				description,
 				label
 			}}
-			{detail}
 		/>
 	</Card.Content>
 
 	<Card.Footer class="flex-col items-center">
 		{#if data.categories}
 			<h5>Categories</h5>
-			<CategoryTable data={data.categories} {detail} />
+			<CategoryTable data={data.categories} />
 		{:else}
 			<span class="flex flex-wrap items-center gap-2"> No Categories found</span>
 		{/if}

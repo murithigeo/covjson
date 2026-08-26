@@ -6,43 +6,41 @@
 	import LocaleTable from './locale-table.svelte';
 	import * as Item from '$lib/components/ui/item/index.js';
 	import * as Collapsible from '$lib/components/ui/collapsible/index.js';
-	import { ChevronsUpDown, LanguagesIcon } from '@lucide/svelte';
+	import { ChevronsUpDown, LanguagesIcon, EyeIcon } from '@lucide/svelte';
 	import { ParameterGroup as PGroupClass } from '@murithigeo/covjson-core';
 	import { SvelteSet } from 'svelte/reactivity';
-	import { buttonVariants } from '$lib/components/ui/button/index.js';
+	import { buttonVariants, Button } from '$lib/components/ui/button/index.js';
 	import * as Card from '$lib/components/ui/card/index.js';
+	import { getDashCtx } from './dashboards/ctx.svelte.ts';
+
+	const ctx = getDashCtx();
 	interface Props extends MetadataRenderProps<PGroupClass | ParameterGroup> {
-		selected?: SvelteSet<string>;
 		open?: boolean;
 	}
-	let {
-		data = $bindable(),
-		detail,
-		open = $bindable(false),
-		selected = $bindable()
-	}: Props = $props();
+	let { data = $bindable(), open = $bindable(false) }: Props = $props();
+
 	let pGroup = $derived.by(() => {
 		if (data instanceof PGroupClass) return data;
 		return new PGroupClass(data);
 	});
 	let id = $derived(pGroup.id);
-	let checked = $derived(pGroup.members.every((member) => selected?.has(member)));
-	let indeterminate = $derived(!checked && pGroup.members.some((member) => selected?.has(member)));
-
-	const unselect = (id: string) => selected?.delete(id);
-	const select = (id: string) => selected?.add(id);
-
-	const onCheckedChange = (checked: boolean, id?: string) => {
-		const ex = checked ? select : unselect;
-		if (id !== undefined) return ex(id);
-		pGroup.members.forEach(ex);
-	};
+	let checked = $derived(pGroup.members.every((member) => ctx.selected.has(member)));
+	let indeterminate = $derived(
+		!checked && pGroup.members.some((member) => ctx.selected.has(member))
+	);
 </script>
 
 <Collapsible.Root bind:open>
 	<Item.Root class="w-full">
 		<Item.Media>
-			<Checkbox bind:checked bind:indeterminate value={id} {id} {onCheckedChange} />
+			<Checkbox
+				bind:checked
+				bind:indeterminate
+				value={id}
+				{id}
+				onCheckedChange={() =>
+					pGroup.members.forEach((id) => ctx.updateParameterSelectionStatus(id))}
+			/>
 		</Item.Media>
 		<Item.Content>
 			<Item.Title lang="en">{id || 'No ID'}</Item.Title>
@@ -62,12 +60,22 @@
 						<Item.Root>
 							<Item.Media>
 								<Checkbox
-									checked={selected?.has(member)}
-									onCheckedChange={(checked) => onCheckedChange(checked, member)}
+									checked={ctx.selected.has(member)}
+									onCheckedChange={() => ctx.updateParameterSelectionStatus(member)}
 								/>
 							</Item.Media>
-							<!-- Use scrollTo instead -->
 							<Item.Content><Item.Title>{member}</Item.Title></Item.Content>
+							<Item.Actions
+								><Button
+									size="icon-sm"
+									variant="outline"
+									onclick={() => {
+										document
+											.getElementById(`parameter:${member}`)
+											?.scrollIntoView({ block: 'center', behavior: 'smooth' });
+									}}><EyeIcon /></Button
+								></Item.Actions
+							>
 						</Item.Root>
 					{/each}
 				</div>
@@ -85,16 +93,13 @@
 					</Item.Root>
 					<Collapsible.Content>
 						<div class="ml-5">
-							<LocaleTable
-								data={{ label: pGroup.label, description: pGroup.description }}
-								{detail}
-							/>
+							<LocaleTable data={{ label: pGroup.label, description: pGroup.description }} />
 						</div>
 					</Collapsible.Content>
 				</Collapsible.Root>
 				<Collapsible.Root disabled={!pGroup.observedProperty}>
 					{#if pGroup.observedProperty}
-						<ObservedProperty data={pGroup.observedProperty} {detail} />
+						<ObservedProperty data={pGroup.observedProperty} />
 					{/if}
 				</Collapsible.Root>
 			</Card.Content>

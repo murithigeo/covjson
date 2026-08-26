@@ -2,14 +2,8 @@
 	import Slider from './slider.svelte';
 	import type { ComponentProps } from 'svelte';
 	import { cn } from '$lib/utils.js';
-	import {
-		type TemporalResolution,
-		indexOfNearest,
-		isUndefined,
-		parseDateString
-	} from '@murithigeo/covjson-core';
 	import * as ButtonGroup from '$lib/components/ui/button-group/index.js';
-	import { Button } from '$lib/components/ui/button/index.js';
+	import { Button, type ButtonProps } from '$lib/components/ui/button/index.js';
 	import { TimerResetIcon, RepeatIcon, RepeatOffIcon, PlayIcon, PauseIcon } from '@lucide/svelte';
 	import type { Snippet } from 'svelte';
 	import type { ClassValue } from 'clsx';
@@ -21,6 +15,7 @@
 		duration?: number;
 		class?: ClassValue;
 		now?: string;
+		buttonProps?: ButtonProps;
 	}
 	let {
 		values = $bindable(),
@@ -34,18 +29,12 @@
 		max = $bindable(),
 		children,
 		now = $bindable(),
-		onIndexChange
+		onIndexChange,
+		buttonProps = {}
 	}: Props = $props();
 	let minIndex = $state(0);
 	let maxIndex = $derived(values.length - 1);
-	$effect(() => onIndexChange?.(index));
-	// $effect(() => {
-	// 	if (values.length < 1) return;
-	// 	// const bestMatch = indexOfNearest(
-	// 	// 	values.map((v) => new Date(v).getTime),
-	// 	// 	new Date(now).getTime()
-	// 	// );
-	// });
+
 	/**
 	 * Disable playback if single valued
 	 */
@@ -62,7 +51,7 @@
 		index += 1;
 		// todo: now that we have the min and max, ensure looping occurs within bounds
 		index = (index + values.length) % values.length;
-		if (index === values.length - 1 && !loop) pause();
+		if (index[1] === values.length - 1 && !loop) pause();
 	};
 	const play = () => {
 		if (disabled) return;
@@ -93,15 +82,15 @@
 	/>
 	<div class="flex flex-row items-center space-x-2">
 		<ButtonGroup.Root>
-			<Button onclick={setPlayState} {disabled}>
+			<Button onclick={setPlayState} {disabled} {...buttonProps}>
 				{#if player}
 					<PauseIcon />
 				{:else}
 					<PlayIcon />
 				{/if}
 			</Button>
-			<Button onclick={stop} {disabled}><TimerResetIcon /></Button>
-			<Button onclick={setLoopState} {disabled}
+			<Button onclick={stop} {disabled} {...buttonProps}><TimerResetIcon /></Button>
+			<Button onclick={setLoopState} {disabled} {...buttonProps}
 				>{#if loop}
 					<RepeatOffIcon />
 				{:else}

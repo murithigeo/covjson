@@ -9,8 +9,12 @@ export interface DashboardProps extends PartialBy<MetadataRenderProps<Coverage[]
 	 */
 	onIndicesChange?: OnIndicesChange;
 	children?: Snippet;
-	maxSlots?: number;
+	formatters?: {
+		temporal?: Formatter<string>;
+		elevation?: Formatter<number>;
+	};
 }
+type Formatter<T extends string | number> = (val: T) => T;
 
 type PartialBy<T, K extends keyof T> = Omit<T, K> & Partial<Pick<T, K>>;
 

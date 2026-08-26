@@ -22,10 +22,7 @@ abstract class Metadata<T> {
 
 export class I18N extends Map<string, string> {
   language: string;
-  constructor(
-    value?: Record<string, string> | undefined | string | [string, string][],
-    locale?: string
-  ) {
+  constructor(value?: I18n | undefined | string | [string, string][], locale?: string) {
     if (!isUndefined(value)) {
       if (typeof value === 'string') value = [['en', value]];
       if (!Array.isArray(value)) value = Object.entries(value);
@@ -59,10 +56,10 @@ export class Parameter extends Metadata<PR> {
   description: I18N;
   observedProperty: ObservedProperty;
   id: string | undefined;
-  key: string | undefined;
+  key: string;
   unit: Unit | undefined;
   categoryEncoding?: Map<string, number[]>;
-  constructor(pr: PR, key?: string, locale?: string) {
+  constructor(pr: PR, key: string, locale?: string) {
     super();
     this.type = pr.type;
     this.label = new I18N(pr.label, locale);
@@ -124,7 +121,7 @@ export class Unit extends Metadata<U> {
   symbol?: Symbol;
   constructor(unit: U, locale?: string) {
     super();
-    if ('label' in unit && unit.label) this.label = new I18N((unit.label));
+    if ('label' in unit && unit.label) this.label = new I18N(unit.label);
     else this.label = new I18N(undefined, locale);
     this.id = unit?.id;
     if ('symbol' in unit) this.symbol = new Symbol(unit.symbol);

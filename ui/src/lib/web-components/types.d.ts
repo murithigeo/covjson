@@ -1,6 +1,6 @@
 import type { ClassValue } from 'clsx';
-
-import type { SvelteSet } from 'svelte/reactivity';
+import type { NdArray, ValuesNdArray } from 'coveragejson';
+import type { SvelteSet, SvelteMap } from 'svelte/reactivity';
 /**
  * How to render properties such as locale objects.
  * "full" means rendering every single locale value.
@@ -20,8 +20,3 @@ export interface MetadataRenderProps<T> {
 	 */
 	class?: ClassValue;
 }
-
-/**
- * The parameter key and its toggle state
- */
-export type ParameterToggleEventDetail = Record<string, boolean>;

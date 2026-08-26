@@ -3,9 +3,10 @@
 	import type { Category } from 'coveragejson';
 	import * as Table from '../components/ui/table/index.ts';
 	import type { MetadataRenderProps } from './types.d.ts';
-
+	import { getDashCtx } from './dashboards/ctx.svelte.ts';
+	const ctx = getDashCtx();
 	type Data = CatClass | Category;
-	let { data = $bindable(), detail = 'simple' }: MetadataRenderProps<Data[]> = $props();
+	let { data = $bindable() }: MetadataRenderProps<Data[]> = $props();
 	let categories = $derived.by(() => {
 		return data.map((v) => (v instanceof CatClass ? v : new CatClass(v)));
 	});
@@ -23,7 +24,7 @@
 	</Table.Header>
 	<Table.Body>
 		{#each categories as { id, label, description } (id)}
-			{#if detail === 'full'}
+			{#if ctx.detail === 'full'}
 				{@const rowspan = label.size + description.size}
 				{#each label as [lang, value], i (lang)}
 					<Table.Row>
