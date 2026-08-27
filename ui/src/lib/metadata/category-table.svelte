@@ -1,12 +1,12 @@
 <script lang="ts">
 	import { Category as CatClass } from '@murithigeo/covjson-core';
 	import type { Category } from 'coveragejson';
-	import * as Table from '../components/ui/table/index.ts';
+	import * as Table from '$lib/components/ui/table/index.ts';
+	import { getDashCtx } from '$lib/dashboards/utils/ctx.svelte.ts';
 	import type { MetadataRenderProps } from './types.d.ts';
-	import { getDashCtx } from './dashboards/ctx.svelte.ts';
 	const ctx = getDashCtx();
-	type Data = CatClass | Category;
-	let { data = $bindable() }: MetadataRenderProps<Data[]> = $props();
+
+	let { data = $bindable() }: MetadataRenderProps<(CatClass | Category)[]> = $props();
 	let categories = $derived.by(() => {
 		return data.map((v) => (v instanceof CatClass ? v : new CatClass(v)));
 	});

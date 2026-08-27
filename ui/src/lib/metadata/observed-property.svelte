@@ -7,9 +7,8 @@
 	import CategoryTable from './category-table.svelte';
 	import { cn } from '$lib/utils.js';
 	import type { MetadataRenderProps } from './types.d.ts';
-	type Data = ObservedProperty | ObsClass;
-
-	let { data, class: className }: MetadataRenderProps<Data> = $props();
+	type Props = MetadataRenderProps<ObsClass | ObservedProperty>;
+	let { data, class: className }: Props = $props();
 	const toObs = () => (data instanceof ObsClass ? data : new ObsClass(data));
 	const obs = $derived(toObs());
 	let label = $derived(obs.label);

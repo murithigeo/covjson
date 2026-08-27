@@ -6,40 +6,25 @@
 	import { Button, type ButtonProps } from '$lib/components/ui/button/index.js';
 	import { TimerResetIcon, RepeatIcon, RepeatOffIcon, PlayIcon, PauseIcon } from '@lucide/svelte';
 	import type { Snippet } from 'svelte';
-	import type { ClassValue } from 'clsx';
 
 	interface Props extends ComponentProps<typeof Slider<string>> {
 		children?: Snippet;
-		onIndexChange?: (index: number) => void;
 		loop?: boolean;
 		duration?: number;
-		class?: ClassValue;
-		now?: string;
 		buttonProps?: ButtonProps;
 	}
 	let {
 		values = $bindable(),
-		index = $bindable(0),
+		index = $bindable([0, 0, Math.abs(values.length)]),
 		value = $bindable(),
 		loop = $bindable(),
 		duration = $bindable(2000),
-		formatter,
-		class: className,
-		min = $bindable(),
-		max = $bindable(),
 		children,
-		now = $bindable(),
-		onIndexChange,
-		buttonProps = {}
+		buttonProps = {},
+		class: className,
+		...props
 	}: Props = $props();
-	let minIndex = $state(0);
-	let maxIndex = $derived(values.length - 1);
-
-	/**
-	 * Disable playback if single valued
-	 */
 	let disabled = $derived(values.length < 2);
-
 	let player = $state<NodeJS.Timeout>();
 	const pause = () => {
 		clearInterval(player);
@@ -48,10 +33,12 @@
 	const setLoopState = () => (loop = !loop);
 
 	const increment = () => {
-		index += 1;
+		let [, i] = index;
+		i += 1;
 		// todo: now that we have the min and max, ensure looping occurs within bounds
-		index = (index + values.length) % values.length;
-		if (index[1] === values.length - 1 && !loop) pause();
+		i = (i + values.length) % values.length;
+		index = [index[0], i, index[2]];
+		if (i === values.length - 1 && !loop) pause();
 	};
 	const play = () => {
 		if (disabled) return;
@@ -63,23 +50,14 @@
 	};
 	const stop = () => {
 		pause();
-		index = 0;
+		index = [index[0], index[0], index[2]]; // Set to current minimum
 	};
 
 	// use d3-shape scaleUTC instead for easier ticks
 </script>
 
 <div class={cn('flex w-full flex-col place-items-center space-y-3', className)}>
-	<Slider
-		bind:values
-		bind:index
-		bind:maxIndex
-		bind:minIndex
-		bind:min
-		bind:max
-		bind:value
-		{onIndexChange}
-	/>
+	<Slider bind:values bind:value bind:index {...props} {disabled} />
 	<div class="flex flex-row items-center space-x-2">
 		<ButtonGroup.Root>
 			<Button onclick={setPlayState} {disabled} {...buttonProps}>

@@ -4,7 +4,7 @@ const config = {
 	compilerOptions: {
 		// Force runes mode for the project, except for libraries. Can be removed in svelte 6.
 		runes: ({ filename }) => (filename.split(/[/\\]/).includes('node_modules') ? undefined : true),
-		customElement: ({ filename }) => filename.includes('/src/lib/web-components/dashboard')
+		customElement: ({ filename }) => filename.includes('/src/lib/web-components/dashboards/templates')
 	},
 	kit: {
 		// adapter-auto only supports some environments, see https://svelte.dev/docs/kit/adapter-auto for a list.

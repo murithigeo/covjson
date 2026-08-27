@@ -5,9 +5,9 @@
 	import { LineChart, BarChart, type LineChartProps, type BarChartProps } from 'layerchart';
 	import * as Chart from '$lib/components/ui/chart/index.js';
 	import { Skeleton } from '$lib/components/ui/skeleton/index.js';
-	import { getDashCtx } from '../dashboards/ctx.svelte.ts';
+	import { getDashCtx } from '$lib/dashboards/utils/ctx.svelte.ts';
 	import { getCoverageCtx } from './coverage-ctx.svelte.ts';
-	import EmptyChart from '../empty/chart.svelte';
+	import EmptyChart from '$lib/empty/chart.svelte';
 
 	interface Props {
 		coverage: Coverage;

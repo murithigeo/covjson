@@ -3,7 +3,7 @@
 	import maplibregl from 'maplibre-gl';
 	import { MaplibrePlugin } from '@murithigeo/covjson-maplibre';
 	import { Coverage, type OnIndicesChange } from '@murithigeo/covjson-core';
-	import Dashboard1 from '$lib/web-components/dashboards/dashboard-1.svelte';
+	import TresDashboard from '$lib/dashboards/templates/tres.svelte';
 	const { addSourceType } = maplibregl;
 	//@ts-expect-error incompatibility with inbuilt maplibre type
 	addSourceType('coveragejson', MaplibrePlugin).catch(() => {});
@@ -62,11 +62,11 @@
 	});
 </script>
 
-<Dashboard1 bind:data={coverages} {onIndicesChange}>
+<TresDashboard bind:data={coverages} {onIndicesChange}>
 	<MapLibre
 		class="h-full w-full"
 		bind:map
 		standardControls
 		style="https://api.maptiler.com/maps/winter-v4/style.json?key=tTYdgg3LwO0um0Aqqs6u"
 	/>
-</Dashboard1>
+</TresDashboard>

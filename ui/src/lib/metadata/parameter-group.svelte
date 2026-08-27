@@ -1,5 +1,4 @@
 <script lang="ts">
-	import type { MetadataRenderProps } from './types.d.ts';
 	import type { ParameterGroup } from 'coveragejson';
 	import { Checkbox } from '$lib/components/ui/checkbox/index.js';
 	import ObservedProperty from './observed-property.svelte';
@@ -8,15 +7,12 @@
 	import * as Collapsible from '$lib/components/ui/collapsible/index.js';
 	import { ChevronsUpDown, LanguagesIcon, EyeIcon } from '@lucide/svelte';
 	import { ParameterGroup as PGroupClass } from '@murithigeo/covjson-core';
-	import { SvelteSet } from 'svelte/reactivity';
 	import { buttonVariants, Button } from '$lib/components/ui/button/index.js';
 	import * as Card from '$lib/components/ui/card/index.js';
-	import { getDashCtx } from './dashboards/ctx.svelte.ts';
+	import { getDashCtx } from '../dashboards/utils/ctx.svelte.ts';
 
 	const ctx = getDashCtx();
-	interface Props extends MetadataRenderProps<PGroupClass | ParameterGroup> {
-		open?: boolean;
-	}
+	type Props = MetadataRenderProps<ParameterGroup | PGroupClass, { open?: boolean }>;
 	let { data = $bindable(), open = $bindable(false) }: Props = $props();
 
 	let pGroup = $derived.by(() => {

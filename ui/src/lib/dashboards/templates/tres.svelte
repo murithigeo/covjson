@@ -6,16 +6,16 @@
 	import { ChevronsUpDown, GroupIcon } from '@lucide/svelte';
 	import { buttonVariants } from '$lib/components/ui/button/index.js';
 	import { Separator } from '$lib/components/ui/separator/index.js';
-	import ParameterGroupComponent from '../parameter-group.svelte';
-	import ParameterComponent from '../parameter.svelte';
-	import CoverageComponent from '../coverage/coverage.svelte';
+	import ParameterGroupComponent from '$lib/metadata/parameter-group.svelte';
+	import ParameterComponent from '$lib/metadata/parameter.svelte';
+	import CoverageComponent from '$lib/coverage/coverage.svelte';
 	import { Label } from '$lib/components/ui/label/index.js';
 	import { type ChartConfig } from '$lib/components/ui/chart/index.js';
-	import { setDashCtx } from './ctx.svelte.ts';
-	import DashControlCenter from './control-center.svelte';
-	import EmptyParameters from '../empty/parameter.svelte';
-	import EmptyParameterGroups from '../empty/parameter-group.svelte';
-	import EmptyCoverages from '../empty/coverage.svelte';
+	import { setDashCtx } from '../utils/ctx.svelte.ts';
+	import DashControlCenter from '../utils/control-center.svelte';
+	import EmptyParameters from '$lib/empty/parameter.svelte';
+	import EmptyParameterGroups from '$lib/empty/parameter-group.svelte';
+	import EmptyCoverages from '$lib/empty/coverage.svelte';
 	let { onIndicesChange, data = $bindable(), detail = 'full', children }: DashboardProps = $props();
 
 	const ctx = setDashCtx();

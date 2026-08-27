@@ -4,25 +4,29 @@
 	import LocaleTable from './locale-table.svelte';
 	import ObservedProperty from './observed-property.svelte';
 	import * as Card from '$lib/components/ui/card/index.js';
-	import * as Collapsible from '../components/ui/collapsible/index.ts';
-	import * as Item from '../components/ui/item/index.ts';
-	import { Checkbox } from '../components/ui/checkbox/index.ts';
-	import { buttonVariants } from '../components/ui/button/index.ts';
+	import * as Collapsible from '$lib/components/ui/collapsible/index.js';
+	import * as Item from '$lib/components/ui/item/index.js';
+	import { Checkbox } from '$lib/components/ui/checkbox/index.js';
+	import { buttonVariants, Button } from '$lib/components/ui/button/index.js';
 	import { Badge } from '$lib/components/ui/badge/index.js';
 	import { Label } from '$lib/components/ui/label/index.js';
+	import { ChartNoAxesColumnIcon } from '@lucide/svelte';
 	import {
 		RulerDimensionLineIcon,
 		ChevronsUpDown,
 		SunSnowIcon,
 		LanguagesIcon
 	} from '@lucide/svelte';
-	import type { MetadataRenderProps } from './types.d.ts';
-	import { getDashCtx } from './dashboards/ctx.svelte.ts';
+	import type { MetadataRenderProps } from '../types.d.ts';
+	import { getDashCtx } from '../dashboards/utils/ctx.svelte.ts';
 
-	interface Props extends MetadataRenderProps<Parameter | PrClass> {
-		open?: boolean;
-		key: string;
-	}
+	type Props = MetadataRenderProps<
+		Parameter | PrClass,
+		{
+			open?: boolean;
+			key: string;
+		}
+	>;
 
 	let { data = $bindable(), open = $bindable(false), key }: Props = $props();
 
@@ -31,15 +35,20 @@
 	const label = $derived(parameter.label);
 	const statFormatter = (stat?: string | number | null) => {
 		if (isUndefined(stat) || stat === null) return 'NULL';
+		if (typeof stat === 'number') stat = Number(stat.toFixed(2));
 		const symbol = parameter.unit?.symbol?.value;
-		if (typeof stat === 'number') stat = stat.toFixed(2);
-		if (symbol) {
-			if (typeof stat === 'string') ` ${symbol}`;
-			stat += symbol;
-		}
-		return stat;
+		if (!symbol) return stat;
+		if (typeof stat === 'string') return `${stat} ${symbol}`;
+
+		return stat + symbol;
 	};
-	let rangeInfo = $derived(ctx.rangeInfo.get(key));
+	let isSummeryOverview = $state(true);
+	let rangeInfo = $derived.by(() => {
+		const info= ctx.rangeInfo.get(key);
+		if(isSummeryOverview)return info;
+		// Add case where coverage may not contain this parameter
+		Object.assign(info,getCoverageStats([ctx.activeCoverage.ranges.get(key)]))
+	});
 </script>
 
 <Collapsible.Root class="border" bind:open>
@@ -58,11 +67,12 @@
 						{rangeInfo?.dataType || 'dType Undefined'}
 					</p></Badge
 				>
+				<Switch
 			</Item.Title>
 			<Item.Description class="grid w-full grid-cols-2 gap-2">
 				<Label><Badge variant="outline">min</Badge>{statFormatter(rangeInfo?.min)}</Label>
 				<Label><Badge variant="outline">max</Badge>{statFormatter(rangeInfo?.max)}</Label>
-				<Label><Badge variant="outline">Average</Badge>{statFormatter(rangeInfo?.avg)}</Label>
+				<Label><Badge variant="outline">mean</Badge>{statFormatter(rangeInfo?.mean)}</Label>
 				<Label><Badge variant="outline">median</Badge>{statFormatter(rangeInfo?.median)}</Label>
 				<div></div>
 			</Item.Description>
@@ -75,6 +85,21 @@
 	<Collapsible.Content>
 		<Card.Root>
 			<Card.Content>
+				<Collapsible.Root open>
+					<!-- Histogram: If parameter has categoryEncoding use that else determine strategy -->
+					<Item.Root size="sm" variant="outline"
+						><Item.Media><ChartNoAxesColumnIcon /></Item.Media>
+						<Item.Content><Item.Title>Histogram</Item.Title></Item.Content>
+						<Item.Actions>
+							<Collapsible.Trigger
+								class={buttonVariants({ variant: 'ghost' })}
+								disabled={!parameter.unit}
+							>
+								<ChevronsUpDown />
+							</Collapsible.Trigger>
+						</Item.Actions></Item.Root
+					>
+				</Collapsible.Root>
 				<Collapsible.Root disabled={!parameter.label.size && !parameter.description.size}>
 					<Item.Root size="sm" variant="outline">
 						<Item.Media><LanguagesIcon class="size-5" /></Item.Media>

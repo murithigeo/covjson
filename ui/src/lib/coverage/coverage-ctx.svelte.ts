@@ -1,7 +1,7 @@
-import { Coverage, NdArray } from '@murithigeo/covjson-core';
+import { Coverage } from '@murithigeo/covjson-core';
 import { getContext, onDestroy, setContext } from 'svelte';
 import { SvelteMap } from 'svelte/reactivity';
-import { getDashCtx } from '../dashboards/ctx.svelte.ts';
+import { getDashCtx } from '../dashboards/utils/ctx.svelte.ts';
 export class CoverageCtx {
 	dashCtx = getDashCtx();
 	coverage = $state<Coverage>(); // Coverage;
@@ -55,14 +55,10 @@ export class CoverageCtx {
 		this.indices.set(axis, currentIndex);
 	}
 	updateTemporalIndex(index: number) {
-		switch (this.coverage?.domainType) {
-			case 'Trajectory':
-			case 'Section':
-				this.indices.set('composite', index);
-				break;
-			default:
-				this.indices.set('t', index);
-		}
+		if (!this.coverage || !this.coverage.domainType) return;
+		let axisName = 'composite';
+		if (!['Trajectory', 'Section'].includes(this.coverage.domainType)) axisName = 't';
+		if (this.indices.get(axisName) !== index) this.indices.set(axisName, index);
 	}
 }
 
