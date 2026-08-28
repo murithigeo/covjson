@@ -1,6 +1,6 @@
 <script lang="ts">
-	import type { Parameter } from 'coveragejson';
-	import { Parameter as PrClass, type MinMax, isUndefined } from '@murithigeo/covjson-core';
+	import { Parameter, isUndefined } from '@murithigeo/covjson-core';
+	import { Separator } from '$lib/components/ui/separator/index.js';
 	import LocaleTable from './locale-table.svelte';
 	import ObservedProperty from './observed-property.svelte';
 	import * as Card from '$lib/components/ui/card/index.js';
@@ -8,50 +8,67 @@
 	import * as Item from '$lib/components/ui/item/index.js';
 	import { Checkbox } from '$lib/components/ui/checkbox/index.js';
 	import { buttonVariants, Button } from '$lib/components/ui/button/index.js';
-	import { Badge } from '$lib/components/ui/badge/index.js';
+	import { Switch } from '$lib/components/ui/switch/index.js';
+	import { Badge, type BadgeProps } from '$lib/components/ui/badge/index.js';
 	import { Label } from '$lib/components/ui/label/index.js';
 	import { ChartNoAxesColumnIcon } from '@lucide/svelte';
+	import type { RangeStatistics } from '$lib/statistics.js';
+	import UnitComponent from './parameter/unit.svelte';
+	import * as Chart from '$lib/components/ui/chart/index.js';
 	import {
 		RulerDimensionLineIcon,
 		ChevronsUpDown,
 		SunSnowIcon,
 		LanguagesIcon
 	} from '@lucide/svelte';
-	import type { MetadataRenderProps } from '../types.d.ts';
+	import type { MetadataRenderProps } from './types.d.ts';
 	import { getDashCtx } from '../dashboards/utils/ctx.svelte.ts';
 
 	type Props = MetadataRenderProps<
-		Parameter | PrClass,
+		Parameter,
 		{
 			open?: boolean;
 			key: string;
 		}
 	>;
 
-	let { data = $bindable(), open = $bindable(false), key }: Props = $props();
+	const badgeProps: BadgeProps = { variant: 'outline' };
+	let { data: parameter = $bindable(), open = $bindable(false), key }: Props = $props();
 
 	const ctx = getDashCtx();
-	let parameter = $derived(data instanceof PrClass ? data : new PrClass(data, key));
 	const label = $derived(parameter.label);
-	const statFormatter = (stat?: string | number | null) => {
-		if (isUndefined(stat) || stat === null) return 'NULL';
-		if (typeof stat === 'number') stat = Number(stat.toFixed(2));
-		const symbol = parameter.unit?.symbol?.value;
-		if (!symbol) return stat;
-		if (typeof stat === 'string') return `${stat} ${symbol}`;
 
-		return stat + symbol;
-	};
-	let isSummeryOverview = $state(true);
 	let rangeInfo = $derived.by(() => {
-		const info= ctx.rangeInfo.get(key);
-		if(isSummeryOverview)return info;
-		// Add case where coverage may not contain this parameter
-		Object.assign(info,getCoverageStats([ctx.activeCoverage.ranges.get(key)]))
+		const overall = ctx.rangeInfo.get(key) || {};
+		const coverage = { ...overall, ...(ctx.highlightCovSummary.get(key) || {}) };
+		function processStats(arr: (string | number | null | undefined)[]) {
+			let symbol = parameter.unit?.symbol.value;
+			if (symbol && arr.some((v) => typeof v === 'string'))
+				symbol = symbol.padStart(symbol.length + 1, ' ');
+			return arr
+				.map((v) => {
+					if (isUndefined(v) || v === null) return 'NULL';
+					if (typeof v === 'string') return v;
+					if (overall.dataType && overall.dataType) {
+						if (overall.dataType === 'integer') return Math.round(v);
+						else return v.toFixed(2);
+					} else return v;
+				})
+				.join('/');
+			// .concat(symbol || '');
+		}
+
+		coverage.min = processStats([coverage?.min, overall?.min]);
+		coverage.max = processStats([coverage?.max, overall?.max]);
+		coverage.mean = processStats([coverage?.mean, overall?.mean]);
+		coverage.median = processStats([coverage?.median, overall?.median]);
+		return coverage;
 	});
+
+	let histogramData = $derived.by(() => {});
 </script>
 
-<Collapsible.Root class="border" bind:open>
+<Collapsible.Root bind:open>
 	<Item.Root class="w-full" id="parameter:{key}">
 		<Item.Media>
 			<Checkbox
@@ -62,19 +79,22 @@
 		<Item.Content>
 			<Item.Title lang={label.query()?.tag}
 				><Label>{label.query()?.value || parameter.key || parameter.id}</Label>
-				<Badge variant="outline"
+				<Badge {...badgeProps}
 					><p class={`text-[${ctx.rangeInfo.get(key)?.color || ''}]`}>
-						{rangeInfo?.dataType || 'dType Undefined'}
+						{rangeInfo?.dataType || 'Unknown'}
 					</p></Badge
 				>
-				<Switch
+				{#if parameter.unit?.symbol?.value}
+					<Badge {...badgeProps}>{parameter.unit.symbol.value}</Badge>
+				{/if}
 			</Item.Title>
-			<Item.Description class="grid w-full grid-cols-2 gap-2">
-				<Label><Badge variant="outline">min</Badge>{statFormatter(rangeInfo?.min)}</Label>
-				<Label><Badge variant="outline">max</Badge>{statFormatter(rangeInfo?.max)}</Label>
-				<Label><Badge variant="outline">mean</Badge>{statFormatter(rangeInfo?.mean)}</Label>
-				<Label><Badge variant="outline">median</Badge>{statFormatter(rangeInfo?.median)}</Label>
-				<div></div>
+			<Item.Description class="grid grid-cols-2 gap-1">
+				<Label><Badge {...badgeProps}>min</Badge>{rangeInfo?.min}</Label>
+				<Label><Badge {...badgeProps}>mean</Badge>{rangeInfo?.mean}</Label>
+				<Label><Badge {...badgeProps}>max</Badge>{rangeInfo?.max}</Label>
+				<Label class="text-ellipsis"
+					><Badge {...badgeProps}>median</Badge>{rangeInfo?.median}
+				</Label>
 			</Item.Description>
 		</Item.Content><Item.Actions>
 			<Collapsible.Trigger class={buttonVariants({ variant: 'ghost' })}>
@@ -86,9 +106,8 @@
 		<Card.Root>
 			<Card.Content>
 				<Collapsible.Root open>
-					<!-- Histogram: If parameter has categoryEncoding use that else determine strategy -->
 					<Item.Root size="sm" variant="outline"
-						><Item.Media><ChartNoAxesColumnIcon /></Item.Media>
+						><Item.Media variant="icon" size="icon-sm"><ChartNoAxesColumnIcon /></Item.Media>
 						<Item.Content><Item.Title>Histogram</Item.Title></Item.Content>
 						<Item.Actions>
 							<Collapsible.Trigger
@@ -102,7 +121,7 @@
 				</Collapsible.Root>
 				<Collapsible.Root disabled={!parameter.label.size && !parameter.description.size}>
 					<Item.Root size="sm" variant="outline">
-						<Item.Media><LanguagesIcon class="size-5" /></Item.Media>
+						<Item.Media variant="icon"><LanguagesIcon class="size-5" /></Item.Media>
 						<Item.Content>
 							<Item.Title lang="en">Internationalization</Item.Title>
 						</Item.Content>
@@ -124,44 +143,7 @@
 						/>
 					</Collapsible.Content>
 				</Collapsible.Root>
-
-				<Collapsible.Root>
-					<Item.Root size="sm" variant="outline">
-						<Item.Media><RulerDimensionLineIcon class="size-5" /></Item.Media>
-						<Item.Content>
-							<Item.Title>Unit</Item.Title>
-						</Item.Content>
-						<Item.Actions>
-							<Collapsible.Trigger
-								class={buttonVariants({ variant: 'ghost' })}
-								disabled={!parameter.unit}
-							>
-								<ChevronsUpDown />
-							</Collapsible.Trigger>
-						</Item.Actions>
-					</Item.Root>
-					{#if parameter.unit}
-						<Collapsible.Content>
-							{#if parameter.unit.symbol}
-								<Item.Root>
-									<Item.Content>
-										<Item.Title lang="en"><Label>{parameter.unit.symbol.value}</Label></Item.Title>
-										<Item.Description>
-											{#if parameter.unit.symbol?.type}
-												<a href={parameter.unit.symbol.type} rel="external"
-													>{parameter.unit.symbol.type}</a
-												>
-											{:else}
-												No Serialization Scheme
-											{/if}
-										</Item.Description>
-									</Item.Content>
-								</Item.Root>
-							{/if}
-							<LocaleTable data={{ label: parameter.unit.label }} />
-						</Collapsible.Content>
-					{/if}
-				</Collapsible.Root>
+				<UnitComponent data={parameter.unit} />
 				<Collapsible.Root>
 					<Item.Root size="sm" variant="outline">
 						<Item.Media>

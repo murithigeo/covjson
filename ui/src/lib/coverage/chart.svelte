@@ -83,6 +83,7 @@
 		);
 		props.brush = { axis: 'both' };
 		props.transform = { mode: 'domain', axis: 'both' };
+		console.log({ props });
 		return props;
 	};
 

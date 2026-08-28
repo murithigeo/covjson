@@ -1,3 +1,5 @@
+<svelte:options customElement="covjson-tres-dashboard" />
+
 <script lang="ts">
 	import type { DashboardProps } from './types.d.ts';
 	import { type MinMax, minMax as getMinMax, type Coverage } from '@murithigeo/covjson-core';
@@ -17,7 +19,7 @@
 	import EmptyParameterGroups from '$lib/empty/parameter-group.svelte';
 	import EmptyCoverages from '$lib/empty/coverage.svelte';
 	let { onIndicesChange, data = $bindable(), detail = 'full', children }: DashboardProps = $props();
-
+	import EmptyMap from '$lib/empty/map.svelte';
 	const ctx = setDashCtx();
 	$effect(() => {
 		ctx.onIndicesChange = onIndicesChange;
@@ -27,9 +29,17 @@
 </script>
 
 <!-- May be instead of color, use a number to indicate which slot is set to -->
-<div class="grid grid-cols-1 lg:grid-cols-3">
-	<div class="mr-2 flex h-screen flex-col overflow-y-auto" id="parameter-preview">
-		<!-- Make collapsible Triggers sticky -->
+<div class="flex flex-col gap-2 lg:grid lg:grid-cols-3">
+	<div class="sticky top-0 h-100 w-full space-y-2 opacity-100 md:h-screen">
+		{#if children}
+			{@render children?.()}
+		{:else}
+			<EmptyMap />
+		{/if}
+	</div>
+	<div class="h- mr-2 flex h-screen flex-col overflow-y-auto" id="parameter-preview">
+		<DashControlCenter class="sticky top-0" />
+
 		<Collapsible.Root id="parameter-group-list" open>
 			<Item.Root size="sm" variant="outline">
 				<Item.Media><GroupIcon class="size-5" /></Item.Media>
@@ -76,19 +86,12 @@
 		</Collapsible.Root>
 	</div>
 	<div class="flex h-screen w-full flex-col gap-2" id="charts">
-		<DashControlCenter class="sticky top-0 w-full bg-[--background]/80 pt-4" />
-		<Separator />
-		<div class="h-full w-full space-y-3 overflow-y-auto">
-			{#if !ctx.coverages.size}
-				<EmptyCoverages />
-			{:else}
-				{#each ctx.coverages as [, coverage], i (i)}
-					<CoverageComponent {coverage} />
-				{/each}
-			{/if}
-		</div>
-	</div>
-	<div class="sticky top-0 h-screen w-full">
-		{@render children?.()}
+		{#if !ctx.coverages.size}
+			<EmptyCoverages />
+		{:else}
+			{#each ctx.coverages as [, coverage], i (i)}
+				<CoverageComponent {coverage} />
+			{/each}
+		{/if}
 	</div>
 </div>

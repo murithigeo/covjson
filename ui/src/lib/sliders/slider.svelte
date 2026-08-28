@@ -3,23 +3,20 @@
 	import type { ClassValue } from 'clsx';
 	import { cn } from '$lib/utils.js';
 	import { GitCommitHorizontalIcon, LineDotRightHorizontalIcon } from '@lucide/svelte';
-	/**
-	 * min,index,max
-	 */
-	type Index<T extends string | number> = [T, T, T];
-	type OnChangeFn = ({ index, value }: { index: Index<number>; value: Index<T> }) => void;
+	import type { SliderIndex, SliderValue } from './sliders.d.ts';
+
 	interface Props extends Omit<
 		SliderMultiRootPropsWithoutHTML,
 		'min' | 'max' | 'value' | 'values' | 'formatter' | 'type'
 	> {
 		min?: T;
 		max?: T;
-		index?: Index<number>;
+		index?: SliderBounds;
 		value?: T;
 		values: Array<T>;
 		formatter?: (v: T) => T;
 		class?: ClassValue;
-		onIndexChange?: OnChangeFn;
+		onIndexChange?({ index, value }: { index: SliderIndex; value: SliderValue<T> }): void;
 	}
 
 	let {
@@ -34,7 +31,6 @@
 		...props
 	}: Props = $props();
 
-	const getValues = (i: number[]): Index<T> => [values[i[0]], values[i[1]], values[i[2]]];
 	$effect(() =>
 		onIndexChange?.({ index, value: [values[index[0]], values[index[1]], values[index[2]]] })
 	);

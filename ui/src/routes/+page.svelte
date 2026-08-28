@@ -17,8 +17,9 @@
 			const source = 'cov-load-test';
 			map.addSource(source, {
 				type: 'coveragejson',
-				data: window.location.href + 'grid-multi-z-t.covjson',
+				// data: window.location.href + 'grid-multi-z-t.covjson',
 				// data: 'https://covjson.org/playground/coverages/grid-tiled.covjson',
+				data: 'https://covjson.org/playground/coverages/grid-categorical.covjson',
 				layers: ['grid-outline', 'grid-layer', 'section'],
 				listenTo: ['click'],
 				tempLayerPaint: {

@@ -1,22 +1,15 @@
-import {
-	type Coverage,
-	type NdArray,
-	type Parameter,
-	type OnIndicesChange,
-	minMax
-} from '@murithigeo/covjson-core';
+import { Coverage, NdArray, Parameter, type OnIndicesChange } from '@murithigeo/covjson-core';
 import { getContext, onDestroy, setContext } from 'svelte';
 import { SvelteSet, SvelteMap } from 'svelte/reactivity';
 import type { ChartConfig } from '$lib/components/ui/chart/index.js';
-import { getParameterStatistics } from '$lib/statistics.js';
-interface RangeSummary extends Partial<Record<'max' | 'min' | 'avg', number | null>> {
-	dataType?: 'string' | 'float' | 'integer';
-	median?: string | number | null;
-	color: string;
-	label: string;
-	key: string;
-}
-type TemporalBounds = [string, string, string];
+import {
+	getParameterStatistics,
+	type RangeSummary,
+	getRangeStats,
+	generateRangeConfig,
+	type RangeStatistics
+} from '$lib/statistics.js';
+import type { SliderValue, StringSliderValue } from '$lib/sliders/sliders.js';
 
 export class DashboardContext {
 	onIndicesChange = $state<OnIndicesChange>();
@@ -28,7 +21,6 @@ export class DashboardContext {
 		this.input?.forEach((cov) => set.set(cov.uuid, cov));
 		return set;
 	});
-	activeCoverage = $derived(this.coverages.values().toArray()[0]);
 
 	parameters = $derived(
 		new SvelteMap<string, Parameter>(this.coverages.values().flatMap((v) => [...v.parameters]))
@@ -37,11 +29,23 @@ export class DashboardContext {
 		new SvelteSet(this.coverages.values().flatMap((cov) => cov.parameterGroups))
 	);
 	selected = $derived(new SvelteSet(this.parameters.keys()));
-	now = $state<TemporalBounds>();
+	now = $state<SliderValue<string>>();
 	tvalues = $state(new SvelteSet<string>());
 	rangeData = $state(new SvelteMap<string, Map<string, NdArray>>());
 	rangeInfo = $state(new SvelteMap<string, RangeSummary>());
-
+	highlightCoverage = $derived<string | undefined>(this.coverages.keys().toArray()[0]);
+	highlightCovSummary = $derived.by(() => {
+		const stats = new SvelteMap<string, RangeStatistics>();
+		for (const [key, param] of this.parameters) {
+			if (!this.highlightCoverage) continue;
+			const data = this.rangeData.get(key)?.get(this.highlightCoverage);
+			if (!data) continue;
+			const config: RangeSummary = this.rangeInfo.get(key) || generateRangeConfig(param);
+			Object.assign(config, getRangeStats([data]));
+			stats.set(key, config);
+		}
+		return stats;
+	});
 	constructor() {
 		$effect(() => {
 			this.coverages.values().forEach((cov) => cov.t.forEach((t) => this.tvalues.add(t)));
@@ -92,18 +96,23 @@ export class DashboardContext {
 		this.rangeData.set(paramId, data);
 	}
 
-	setNow(bounds: TemporalBounds): void {
-		console.log(bounds);
+	setNow(bounds: StringSliderValue): void {
 		if (!this.now) this.now = bounds;
 		else
 			for (let i = 0; i < 3; i++) {
 				if (bounds[i] !== this.now[i]) this.now[i] = bounds[i];
 			}
 	}
-	setActiveCoverage(coverage: Coverage) {
-		this.activeCoverage = coverage;
+	setActiveCoverage(coverage: Coverage | string) {
+		this.highlightCoverage = typeof coverage === 'string' ? coverage : coverage.uuid;
 	}
-	// Local data summary for selected coverage
+
+	setParameterColor(paramId: string, color: string) {
+		const config = this.rangeInfo.get(paramId);
+		if (!config) return;
+		config.color = color;
+		this.rangeInfo.set(paramId, config);
+	}
 }
 
 const DashboardKey = Symbol('DASH');

@@ -1,10 +1,18 @@
 import { minMax, NdArray, Parameter } from '@murithigeo/covjson-core';
 import { getRandomColor } from '$lib/utils.js';
+import type { CategoryEncoding } from 'coveragejson';
+
+/**
+ * For a parameter with categoryEncoding, the bins are the categoryIds
+ */
+interface Histogram {
+	// [x: number | string]: { label?: string; }
+}
 /**
  * Summary statistics of the Parameter
  * Calculated against currently loaded data and the expected totalSize of previous and currently loaded parameters
  */
-interface RangeStatistics {
+export interface RangeStatistics {
 	/**
 	 * Smallest value recorded
 	 * Always null for "string" NdArrays
@@ -34,7 +42,7 @@ interface RangeStatistics {
 	dataType?: 'string' | 'float' | 'integer';
 }
 
-interface RangeSummary extends RangeStatistics {
+export interface RangeConfig {
 	/**
 	 * The color to be used for this parameter in charts and the basis for gradient
 	 */
@@ -50,22 +58,29 @@ interface RangeSummary extends RangeStatistics {
 	key: string;
 }
 
+export type RangeSummary = RangeConfig & RangeStatistics;
+export function generateRangeConfig(param: Parameter | string): RangeConfig {
+	return {
+		color: getRandomColor(),
+		label: typeof param === 'string' ? param : param.label.query()?.value || param.key,
+		key: typeof param === 'string' ? param : param.key
+	};
+}
 // todo add button to toggle between local stats and global stats
 export function getParameterStatistics(
 	param: Parameter | string,
 	data: Map<string, NdArray>,
 	stats?: RangeSummary
 ): RangeSummary {
-	stats = stats || {
-		color: getRandomColor(),
-		label: typeof param === 'string' ? param : param.label.query()?.value || param.key,
-		key: typeof param === 'string' ? param : param.key
-	};
-	Object.assign(stats, getCoverageStats(data.values().toArray()));
+	stats = stats || generateRangeConfig(param);
+	Object.assign(stats, getRangeStats(data.values().toArray()));
 	return stats;
 }
 
-export function getCoverageStats(ranges: NdArray[]): RangeStatistics {
+/**
+ * @param ranges Must be of the same type
+ */
+export function getRangeStats(ranges: NdArray[]): RangeStatistics {
 	const stats: RangeStatistics = {};
 	if (!ranges.length) return stats;
 
@@ -99,4 +114,16 @@ export function getCoverageStats(ranges: NdArray[]): RangeStatistics {
 		stats['mean'] = values.filter((v) => v !== null).reduce((l, r) => l + r, 0) / totalSize;
 	}
 	return stats;
+}
+
+function histogramDataFromCatEncoding(
+	encoding: Map<string, number[]>,
+	data: (number | null)[]
+): Record<string, number> {
+	const nonNulls = data.filter((v) => v !== null);
+	const bins = encoding
+		.entries()
+		.map(([id, vals]) => [id, nonNulls.filter((v) => vals.includes(v)).length] as const);
+
+	return { ...Object.fromEntries(bins), NULL: data.filter((v) => v === null).length };
 }

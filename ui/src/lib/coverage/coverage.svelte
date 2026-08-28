@@ -10,6 +10,7 @@
 	import Chart from './chart.svelte';
 	import { setCoverageCtx } from './coverage-ctx.svelte.ts';
 	import { getDashCtx } from '../dashboards/utils/ctx.svelte.ts';
+	import type { SliderValue, StringSliderValue } from '$lib/sliders/sliders.d.ts';
 	interface Props {
 		coverage: Coverage;
 	}
@@ -21,9 +22,8 @@
 	let tvalues = $derived(coverage.t);
 	let index = $derived([0, 0, Math.abs(tvalues.length - 1)]);
 
-	function updateLocalTemporalIndices(now?: Index<number>): void {
+	function updateLocalTemporalIndices(now?: StringSliderValue): void {
 		if (!now) return;
-
 		const tAsEpoch = tvalues.map((v) => new Date(v).getTime());
 		index = now.map((v) => new Date(v).getTime()).map((t) => indexOfNearest(tAsEpoch, t));
 	}
