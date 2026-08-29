@@ -1,8 +1,7 @@
 <svelte:options customElement="covjson-tres-dashboard" />
 
 <script lang="ts">
-	import type { DashboardProps } from './types.d.ts';
-	import { type MinMax, minMax as getMinMax, type Coverage } from '@murithigeo/covjson-core';
+	import type { DashboardProps } from '../utils/types.d.ts';
 	import * as Collapsible from '$lib/components/ui/collapsible/index.js';
 	import * as Item from '$lib/components/ui/item/index.js';
 	import { ChevronsUpDown, GroupIcon } from '@lucide/svelte';
@@ -30,7 +29,7 @@
 
 <!-- May be instead of color, use a number to indicate which slot is set to -->
 <div class="flex flex-col gap-2 lg:grid lg:grid-cols-3">
-	<div class="sticky top-0 h-100 w-full space-y-2 opacity-100 md:h-screen">
+	<div class="sticky top-0 h-100 w-full space-y-2 opacity-[1] md:h-screen">
 		{#if children}
 			{@render children?.()}
 		{:else}
@@ -85,7 +84,7 @@
 			</Collapsible.Content>
 		</Collapsible.Root>
 	</div>
-	<div class="flex h-screen w-full flex-col gap-2" id="charts">
+	<div class="flex h-screen w-full flex-col gap-2 overflow-y-auto" id="charts">
 		{#if !ctx.coverages.size}
 			<EmptyCoverages />
 		{:else}

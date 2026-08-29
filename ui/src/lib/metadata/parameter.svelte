@@ -7,64 +7,59 @@
 	import * as Item from '$lib/components/ui/item/index.js';
 	import { Checkbox } from '$lib/components/ui/checkbox/index.js';
 	import { buttonVariants } from '$lib/components/ui/button/index.js';
-	import { Badge } from '$lib/components/ui/badge/index.js';
+	import { Badge, type BadgeVariant } from '$lib/components/ui/badge/index.js';
 	import { Label } from '$lib/components/ui/label/index.js';
 	import { ChartNoAxesColumnIcon } from '@lucide/svelte';
 	import type { RangeStatistics } from '$lib/statistics.js';
 	import UnitComponent from './parameter/unit.svelte';
-	import * as Chart from '$lib/components/ui/chart/index.js';
-	import {
-		RulerDimensionLineIcon,
-		ChevronsUpDown,
-		SunSnowIcon,
-		LanguagesIcon
-	} from '@lucide/svelte';
+	import { ChevronsUpDown, SunSnowIcon, LanguagesIcon } from '@lucide/svelte';
 	import type { MetadataRenderProps } from './types.d.ts';
 	import { getDashCtx } from '../dashboards/utils/ctx.svelte.ts';
-
+	import ColorPicker from 'svelte-awesome-color-picker';
 	type Props = MetadataRenderProps<
 		Parameter,
 		{
 			open?: boolean;
 			key: string;
+			badgeVariant?: BadgeVariant;
 		}
 	>;
 
-	const badgeProps: BadgeProps = { variant: 'outline' };
-	let { data: parameter = $bindable(), open = $bindable(false), key }: Props = $props();
+	let {
+		data: parameter = $bindable(),
+		open = $bindable(false),
+		key,
+		badgeVariant: variant = 'outline'
+	}: Props = $props();
 
 	const ctx = getDashCtx();
 	const label = $derived(parameter.label);
 
 	let rangeInfo = $derived.by(() => {
-		const overall: RangeStatistics = ctx.rangeInfo.get(key) || {};
+		const overall = ctx.rangeInfo.get(key);
 		const coverage = { ...overall, ...(ctx.highlightCovSummary.get(key) || {}) };
 		function processStats(arr: (string | number | null | undefined)[]) {
-			let symbol = parameter.unit?.symbol.value;
-			if (symbol && arr.some((v) => typeof v === 'string'))
-				symbol = symbol.padStart(symbol.length + 1, ' ');
 			return arr
 				.map((v) => {
 					if (isUndefined(v) || v === null) return 'NULL';
 					if (typeof v === 'string') return v;
-					if (overall.dataType && overall.dataType) {
-						if (overall.dataType === 'integer') return Math.round(v);
-						else return v.toFixed(2);
-					} else return v;
+					if (overall?.dataType && overall?.dataType === 'integer') return Math.round(v);
+					return v.toFixed(2);
 				})
 				.join('/');
 			// .concat(symbol || '');
 		}
-		const stats: Partial<Record<keyof RangeStatistics | 'dataType', string>> = {};
+		const stats: Partial<Record<keyof RangeStatistics | 'dataType', string>> & { color?: string } =
+			{ color: overall?.color };
 		stats.min = processStats([coverage?.min, overall?.min]);
 		stats.max = processStats([coverage?.max, overall?.max]);
 		stats.mean = processStats([coverage?.mean, overall?.mean]);
 		stats.median = processStats([coverage?.median, overall?.median]);
-		stats.dataType = overall.dataType || 'Uknown';
-		return coverage;
+		stats.dataType = overall?.dataType || 'Uknown';
+		return stats;
 	});
-
-	let histogramData = $derived.by(() => {});
+	let isOpen = $state(false);
+	$inspect(isOpen);
 </script>
 
 <Collapsible.Root bind:open>
@@ -78,22 +73,26 @@
 		<Item.Content>
 			<Item.Title lang={label.query()?.tag}
 				><Label>{label.query()?.value || parameter.key || parameter.id}</Label>
-				<Badge {...badgeProps}
+				<Badge {variant}
 					><p class={`text-[${ctx.rangeInfo.get(key)?.color || ''}]`}>
 						{rangeInfo?.dataType || 'Unknown'}
 					</p></Badge
 				>
 				{#if parameter.unit?.symbol?.value}
-					<Badge {...badgeProps}>{parameter.unit.symbol.value}</Badge>
+					<Badge {variant}>{parameter.unit.symbol.value}</Badge>
 				{/if}
+				<ColorPicker
+					hex={rangeInfo?.color}
+					onInput={({ hex }) => ctx.setParameterColor(key, hex)}
+					label=""
+					bind:isOpen
+				/>
 			</Item.Title>
 			<Item.Description class="grid grid-cols-2 gap-1">
-				<Label><Badge {...badgeProps}>min</Badge>{rangeInfo?.min}</Label>
-				<Label><Badge {...badgeProps}>mean</Badge>{rangeInfo?.mean}</Label>
-				<Label><Badge {...badgeProps}>max</Badge>{rangeInfo?.max}</Label>
-				<Label class="text-ellipsis"
-					><Badge {...badgeProps}>median</Badge>{rangeInfo?.median}
-				</Label>
+				<Label><Badge {variant}>min</Badge>{rangeInfo?.min}</Label>
+				<Label><Badge {variant}>mean</Badge>{rangeInfo?.mean}</Label>
+				<Label><Badge {variant}>max</Badge>{rangeInfo?.max}</Label>
+				<Label class="text-ellipsis"><Badge {variant}>median</Badge>{rangeInfo?.median}</Label>
 			</Item.Description>
 		</Item.Content><Item.Actions>
 			<Collapsible.Trigger class={buttonVariants({ variant: 'ghost' })}>

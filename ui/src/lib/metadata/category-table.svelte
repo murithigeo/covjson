@@ -3,16 +3,19 @@
 	import * as Table from '$lib/components/ui/table/index.js';
 	import { getDashCtx } from '$lib/dashboards/utils/ctx.svelte.js';
 	import type { MetadataRenderProps } from './types.d.ts';
+	import { cn } from '$lib/utils.js';
 	const ctx = getDashCtx();
 
 	let { data: categories = $bindable() }: MetadataRenderProps<Category[]> = $props();
+
+	const cellStyle = 'border break-all whitespace-normal';
 </script>
 
 <Table.Root class="table-fixed">
 	<Table.Caption>List of Categories and their Localization Values</Table.Caption>
 	<Table.Header>
 		<Table.Row>
-			<Table.Head>Category Id</Table.Head>
+			<Table.Head>Id</Table.Head>
 			<Table.Head>Scope</Table.Head>
 			<Table.Head>Language</Table.Head>
 			<Table.Head>Value</Table.Head>
@@ -25,27 +28,23 @@
 				{#each label as [lang, value], i (lang)}
 					<Table.Row>
 						{#if i === 0}
-							<Table.Cell {rowspan} class="border break-all whitespace-normal">{id}</Table.Cell>
+							<Table.Cell {rowspan} class={cn(cellStyle, '')}>{id}</Table.Cell>
 							<Table.Cell rowspan={label.size}>Label</Table.Cell>
 						{/if}
-						<Table.Cell class="border break-all whitespace-normal"
-							>{label.getTagName(lang)}</Table.Cell
-						>
-						<Table.Cell class="border break-all whitespace-normal" {lang}>{value}</Table.Cell>
+						<Table.Cell class={cn(cellStyle, '')}>{label.getTagName(lang)}</Table.Cell>
+						<Table.Cell class={cn(cellStyle, '')} {lang}>{value}</Table.Cell>
 					</Table.Row>
 				{/each}
 
 				{#each description as [lang, value], i (lang)}
 					<Table.Row>
 						{#if i === 0}
-							<Table.Cell rowspan={description.size} class="border break-all whitespace-normal"
+							<Table.Cell rowspan={description.size} class={cn(cellStyle, '')}
 								>Description</Table.Cell
 							>
 						{/if}
-						<Table.Cell class="border break-all whitespace-normal"
-							>{description.getTagName(lang)}</Table.Cell
-						>
-						<Table.Cell class="border break-all whitespace-normal" {lang}>{value}</Table.Cell>
+						<Table.Cell class={cn(cellStyle, '')}>{description.getTagName(lang)}</Table.Cell>
+						<Table.Cell class={cn(cellStyle, '')} {lang}>{value}</Table.Cell>
 					</Table.Row>
 				{/each}
 			{:else}

@@ -16,7 +16,6 @@
 	let indices = $derived(covCtx.indices);
 	let selected = $derived(ctx.selected);
 	let config = $derived(ctx.chartConfig);
-	const isNull = (v: any): v is null => v === null;
 
 	let preloadAxis = $derived.by<string[]>(() => {
 		const preloadAxis = Array<string>();
@@ -38,13 +37,13 @@
 		return data;
 	});
 
-	let lineChartProps = (data: DataRow[]) => {
+	let lineChartProps = () => {
 		const props: LineChartProps<DataRow> = {};
-		props.series = [];
 		props.props = {};
-		for (const key in config)
-			props.series.push({ ...config[key], key, selected: selected.has(key) });
-		props.props = { xAxis: {} };
+		props.series = Object.values(config);
+		props.xNice = true;
+		props.yNice = true;
+		props.padding = { top: 10, bottom: 30, left: 12, right: 10 };
 		switch (coverage.domainType) {
 			case 'Grid':
 				if (coverage.z.length < 2) {
@@ -79,7 +78,7 @@
 				.flatMap(([, { min, max }]) => [min, max])
 				.map((v) => (isUndefined(v) ? null : v))
 				.toArray()
-		);
+		).map((v) => (typeof v === 'number' ? v + 1 : v));
 		props.brush = { axis: 'both' };
 		props.transform = { mode: 'domain', axis: 'both' };
 		return props;
@@ -87,7 +86,16 @@
 
 	let barChartProps = (data: DataRow) => {
 		const props: BarChartProps<DataRow> = {};
-
+		props.series = Object.values(config);
+		props.x = ctx.selected.keys().toArray();
+		props.yDomain = minMax(
+			ctx.rangeInfo
+				.entries()
+				.filter(([key]) => ctx.selected.has(key))
+				.flatMap(([, { min, max }]) => [min, max])
+				.map((v) => (isUndefined(v) ? null : v))
+				.toArray()
+		);
 		return props;
 	};
 </script>
@@ -101,13 +109,13 @@
 		{:else if data.length === 1}
 			<BarChart {...barChartProps(data[0])} {data} />
 		{:else}
-			<LineChart {...lineChartProps(data)} {data}>
+			<LineChart {...lineChartProps()} {data}>
 				{#snippet tooltip()}
 					<Chart.Tooltip hideLabel />
 				{/snippet}
 			</LineChart>
 		{/if}
 	{:catch error}
-		<EmptyChart status="error" />
+		<EmptyChart status="error" {error} />
 	{/await}
 </Chart.Container>

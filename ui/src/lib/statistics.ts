@@ -4,10 +4,9 @@ import type { CategoryEncoding } from 'coveragejson';
 
 /**
  * For a parameter with categoryEncoding, the bins are the categoryIds
+ * @todo instead of setting up {label}, setup a onclick
  */
-interface Histogram {
-	// [x: number | string]: { label?: string; }
-}
+export type FrequencyMap = Map<string | number | null, number>;
 /**
  * Summary statistics of the Parameter
  * Calculated against currently loaded data and the expected totalSize of previous and currently loaded parameters
@@ -36,6 +35,7 @@ export interface RangeStatistics {
 	 * Always null for "string" NdArrays
 	 */
 	median?: number | null | string;
+	frequency?: FrequencyMap;
 	/**
 	 * Only the first range is checked
 	 */
@@ -70,9 +70,8 @@ export function generateRangeConfig(param: Parameter | string): RangeConfig {
 export function getParameterStatistics(
 	param: Parameter | string,
 	data: Map<string, NdArray>,
-	stats?: RangeSummary
+	stats: RangeSummary = generateRangeConfig(param)
 ): RangeSummary {
-	stats = stats || generateRangeConfig(param);
 	Object.assign(stats, getRangeStats(data.values().toArray()));
 	return stats;
 }
@@ -80,7 +79,10 @@ export function getParameterStatistics(
 /**
  * @param ranges Must be of the same type
  */
-export function getRangeStats(ranges: NdArray[]): RangeStatistics {
+export function getRangeStats(
+	ranges: NdArray[],
+	categoryEncoding?: Map<string, number[]>
+): RangeStatistics {
 	const stats: RangeStatistics = {};
 	if (!ranges.length) return stats;
 
@@ -101,6 +103,8 @@ export function getRangeStats(ranges: NdArray[]): RangeStatistics {
 		const values = data.map((v) => v as number | null).sort((a, b) => Number(a) - Number(b)) as (
 			number | null
 		)[];
+		if (categoryEncoding) stats.frequency = categoricalHistogram(categoryEncoding, values);
+		else stats.frequency = nonCategoricalHistogram(values);
 		[stats.min, stats.max] = minMax(values);
 		let median: number | null;
 		if (Array.isArray(medianIndex)) {
@@ -113,17 +117,29 @@ export function getRangeStats(ranges: NdArray[]): RangeStatistics {
 		stats['median'] = median;
 		stats['mean'] = values.filter((v) => v !== null).reduce((l, r) => l + r, 0) / totalSize;
 	}
+
 	return stats;
 }
 
-function histogramDataFromCatEncoding(
-	encoding: Map<string, number[]>,
-	data: (number | null)[]
-): Record<string, number> {
-	const nonNulls = data.filter((v) => v !== null);
-	const bins = encoding
-		.entries()
-		.map(([id, vals]) => [id, nonNulls.filter((v) => vals.includes(v)).length] as const);
+function categoricalHistogram(encoding: Map<string, number[]>, data: (number | null)[]) {
+	const map: FrequencyMap = new Map();
+	const nonNulls = data.filter((v) => typeof v === 'number');
+	map.set(null, data.length - nonNulls.length);
+	for (const [id, values] of encoding) {
+		map.set(id, nonNulls.filter((v) => values.includes(v)).length);
+	}
 
-	return { ...Object.fromEntries(bins), NULL: data.filter((v) => v === null).length };
+	return map;
+}
+
+function nonCategoricalHistogram<T extends string | number>(data: (T | null)[]) {
+	const map: FrequencyMap = new Map();
+
+	const values = data.filter((v) => v !== null);
+	map.set(null, data.length - values.length);
+	const set = new Set(values);
+	for (const id of set) {
+		map.set(id, data.filter((v) => v === id).length);
+	}
+	return map;
 }

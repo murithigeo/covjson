@@ -44,7 +44,7 @@
 		"@murithigeo/covjson-core": "^0.1.0",
 		"@murithigeo/covjson-maplibre": "^0.1.0",
 		"@playwright/test": "^1.62.1",
-		"@svebcomponents/build": "^0.7.3",
+		"@svebcomponents/build": "^0.7.4",
 		"@sveltejs/adapter-auto": "^7.0.1",
 		"@sveltejs/kit": "^2.70.3",
 		"@sveltejs/package": "^2.5.7",
@@ -87,6 +87,7 @@
 		"d3-scale": "^4.0.2",
 		"maplibre-gl": "^5.24.0",
 		"sveaflet": "^0.1.4",
+		"svelte-awesome-color-picker": "^4.1.3",
 		"svelte-maplibre": "^1.3.0"
 	}
 }

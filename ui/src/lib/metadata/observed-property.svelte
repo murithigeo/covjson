@@ -34,6 +34,7 @@
 	<Card.Footer class="flex-col items-center">
 		{#if obs.categories}
 			<h5>Categories</h5>
+			<CategoryTable data={obs.categories} />
 		{:else}
 			<span class="flex flex-wrap items-center gap-2"> No Categories found</span>
 		{/if}

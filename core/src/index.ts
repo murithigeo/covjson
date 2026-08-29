@@ -11,7 +11,7 @@ export * from './referencing.ts';
 export * from './ranges.ts';
 export * from './load.ts';
 export * from './utils.ts';
-
+export * from './error.ts';
 export default function getCoverageJson<T extends CoverageJSON>(doc: T, options?: CoverageOptions) {
   switch (doc.type) {
     case 'Domain':

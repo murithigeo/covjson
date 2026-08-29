@@ -11,6 +11,7 @@ import {
 } from '$lib/statistics.js';
 import type { SliderValue, StringSliderValue } from '$lib/sliders/sliders.js';
 
+// todo automatically call onIndicesChange on the active Coverage
 export class DashboardContext {
 	onIndicesChange = $state<OnIndicesChange>();
 	detail = $state<'simple' | 'full'>('full');
@@ -54,7 +55,7 @@ export class DashboardContext {
 		// calculates range statistics
 		$effect(() => {
 			for (const [key, covRanges] of this.rangeData) {
-				let stats = getParameterStatistics(
+				const stats = getParameterStatistics(
 					this.parameters.get(key) || key,
 					covRanges,
 					this.rangeInfo.get(key)
@@ -87,11 +88,11 @@ export class DashboardContext {
 		if (this.pinned.has(uuid)) this.pinned.delete(uuid);
 		else if (this.coverages.has(uuid)) this.pinned.set(uuid, this.coverages.get(uuid)!);
 	}
-	chartConfig = $derived<ChartConfig>(Object.fromEntries(this.rangeInfo));
+	chartConfig = $derived<Record<string, RangeSummary>>(Object.fromEntries(this.rangeInfo));
 
 	updateRangeData(paramId: string, covUuid: string, range: NdArray) {
 		let data = this.rangeData.get(paramId);
-		data = data || new Map();
+		data = data || new SvelteMap();
 		data.set(covUuid, range);
 		this.rangeData.set(paramId, data);
 	}
@@ -107,9 +108,9 @@ export class DashboardContext {
 		this.highlightCoverage = typeof coverage === 'string' ? coverage : coverage.uuid;
 	}
 
-	setParameterColor(paramId: string, color: string) {
+	setParameterColor(paramId: string, color: string | null) {
 		const config = this.rangeInfo.get(paramId);
-		if (!config) return;
+		if (color === null || !config) return;
 		config.color = color;
 		this.rangeInfo.set(paramId, config);
 	}

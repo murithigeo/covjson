@@ -9,10 +9,11 @@
 	type Props = MetadataRenderProps<Record<string, I18N>>;
 
 	let { data = $bindable(), class: className }: Props = $props();
+	const cellStyle = 'border break-all whitespace-normal';
 	let numOfRows = $derived(Object.values(data).reduce((l, r) => l + r.size, 0));
 </script>
 
-<Table.Root class={cn(className)}>
+<Table.Root class={cn('table-fixed', className)}>
 	<Table.Header>
 		<Table.Row>
 			<Table.Head>Field</Table.Head>
@@ -27,21 +28,25 @@
 					{#each i18n as [lang, value], index (lang)}
 						<Table.Row>
 							{#if !index}
-								<Table.Cell class="capitalize" rowspan={i18n.size}>{field}</Table.Cell>
+								<Table.Cell class={cn(cellStyle, 'capitalize')} rowspan={i18n.size}
+									>{field}</Table.Cell
+								>
 							{/if}
-							<Table.Cell>{i18n.getTagName(lang)}</Table.Cell>
-							<Table.Cell {lang}>{value}</Table.Cell>
+							<Table.Cell class={cn(cellStyle, '')}>{i18n.getTagName(lang)}</Table.Cell>
+							<Table.Cell {lang} class={cn(cellStyle, '')}>{value}</Table.Cell>
 						</Table.Row>
 					{/each}
 				{:else}
 					{@const value = i18n.query()}
-					<Table.Row>
-						<Table.Cell class="capitalize">{field}</Table.Cell>
+					<Table.Row class="">
+						<Table.Cell class={cn(cellStyle, 'capitalize')}>{field}</Table.Cell>
 						{#if !value}
-							<Table.Cell colspan={2} class="flex flex-col items-center">No Match Found</Table.Cell>
+							<Table.Cell colspan={2} class={cn(cellStyle, 'flex flex-col items-center')}
+								>No Match Found</Table.Cell
+							>
 						{:else}
-							<Table.Cell>{i18n.getTagName(value.tag)}</Table.Cell>
-							<Table.Cell>{value.value}</Table.Cell>
+							<Table.Cell class={cn(cellStyle, '')}>{i18n.getTagName(value.tag)}</Table.Cell>
+							<Table.Cell class={cn(cellStyle, '')}>{value.value}</Table.Cell>
 						{/if}
 					</Table.Row>
 				{/if}

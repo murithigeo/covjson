@@ -7,10 +7,11 @@
 	import { ArrowLeftIcon, ArrowRightIcon, ArrowUpIcon, ArrowDownIcon } from '@lucide/svelte';
 	import { Button, type ButtonProps } from '$lib/components/ui/button/index.js';
 	import { Coverage, indexOfNearest } from '@murithigeo/covjson-core';
+	import { Label } from '$lib/components/ui/label/index.js';
 	import Chart from './chart.svelte';
 	import { setCoverageCtx } from './coverage-ctx.svelte.ts';
 	import { getDashCtx } from '../dashboards/utils/ctx.svelte.ts';
-	import type { SliderValue, StringSliderValue } from '$lib/sliders/sliders.d.ts';
+	import type { SliderIndex, StringSliderValue } from '$lib/sliders/sliders.d.ts';
 	interface Props {
 		coverage: Coverage;
 	}
@@ -20,12 +21,14 @@
 	const covCtx = setCoverageCtx(coverage);
 
 	let tvalues = $derived(coverage.t);
-	let index = $derived([0, 0, Math.abs(tvalues.length - 1)]);
+	let index = $derived<SliderIndex>([0, 0, Math.abs(tvalues.length - 1)]);
 
 	function updateLocalTemporalIndices(now?: StringSliderValue): void {
 		if (!now) return;
 		const tAsEpoch = tvalues.map((v) => new Date(v).getTime());
-		index = now.map((v) => new Date(v).getTime()).map((t) => indexOfNearest(tAsEpoch, t));
+		index = now
+			.map((v) => new Date(v).getTime())
+			.map((t) => indexOfNearest(tAsEpoch, t)) as SliderIndex;
 	}
 	$effect(() => updateLocalTemporalIndices(ctx.now));
 </script>
@@ -36,7 +39,14 @@
 			>{coverage.id || 'No ID Available'}
 			<Badge variant="outline">{coverage.domain.domainType}</Badge></Card.Title
 		>
-		<Card.Description></Card.Description>
+		<Card.Description class="flex flex-row space-x-2">
+			{#each coverage.axesSize as [axisName, size] (axisName)}
+				<Label
+					><Badge variant="outline">{axisName}</Badge>{covCtx.indices.get(axisName) || 0}/{size -
+						1}</Label
+				>
+			{/each}
+		</Card.Description>
 		<Card.Action>
 			<ButtonGroup.Root>
 				<Button

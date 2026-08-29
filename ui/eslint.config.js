@@ -1,5 +1,4 @@
 import prettier from 'eslint-config-prettier';
-import path from 'node:path';
 import { includeIgnoreFile } from '@eslint/compat';
 import js from '@eslint/js';
 import svelte from 'eslint-plugin-svelte';
@@ -19,6 +18,14 @@ export default defineConfig(
 	prettier,
 	svelte.configs.prettier,
 	{
+		files: ['**/*.svelte', '**/*.svelte.ts', '**/*.svelte.js', '**/*.{ts,js}'],
+		languageOptions: {
+			parserOptions: {
+				tsconfigRootDir: import.meta.dirname
+			}
+		}
+	},
+	{
 		languageOptions: { globals: { ...globals.browser, ...globals.node } },
 		rules: {
 			// typescript-eslint strongly recommend that you do not use the no-undef lint rule on TypeScript projects.
@@ -33,8 +40,7 @@ export default defineConfig(
 				projectService: true,
 				extraFileExtensions: ['.svelte'],
 				parser: ts.parser,
-				svelteConfig,
-				tsconfigRootDir: path.join(import.meta.dirname, 'ui')
+				svelteConfig
 			}
 		}
 	},
