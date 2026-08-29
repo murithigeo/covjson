@@ -33,7 +33,7 @@
 	$effect(() => updateLocalTemporalIndices(ctx.now));
 </script>
 
-<Card.Root class="w-full">
+<Card.Root class="h-full w-full">
 	<Card.Header>
 		<Card.Title
 			>{coverage.id || 'No ID Available'}
@@ -42,7 +42,7 @@
 		<Card.Description class="flex flex-row space-x-2">
 			{#each coverage.axesSize as [axisName, size] (axisName)}
 				<Label
-					><Badge variant="outline">{axisName}</Badge>{covCtx.indices.get(axisName) || 0}/{size -
+					><Badge variant="outline">{axisName}</Badge>{covCtx.indices.get(axisName) || 1}/{size -
 						1}</Label
 				>
 			{/each}

@@ -18,7 +18,6 @@
 	import EmptyParameterGroups from '$lib/empty/parameter-group.svelte';
 	import EmptyCoverages from '$lib/empty/coverage.svelte';
 	let { onIndicesChange, data = $bindable(), detail = 'full', children }: DashboardProps = $props();
-	import EmptyMap from '$lib/empty/map.svelte';
 	const ctx = setDashCtx();
 	$effect(() => {
 		ctx.onIndicesChange = onIndicesChange;
@@ -30,11 +29,7 @@
 <!-- May be instead of color, use a number to indicate which slot is set to -->
 <div class="flex flex-col gap-2 lg:grid lg:grid-cols-3">
 	<div class="sticky top-0 h-100 w-full space-y-2 opacity-[1] md:h-screen">
-		{#if children}
-			{@render children?.()}
-		{:else}
-			<EmptyMap />
-		{/if}
+		{@render children?.()}
 	</div>
 	<div class="h- mr-2 flex h-screen flex-col overflow-y-auto" id="parameter-preview">
 		<DashControlCenter class="sticky top-0" />
@@ -84,7 +79,7 @@
 			</Collapsible.Content>
 		</Collapsible.Root>
 	</div>
-	<div class="flex h-screen w-full flex-col gap-2 overflow-y-auto" id="charts">
+	<div class=" h-screen gap-2 overflow-y-auto" id="charts">
 		{#if !ctx.coverages.size}
 			<EmptyCoverages />
 		{:else}

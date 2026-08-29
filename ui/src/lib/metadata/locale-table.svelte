@@ -13,10 +13,10 @@
 	let numOfRows = $derived(Object.values(data).reduce((l, r) => l + r.size, 0));
 </script>
 
-<Table.Root class={cn('table-fixed', className)}>
+<Table.Root class={cn('table-auto', className)}>
 	<Table.Header>
 		<Table.Row>
-			<Table.Head>Field</Table.Head>
+			<Table.Head class="w-fit">Field</Table.Head>
 			<Table.Head>Language</Table.Head>
 			<Table.Head>Value</Table.Head>
 		</Table.Row>
@@ -28,8 +28,9 @@
 					{#each i18n as [lang, value], index (lang)}
 						<Table.Row>
 							{#if !index}
-								<Table.Cell class={cn(cellStyle, 'capitalize')} rowspan={i18n.size}
-									>{field}</Table.Cell
+								<Table.Cell
+									class={cn(cellStyle, 'whitespace-nowrap capitalize')}
+									rowspan={i18n.size}>{field}</Table.Cell
 								>
 							{/if}
 							<Table.Cell class={cn(cellStyle, '')}>{i18n.getTagName(lang)}</Table.Cell>

@@ -100,7 +100,7 @@
 	};
 </script>
 
-<Chart.Container {config} class="h-full w-full ">
+<Chart.Container {config}>
 	{#await dataPromise}
 		<EmptyChart status="loading" />
 	{:then data}
