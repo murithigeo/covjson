@@ -11,7 +11,7 @@
 	> {
 		min?: T;
 		max?: T;
-		index?: SliderBounds;
+		index?: SliderIndex;
 		value?: T;
 		values: Array<T>;
 		formatter?: (v: T) => T;

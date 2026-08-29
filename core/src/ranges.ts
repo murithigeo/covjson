@@ -90,7 +90,7 @@ export class NdArray<T extends string | number = string | number> {
 
   async get<T extends string | number | null>(indices: MapIndices | number[]) {
     if (!Array.isArray(indices)) indices = this.normalizeNamedIndices(indices);
-    let value = this.ndarr.get(...indices);
+    const value = this.ndarr.get(...indices);
     if (value !== undefined) return value;
     await this.loadTileset(indices);
     return this.ndarr.get(...indices) as T; // Dont recurse to avoid infinite loops

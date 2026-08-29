@@ -1,16 +1,12 @@
 <script lang="ts">
-	import type { ObservedProperty } from 'coveragejson';
 	import * as Card from '$lib/components/ui/card/index.js';
 	import { Label } from '$lib/components/ui/label/index.js';
-	import { ObservedProperty as ObsClass } from '@murithigeo/covjson-core';
+	import { ObservedProperty } from '@murithigeo/covjson-core';
 	import LocaleTable from './locale-table.svelte';
 	import CategoryTable from './category-table.svelte';
 	import { cn } from '$lib/utils.js';
 	import type { MetadataRenderProps } from './types.d.ts';
-	type Props = MetadataRenderProps<ObsClass | ObservedProperty>;
-	let { data, class: className }: Props = $props();
-	const toObs = () => (data instanceof ObsClass ? data : new ObsClass(data));
-	const obs = $derived(toObs());
+	let { data: obs, class: className }: MetadataRenderProps<ObservedProperty> = $props();
 	let label = $derived(obs.label);
 	let description = $derived(obs.description);
 </script>
@@ -36,9 +32,8 @@
 	</Card.Content>
 
 	<Card.Footer class="flex-col items-center">
-		{#if data.categories}
+		{#if obs.categories}
 			<h5>Categories</h5>
-			<CategoryTable data={data.categories} />
 		{:else}
 			<span class="flex flex-wrap items-center gap-2"> No Categories found</span>
 		{/if}

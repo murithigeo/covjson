@@ -7,12 +7,7 @@ import type {
   Unit as U
 } from 'coveragejson';
 import { isUndefined } from './domain/utils.ts';
-/**
- * https://bobbyhadz.com/blog/typescript-make-property-required
- */
-type WithRequiredProperty<Type, Key extends keyof Type> = Type & {
-  [Property in Key]-?: Type[Property];
-};
+
 abstract class Metadata<T> {
   abstract toPlain(): T;
   abstract label?: I18N;
@@ -70,11 +65,9 @@ export class Parameter extends Metadata<PR> {
     if (pr.unit) this.unit = new Unit(pr.unit, locale);
     if (pr.categoryEncoding) {
       this.categoryEncoding = new Map();
-      for (let key in pr.categoryEncoding) {
-        let val = pr.categoryEncoding[key];
-        if (!Array.isArray(val)) val = [val];
-        this.categoryEncoding.set(key, val);
-      }
+      Object.entries(pr.categoryEncoding)
+        .map(([key, val]) => [key, Array.isArray(val) ? val : [val]] as const)
+        .forEach(([key, val]) => this.categoryEncoding?.set(key, val));
     }
   }
   toPlain(): PR {

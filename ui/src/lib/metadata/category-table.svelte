@@ -1,18 +1,14 @@
 <script lang="ts">
-	import { Category as CatClass } from '@murithigeo/covjson-core';
-	import type { Category } from 'coveragejson';
-	import * as Table from '$lib/components/ui/table/index.ts';
-	import { getDashCtx } from '$lib/dashboards/utils/ctx.svelte.ts';
+	import { Category } from '@murithigeo/covjson-core';
+	import * as Table from '$lib/components/ui/table/index.js';
+	import { getDashCtx } from '$lib/dashboards/utils/ctx.svelte.js';
 	import type { MetadataRenderProps } from './types.d.ts';
 	const ctx = getDashCtx();
 
-	let { data = $bindable() }: MetadataRenderProps<(CatClass | Category)[]> = $props();
-	let categories = $derived.by(() => {
-		return data.map((v) => (v instanceof CatClass ? v : new CatClass(v)));
-	});
+	let { data: categories = $bindable() }: MetadataRenderProps<Category[]> = $props();
 </script>
 
-<Table.Root>
+<Table.Root class="table-fixed">
 	<Table.Caption>List of Categories and their Localization Values</Table.Caption>
 	<Table.Header>
 		<Table.Row>
@@ -29,21 +25,27 @@
 				{#each label as [lang, value], i (lang)}
 					<Table.Row>
 						{#if i === 0}
-							<Table.Cell {rowspan} class="border-r">{id}</Table.Cell>
-							<Table.Cell rowspan={label.size} class="border-r">Label</Table.Cell>
+							<Table.Cell {rowspan} class="border break-all whitespace-normal">{id}</Table.Cell>
+							<Table.Cell rowspan={label.size}>Label</Table.Cell>
 						{/if}
-						<Table.Cell>{label.getTagName(lang)}</Table.Cell>
-						<Table.Cell {lang}>{value}</Table.Cell>
+						<Table.Cell class="border break-all whitespace-normal"
+							>{label.getTagName(lang)}</Table.Cell
+						>
+						<Table.Cell class="border break-all whitespace-normal" {lang}>{value}</Table.Cell>
 					</Table.Row>
 				{/each}
 
 				{#each description as [lang, value], i (lang)}
 					<Table.Row>
 						{#if i === 0}
-							<Table.Cell rowspan={description.size} class="border-r">Description</Table.Cell>
+							<Table.Cell rowspan={description.size} class="border break-all whitespace-normal"
+								>Description</Table.Cell
+							>
 						{/if}
-						<Table.Cell>{description.getTagName(lang)}</Table.Cell>
-						<Table.Cell {lang}>{value}</Table.Cell>
+						<Table.Cell class="border break-all whitespace-normal"
+							>{description.getTagName(lang)}</Table.Cell
+						>
+						<Table.Cell class="border break-all whitespace-normal" {lang}>{value}</Table.Cell>
 					</Table.Row>
 				{/each}
 			{:else}

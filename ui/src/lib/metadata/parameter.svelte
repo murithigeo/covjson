@@ -1,15 +1,13 @@
 <script lang="ts">
 	import { Parameter, isUndefined } from '@murithigeo/covjson-core';
-	import { Separator } from '$lib/components/ui/separator/index.js';
 	import LocaleTable from './locale-table.svelte';
 	import ObservedProperty from './observed-property.svelte';
 	import * as Card from '$lib/components/ui/card/index.js';
 	import * as Collapsible from '$lib/components/ui/collapsible/index.js';
 	import * as Item from '$lib/components/ui/item/index.js';
 	import { Checkbox } from '$lib/components/ui/checkbox/index.js';
-	import { buttonVariants, Button } from '$lib/components/ui/button/index.js';
-	import { Switch } from '$lib/components/ui/switch/index.js';
-	import { Badge, type BadgeProps } from '$lib/components/ui/badge/index.js';
+	import { buttonVariants } from '$lib/components/ui/button/index.js';
+	import { Badge } from '$lib/components/ui/badge/index.js';
 	import { Label } from '$lib/components/ui/label/index.js';
 	import { ChartNoAxesColumnIcon } from '@lucide/svelte';
 	import type { RangeStatistics } from '$lib/statistics.js';
@@ -39,7 +37,7 @@
 	const label = $derived(parameter.label);
 
 	let rangeInfo = $derived.by(() => {
-		const overall = ctx.rangeInfo.get(key) || {};
+		const overall: RangeStatistics = ctx.rangeInfo.get(key) || {};
 		const coverage = { ...overall, ...(ctx.highlightCovSummary.get(key) || {}) };
 		function processStats(arr: (string | number | null | undefined)[]) {
 			let symbol = parameter.unit?.symbol.value;
@@ -57,11 +55,12 @@
 				.join('/');
 			// .concat(symbol || '');
 		}
-
-		coverage.min = processStats([coverage?.min, overall?.min]);
-		coverage.max = processStats([coverage?.max, overall?.max]);
-		coverage.mean = processStats([coverage?.mean, overall?.mean]);
-		coverage.median = processStats([coverage?.median, overall?.median]);
+		const stats: Partial<Record<keyof RangeStatistics | 'dataType', string>> = {};
+		stats.min = processStats([coverage?.min, overall?.min]);
+		stats.max = processStats([coverage?.max, overall?.max]);
+		stats.mean = processStats([coverage?.mean, overall?.mean]);
+		stats.median = processStats([coverage?.median, overall?.median]);
+		stats.dataType = overall.dataType || 'Uknown';
 		return coverage;
 	});
 
@@ -107,7 +106,7 @@
 			<Card.Content>
 				<Collapsible.Root open>
 					<Item.Root size="sm" variant="outline"
-						><Item.Media variant="icon" size="icon-sm"><ChartNoAxesColumnIcon /></Item.Media>
+						><Item.Media variant="icon"><ChartNoAxesColumnIcon /></Item.Media>
 						<Item.Content><Item.Title>Histogram</Item.Title></Item.Content>
 						<Item.Actions>
 							<Collapsible.Trigger

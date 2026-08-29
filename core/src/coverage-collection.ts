@@ -7,7 +7,7 @@ import type {
   Position
 } from 'coveragejson';
 import { Parameter, ParameterGroup } from './parameters.ts';
-import { Coverage, type CoverageOptions, type DataRow } from './coverage.ts';
+import { Coverage, type CoverageOptions } from './coverage.ts';
 import { Referencing, type UserReferencingOptions } from './referencing.ts';
 import { Base } from './base.ts';
 import type { FeatureCollection } from 'geojson';

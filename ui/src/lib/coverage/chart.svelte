@@ -1,11 +1,9 @@
 <script lang="ts">
 	// Houses the logic to load and visualize data
 	import { Coverage, minMax, type DataRow, isUndefined } from '@murithigeo/covjson-core';
-	import { SvelteMap, SvelteSet } from 'svelte/reactivity';
 	import { LineChart, BarChart, type LineChartProps, type BarChartProps } from 'layerchart';
 	import * as Chart from '$lib/components/ui/chart/index.js';
-	import { Skeleton } from '$lib/components/ui/skeleton/index.js';
-	import { getDashCtx } from '$lib/dashboards/utils/ctx.svelte.ts';
+	import { getDashCtx } from '$lib/dashboards/utils/ctx.svelte.js';
 	import { getCoverageCtx } from './coverage-ctx.svelte.ts';
 	import EmptyChart from '$lib/empty/chart.svelte';
 
@@ -79,15 +77,15 @@
 				.entries()
 				.filter(([key]) => ctx.selected.has(key))
 				.flatMap(([, { min, max }]) => [min, max])
+				.map((v) => (isUndefined(v) ? null : v))
 				.toArray()
 		);
 		props.brush = { axis: 'both' };
 		props.transform = { mode: 'domain', axis: 'both' };
-		console.log({ props });
 		return props;
 	};
 
-	let barChartProps = () => {
+	let barChartProps = (data: DataRow) => {
 		const props: BarChartProps<DataRow> = {};
 
 		return props;
@@ -96,18 +94,20 @@
 
 <Chart.Container {config} class="h-full w-full ">
 	{#await dataPromise}
-		<EmptyChart loaded={false} />
+		<EmptyChart status="loading" />
 	{:then data}
 		{#if !data.length}
-			<EmptyChart loaded />
+			<EmptyChart status="loaded" />
 		{:else if data.length === 1}
-			<BarChart {...barChartProps(data)} {data} />
+			<BarChart {...barChartProps(data[0])} {data} />
 		{:else}
-			<LineChart {...lineChartProps()} {data}>
+			<LineChart {...lineChartProps(data)} {data}>
 				{#snippet tooltip()}
 					<Chart.Tooltip hideLabel />
 				{/snippet}
 			</LineChart>
 		{/if}
+	{:catch error}
+		<EmptyChart status="error" />
 	{/await}
 </Chart.Container>
