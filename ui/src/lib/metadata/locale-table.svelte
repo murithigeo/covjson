@@ -3,10 +3,10 @@
 	import { I18N } from '@murithigeo/covjson-core';
 	import { cn } from '$lib/utils.js';
 	import type { MetadataRenderProps } from './types.d.ts';
-	import { getDashCtx } from '$lib/dashboards/utils/ctx.svelte.ts';
+	import { getDashCtx } from '$lib/dashboards/utils/ctx.svelte.js';
 	const ctx = getDashCtx();
 
-	type Props = MetadataRenderProps<Record<string, I18N>>;
+	type Props = MetadataRenderProps<Record<string, I18N>, {}>;
 
 	let { data = $bindable(), class: className }: Props = $props();
 	const cellStyle = 'border break-all whitespace-normal';

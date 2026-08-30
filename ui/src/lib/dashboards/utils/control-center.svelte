@@ -6,6 +6,7 @@
 	import * as Card from '$lib/components/ui/card/index.js';
 	import type { ClassValue } from 'clsx';
 	import { cn } from '$lib/utils.js';
+	import type { ButtonProps } from '$lib/components/ui/button/index.js';
 	const ctx = getDashCtx();
 
 	interface Props {
@@ -15,18 +16,15 @@
 	let { class: className }: Props = $props();
 </script>
 
-<Card.Root class={cn('h-full', className)}>
-	<Card.Footer>
-		<TemporalControl
-			values={ctx.tvalues
-				.keys()
-				.toArray()
-				.sort((a, b) => new Date(a).getTime() - new Date(b).getTime())}
-			onIndexChange={({ value }) => ctx.setNow(value)}
-			{buttonProps}
-			>{#snippet children()}
-				<ModeWatcher {buttonProps} />
-			{/snippet}
-		</TemporalControl>
-	</Card.Footer>
-</Card.Root>
+<TemporalControl
+	values={ctx.tvalues
+		.keys()
+		.toArray()
+		.sort((a, b) => new Date(a).getTime() - new Date(b).getTime())}
+	onIndexChange={({ value }) => ctx.setNow(value)}
+	{buttonProps}
+	class={cn('w-full', className)}
+	>{#snippet children()}
+		<ModeWatcher {buttonProps} />
+	{/snippet}
+</TemporalControl>

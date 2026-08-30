@@ -1,15 +1,34 @@
+<script lang="ts" module>
+	import { browser } from '$app/environment';
+	import {
+		Chart as ChartJS,
+		Title,
+		Tooltip,
+		Legend,
+		LineElement,
+		LinearScale,
+		PointElement,
+		CategoryScale,
+		type ChartData,
+		type ChartDataset,
+		type ChartOptions
+	} from 'chart.js';
+
+	ChartJS.register(Title, Tooltip, LineElement, LinearScale, PointElement, CategoryScale);
+</script>
+
 <script lang="ts">
 	// Houses the logic to load and visualize data
 	import { Coverage, minMax, type DataRow, isUndefined } from '@murithigeo/covjson-core';
-	import { LineChart, BarChart, type LineChartProps, type BarChartProps } from 'layerchart';
-	import * as Chart from '$lib/components/ui/chart/index.js';
 	import { getDashCtx } from '$lib/dashboards/utils/ctx.svelte.js';
 	import { getCoverageCtx } from './coverage-ctx.svelte.ts';
 	import EmptyChart from '$lib/empty/chart.svelte';
-
+	import Meter from './charts/meter.svelte';
+	import { Line } from 'svelte-chartjs';
 	interface Props {
 		coverage: Coverage;
 	}
+
 	let { coverage = $bindable() }: Props = $props();
 	const ctx = getDashCtx();
 	const covCtx = getCoverageCtx();
@@ -17,105 +36,109 @@
 	let selected = $derived(ctx.selected);
 	let config = $derived(ctx.chartConfig);
 
-	let preloadAxis = $derived.by<string[]>(() => {
-		const preloadAxis = Array<string>();
-		if (coverage.domainType === 'Grid') {
-			const { z, t } = coverage;
-			// Load all t values for this map of indices because t is the x-axis
-			if (z.length > 1 && t.length < 2) preloadAxis.push('t');
-			// Else chart against z axis
-			else preloadAxis.push('z');
+	/**
+	 * The axisName to be used as xAxis. Will be preloaded
+	 */
+	let xAxis = $derived.by<string>(() => {
+		const {
+			domainType,
+			t: { length: tLen },
+			z: { length: zLen }
+		} = coverage;
+		if (domainType === 'Section') return 'z';
+		if (domainType === 'Grid') {
+			if (!zLen && !tLen) return 'z';
+			if (zLen < 2) return 't';
+			if (tLen < 2) return 'z';
+			return 'z';
 		}
-		return preloadAxis;
+		return 't';
 	});
+	let gradient = $state<LinearGradient>();
+	let chartWidth = $state<number>();
+	let chartHeight = $state<number>();
+
+	const computeData = (rows: DataRow[]) => {
+		const data: ChartData<'line', DataRow> = { datasets: [] };
+		data.labels = rows.map((row) => row[xAxis]);
+		data.datasets = ctx.parameters
+			.entries()
+			.filter(([key]) => ctx.selected.has(key) && coverage.ranges.has(key))
+			.toArray()
+			.map(([key, param]) => {
+				const props: ChartDataset<'line', DataRow> = {
+					label: param.label.query()?.value || key,
+					data: rows.map((row) => row[key]),
+					borderColor: ctx.rangeInfo.get(key)!.color!.primary
+				};
+				if (!param.categoryEncoding) return props;
+				props.borderColor = (chart, area) => {
+					const {
+						color: { primary, categories }
+					} = ctx.rangeInfo.get(key)!;
+
+					if (!param.categoryEncoding) return primary;
+					const width = area.right - area.left;
+					const height = area.bottom - area.top;
+					if (!gradient || width !== chartWidth || height !== chartHeight) {
+						chartHeight = height;
+						chartWidth = width;
+						// gradient = (0, area.bottom, 0, area.top);
+
+						for (const [id, values] of param.categoryEncoding) {
+							values.forEach((int) => gradient.addColorStop(int, categories!.get(id) || primary));
+						}
+					}
+					return gradient;
+				};
+				return props;
+			});
+
+		return data;
+	};
 	let dataPromise = $derived.by(async () => {
-		const data = await coverage.query(...preloadAxis)(indices, selected.keys().toArray());
+		const data = await coverage.query(xAxis)(indices, selected.keys().toArray());
 		coverage.ranges.forEach((value, key) => {
 			if (!selected.has(key)) return;
 			ctx.updateRangeData(key, coverage.uuid, value);
 		});
 		return data;
 	});
-
-	let lineChartProps = () => {
-		const props: LineChartProps<DataRow> = {};
-		props.props = {};
-		props.series = Object.values(config);
-		props.xNice = true;
-		props.yNice = true;
-		props.padding = { top: 10, bottom: 30, left: 12, right: 10 };
-		switch (coverage.domainType) {
-			case 'Grid':
-				if (coverage.z.length < 2) {
-					props.x = 't';
-					props.props.xAxis = { label: 'DateTime' };
-				} else {
-					props.x = 'z';
-					props.props.xAxis = { label: 'Elevation' };
-				}
-				break;
-			case 'Section':
-				props.x = 'z';
-				props.props.xAxis = { label: 'Elevation' };
-				break;
-			case 'Trajectory':
-				props.x = (d) => coverage.t[d];
-				props.props.xAxis = { label: 'Date-Time/Position' };
-				break;
-			case 'MultiPointSeries':
-			case 'MultiPolygonSeries':
-			case 'PointSeries':
-			case 'PolygonSeries':
-				props.x = 't';
-				props.props.xAxis = { label: 'Date-Time' };
-				break;
-		}
-		// props.annotations = [{ type: 'line' }];
-		props.yDomain = minMax(
+	let options = () => {
+		let options: ChartOptions<'line'> = {};
+		const [min, max] = minMax(
 			ctx.rangeInfo
 				.entries()
-				.filter(([key]) => ctx.selected.has(key))
+				.filter(([key]) => ctx.selected.has(key) && coverage.parameters.has(key))
 				.flatMap(([, { min, max }]) => [min, max])
-				.map((v) => (isUndefined(v) ? null : v))
-				.toArray()
-		).map((v) => (typeof v === 'number' ? v + 1 : v));
-		props.brush = { axis: 'both' };
-		props.transform = { mode: 'domain', axis: 'both' };
-		return props;
-	};
-
-	let barChartProps = (data: DataRow) => {
-		const props: BarChartProps<DataRow> = {};
-		props.series = Object.values(config);
-		props.x = ctx.selected.keys().toArray();
-		props.yDomain = minMax(
-			ctx.rangeInfo
-				.entries()
-				.filter(([key]) => ctx.selected.has(key))
-				.flatMap(([, { min, max }]) => [min, max])
-				.map((v) => (isUndefined(v) ? null : v))
+				.filter((v) => !isUndefined(v))
 				.toArray()
 		);
-		return props;
+		options.scales.y = { min, max };
+		options.scales.x = { title: { display: true } };
+
+		if (xAxis === 't') {
+			if (coverage.domainType === 'Trajectory' || coverage.domainType === 'Section') {
+				options.scales.x.title = 'composite';
+			}
+		} else {
+			options.scales.x.title.text = 'z';
+		}
+		return options;
 	};
 </script>
 
-<Chart.Container {config}>
-	{#await dataPromise}
-		<EmptyChart status="loading" />
-	{:then data}
-		{#if !data.length}
-			<EmptyChart status="loaded" />
-		{:else if data.length === 1}
-			<BarChart {...barChartProps(data[0])} {data} />
-		{:else}
-			<LineChart {...lineChartProps()} {data}>
-				{#snippet tooltip()}
-					<Chart.Tooltip hideLabel />
-				{/snippet}
-			</LineChart>
-		{/if}
-	{:catch error}
-		<EmptyChart status="error" {error} />
-	{/await}
-</Chart.Container>
+{#await dataPromise}
+	<EmptyChart status="loading" />
+{:then data}
+	{#if !data.length}
+		<EmptyChart status="loaded" />
+	{:else if data.length === 1}
+		<Meter data={data[0]} />
+	{:else}
+		<Line data={computeData(data)} options={options()} />
+	{/if}
+{:catch error}
+	{console.log(error)}
+	<EmptyChart status="error" {error} />
+{/await}

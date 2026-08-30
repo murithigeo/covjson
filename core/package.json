@@ -22,7 +22,7 @@
     "@turf/line-offset": "^7.4.0",
     "@turf/midpoint": "^7.4.0",
     "@turf/nearest-point-on-line": "^7.4.0",
-    "nanoid": "^6.0.1",
+    "nanoid": "^3.3.17",
     "ndarray": "^1.1.1",
     "ndarray-ops": "^1.2.2",
     "point-in-polygon-hao": "^1.2.4",

@@ -367,3 +367,6 @@ export function tIndicesOfNearest(a: string[], t: string) {
 export function isUndefined<T>(val: T | undefined): val is undefined {
   return typeof val === 'undefined';
 }
+export function isNull(val: unknown | null): val is null {
+  return val === undefined;
+}

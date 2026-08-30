@@ -10,7 +10,7 @@
 	import * as ButtonGroup from '$lib/components/ui/button-group/index.js';
 	import * as Card from '$lib/components/ui/card/index.js';
 	import { getDashCtx } from '../dashboards/utils/ctx.svelte.ts';
-	import { Separator } from '$lib/components/ui/separator/index.js';
+	import type { MetadataRenderProps } from './types.d.ts';
 	const ctx = getDashCtx();
 	type Props = MetadataRenderProps<ParameterGroup, { open?: boolean }>;
 	let { data = $bindable(), open = $bindable(false) }: Props = $props();
@@ -66,7 +66,7 @@
 				</ButtonGroup.Root>
 				<Collapsible.Root>
 					<Item.Root size="sm" variant="outline">
-						<Item.Media size="icon-sm" variant="icon"><LanguagesIcon /></Item.Media>
+						<Item.Media variant="icon"><LanguagesIcon /></Item.Media>
 						<Item.Content>
 							<Item.Title lang="en">Internationalization</Item.Title>
 						</Item.Content>

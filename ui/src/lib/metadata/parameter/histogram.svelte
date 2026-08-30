@@ -1,7 +1,5 @@
 <script lang="ts">
-	import { BarChart } from 'layerchart';
 	import type { FrequencyMap, RangeConfig } from '$lib/statistics.js';
-	import * as Chart from '$lib/components/ui/chart/index.js';
 	import * as Card from '$lib/components/ui/card/index.js';
 	import { isUndefined } from '@murithigeo/covjson-core';
 	type Props = { config: RangeConfig } & Partial<Record<'overall' | 'coverage', FrequencyMap>>;

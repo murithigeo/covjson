@@ -3,7 +3,6 @@
 	import { Label } from '$lib/components/ui/label/index.js';
 	import { ObservedProperty } from '@murithigeo/covjson-core';
 	import LocaleTable from './locale-table.svelte';
-	import CategoryTable from './category-table.svelte';
 	import { cn } from '$lib/utils.js';
 	import type { MetadataRenderProps } from './types.d.ts';
 	let { data: obs, class: className }: MetadataRenderProps<ObservedProperty> = $props();
@@ -30,13 +29,4 @@
 			}}
 		/>
 	</Card.Content>
-
-	<Card.Footer class="flex-col items-center">
-		{#if obs.categories}
-			<h5>Categories</h5>
-			<CategoryTable data={obs.categories} />
-		{:else}
-			<span class="flex flex-wrap items-center gap-2"> No Categories found</span>
-		{/if}
-	</Card.Footer>
 </Card.Root>

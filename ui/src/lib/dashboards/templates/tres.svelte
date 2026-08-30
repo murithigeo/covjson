@@ -1,4 +1,4 @@
-<svelte:options customElement="covjson-tres-dashboard" />
+<svelte:options customElement="tres-dashboard" />
 
 <script lang="ts">
 	import type { DashboardProps } from '../utils/types.d.ts';
@@ -31,10 +31,14 @@
 	<div class="sticky top-0 h-100 w-full space-y-2 opacity-[1] md:h-screen">
 		{@render children?.()}
 	</div>
-	<div class="h- mr-2 flex h-screen flex-col overflow-y-auto" id="parameter-preview">
-		<DashControlCenter class="sticky top-0" />
+	<div class="mr-2 flex h-screen w-full flex-col overflow-y-auto" id="parameter-preview">
+		<div class="sticky top-0 w-full"><DashControlCenter /></div>
 
-		<Collapsible.Root id="parameter-group-list" open>
+		<Collapsible.Root
+			id="parameter-group-list"
+			open={ctx.parameterGroups.size}
+			disabled={!ctx.parameterGroups.size}
+		>
 			<Item.Root size="sm" variant="outline">
 				<Item.Media><GroupIcon class="size-5" /></Item.Media>
 				<Item.Content>
@@ -47,13 +51,9 @@
 				</Item.Actions>
 			</Item.Root>
 			<Collapsible.Content class="ml-2">
-				{#if !ctx.parameterGroups.size}
-					<EmptyParameterGroups />
-				{:else}
-					{#each ctx.parameterGroups as group, i (i)}
-						<ParameterGroupComponent data={group} open={!i} />
-					{/each}
-				{/if}
+				{#each ctx.parameterGroups as group, i (i)}
+					<ParameterGroupComponent data={group} open={!i} />
+				{/each}
 			</Collapsible.Content>
 		</Collapsible.Root>
 		<Collapsible.Root id="parameter-list" open>

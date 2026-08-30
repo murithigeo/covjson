@@ -9,13 +9,19 @@
 	import { buttonVariants } from '$lib/components/ui/button/index.js';
 	import { Badge, type BadgeVariant } from '$lib/components/ui/badge/index.js';
 	import { Label } from '$lib/components/ui/label/index.js';
-	import { ChartNoAxesColumnIcon } from '@lucide/svelte';
-	import type { RangeStatistics } from '$lib/statistics.js';
+	import {} from '@lucide/svelte';
+	import type { RangeStatistics, RangeConfig } from '$lib/statistics.js';
 	import UnitComponent from './parameter/unit.svelte';
-	import { ChevronsUpDown, SunSnowIcon, LanguagesIcon } from '@lucide/svelte';
+	import {
+		ChevronsUpDown,
+		SunSnowIcon,
+		LanguagesIcon,
+		ChartNoAxesColumnIcon
+	} from '@lucide/svelte';
 	import type { MetadataRenderProps } from './types.d.ts';
 	import { getDashCtx } from '../dashboards/utils/ctx.svelte.ts';
 	import ColorPicker from 'svelte-awesome-color-picker';
+	import CategoryTable from './category-table.svelte';
 	type Props = MetadataRenderProps<
 		Parameter,
 		{
@@ -49,8 +55,9 @@
 				.join('/');
 			// .concat(symbol || '');
 		}
-		const stats: Partial<Record<keyof RangeStatistics | 'dataType', string>> & { color?: string } =
-			{ color: overall?.color };
+		const stats: Partial<Record<keyof RangeStatistics | 'dataType', string>> & {
+			color?: RangeConfig['color'];
+		} = { color: overall?.color };
 		stats.min = processStats([coverage?.min, overall?.min]);
 		stats.max = processStats([coverage?.max, overall?.max]);
 		stats.mean = processStats([coverage?.mean, overall?.mean]);
@@ -82,7 +89,7 @@
 					<Badge {variant}>{parameter.unit.symbol.value}</Badge>
 				{/if}
 				<ColorPicker
-					hex={rangeInfo?.color}
+					hex={rangeInfo?.color?.primary}
 					onInput={({ hex }) => ctx.setParameterColor(key, hex)}
 					label=""
 					bind:isOpen
@@ -162,6 +169,11 @@
 						{/if}
 					</Collapsible.Content>
 				</Collapsible.Root>
+				<CategoryTable
+					data={parameter.observedProperty.categories}
+					parameterKey={key}
+					primaryColor={rangeInfo?.color?.primary}
+				/>
 			</Card.Content>
 		</Card.Root>
 	</Collapsible.Content>

@@ -1,7 +1,6 @@
 import { Coverage, NdArray, Parameter, type OnIndicesChange } from '@murithigeo/covjson-core';
 import { getContext, onDestroy, setContext } from 'svelte';
 import { SvelteSet, SvelteMap } from 'svelte/reactivity';
-import type { ChartConfig } from '$lib/components/ui/chart/index.js';
 import {
 	getParameterStatistics,
 	type RangeSummary,
@@ -108,10 +107,13 @@ export class DashboardContext {
 		this.highlightCoverage = typeof coverage === 'string' ? coverage : coverage.uuid;
 	}
 
-	setParameterColor(paramId: string, color: string | null) {
+	setParameterColor(paramId: string, color: string | null, categoryId?: string) {
 		const config = this.rangeInfo.get(paramId);
 		if (color === null || !config) return;
-		config.color = color;
+		config.color.primary = color;
+		if (config.color.categories && categoryId) {
+			config.color.categories.set(categoryId, color);
+		}
 		this.rangeInfo.set(paramId, config);
 	}
 }

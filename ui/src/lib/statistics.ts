@@ -1,7 +1,5 @@
 import { minMax, NdArray, Parameter } from '@murithigeo/covjson-core';
 import { getRandomColor } from '$lib/utils.js';
-import type { CategoryEncoding } from 'coveragejson';
-
 /**
  * For a parameter with categoryEncoding, the bins are the categoryIds
  * @todo instead of setting up {label}, setup a onclick
@@ -45,8 +43,19 @@ export interface RangeStatistics {
 export interface RangeConfig {
 	/**
 	 * The color to be used for this parameter in charts and the basis for gradient
+	 * If the parameter is categorical, then it should be a map
 	 */
-	color: string;
+	color: {
+		/**
+		 * The primary color to be used.
+		 */
+		primary: string;
+		/**
+		 * The color code for each category if parameter has categories.
+		 * Defaults to primary if color not not defined
+		 */
+		categories?: Map<string, string>;
+	};
 	/**
 	 * The string to display when hovering over data in chart
 	 * @default key
@@ -60,8 +69,16 @@ export interface RangeConfig {
 
 export type RangeSummary = RangeConfig & RangeStatistics;
 export function generateRangeConfig(param: Parameter | string): RangeConfig {
+	const primary = getRandomColor();
+	const categories =
+		typeof param === 'string' || !param.categoryEncoding
+			? undefined
+			: new Map([...param.categoryEncoding.keys().map((key) => [key, primary] as const)]);
 	return {
-		color: getRandomColor(),
+		color: {
+			primary,
+			categories
+		},
 		label: typeof param === 'string' ? param : param.label.query()?.value || param.key,
 		key: typeof param === 'string' ? param : param.key
 	};
