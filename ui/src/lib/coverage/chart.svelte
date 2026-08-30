@@ -105,7 +105,7 @@
 		return data;
 	});
 	let options = () => {
-		let options: ChartOptions<'line'> = {};
+		let options: ChartOptions<'line'> = { scales: { x: {}, y: {} } };
 		const [min, max] = minMax(
 			ctx.rangeInfo
 				.entries()
