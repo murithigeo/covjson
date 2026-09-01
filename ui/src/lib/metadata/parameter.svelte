@@ -9,9 +9,9 @@
 	import { buttonVariants } from '$lib/components/ui/button/index.js';
 	import { Badge, type BadgeVariant } from '$lib/components/ui/badge/index.js';
 	import { Label } from '$lib/components/ui/label/index.js';
-	import {} from '@lucide/svelte';
 	import type { RangeStatistics, RangeConfig } from '$lib/statistics.js';
 	import UnitComponent from './parameter/unit.svelte';
+
 	import {
 		ChevronsUpDown,
 		SunSnowIcon,
@@ -20,7 +20,7 @@
 	} from '@lucide/svelte';
 	import type { MetadataRenderProps } from './types.d.ts';
 	import { getDashCtx } from '../dashboards/utils/ctx.svelte.ts';
-	import ColorPicker from 'svelte-awesome-color-picker';
+	import ColorPicker from './parameter/color-picker.svelte';
 	import CategoryTable from './category-table.svelte';
 	type Props = MetadataRenderProps<
 		Parameter,
@@ -92,7 +92,6 @@
 					hex={rangeInfo?.color?.primary}
 					onInput={({ hex }) => ctx.setParameterColor(key, hex)}
 					label=""
-					bind:isOpen
 				/>
 			</Item.Title>
 			<Item.Description class="grid grid-cols-2 gap-1">
@@ -169,11 +168,7 @@
 						{/if}
 					</Collapsible.Content>
 				</Collapsible.Root>
-				<CategoryTable
-					data={parameter.observedProperty.categories}
-					parameterKey={key}
-					primaryColor={rangeInfo?.color?.primary}
-				/>
+				<CategoryTable data={parameter.observedProperty.categories} parameterKey={key} />
 			</Card.Content>
 		</Card.Root>
 	</Collapsible.Content>

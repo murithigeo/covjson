@@ -8,16 +8,16 @@
 	import * as Card from '$lib/components/ui/card/index.js';
 	import type { MetadataRenderProps } from './types.d.ts';
 	import { cn } from '$lib/utils.js';
-	import ColorPicker from 'svelte-awesome-color-picker';
+	import ColorPicker from './parameter/color-picker.svelte';
 	import { ChevronsUpDownIcon, ChartColumnStacked } from '@lucide/svelte';
+	import { type PartialBy } from '$lib/dashboards/utils/types.js';
+
+	type Props = PartialBy<MetadataRenderProps<Category[], { parameterKey: string }>, 'data'>;
+	let { data: categories = $bindable(), parameterKey = $bindable() }: Props = $props();
 	const ctx = getDashCtx();
 
-	let {
-		data: categories = $bindable(),
-		parameterKey = $bindable(),
-		primaryColor = $bindable()
-	}: MetadataRenderProps<Category[], { parameterKey: string; primaryColor?: string }> = $props();
-
+	const rangeInfo = $derived(ctx.rangeInfo.get(parameterKey));
+	$inspect(ctx);
 	const cellStyle = 'border break-all whitespace-normal';
 </script>
 
@@ -57,7 +57,7 @@
 												<Table.Cell {rowspan} class={cn(cellStyle, '')}>{id}</Table.Cell>
 												<Table.Cell {rowspan} class={cn(cellStyle)}
 													><ColorPicker
-														hex={primaryColor}
+														hex={rangeInfo?.color.categories?.get(id) || rangeInfo?.color?.primary}
 														onInput={({ hex }) => ctx.setParameterColor(parameterKey, hex, id)}
 														label=""
 													/></Table.Cell
