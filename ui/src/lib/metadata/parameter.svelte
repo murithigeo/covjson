@@ -11,6 +11,7 @@
 	import { Label } from '$lib/components/ui/label/index.js';
 	import type { RangeStatistics, RangeConfig } from '$lib/statistics.js';
 	import UnitComponent from './parameter/unit.svelte';
+	import Histogram from './parameter/histogram.svelte';
 
 	import {
 		ChevronsUpDown,
@@ -43,7 +44,7 @@
 
 	let rangeInfo = $derived.by(() => {
 		const overall = ctx.rangeInfo.get(key);
-		const coverage = { ...overall, ...(ctx.highlightCovSummary.get(key) || {}) };
+		const coverage = ctx.currentCoverageSummary?.get(key);
 		function processStats(arr: (string | number | null | undefined)[]) {
 			return arr
 				.map((v) => {
@@ -65,8 +66,6 @@
 		stats.dataType = overall?.dataType || 'Uknown';
 		return stats;
 	});
-	let isOpen = $state(false);
-	$inspect(isOpen);
 </script>
 
 <Collapsible.Root bind:open>
@@ -74,7 +73,7 @@
 		<Item.Media>
 			<Checkbox
 				checked={ctx.selected.has(key)}
-				onCheckedChange={() => ctx.updateParameterSelectionStatus(key)}
+				onCheckedChange={ctx.updateParameterSelectionStatus(key)}
 			/></Item.Media
 		>
 		<Item.Content>
@@ -122,6 +121,9 @@
 							</Collapsible.Trigger>
 						</Item.Actions></Item.Root
 					>
+					<Collapsible.Content>
+						<Histogram parameterKey={key} />
+					</Collapsible.Content>
 				</Collapsible.Root>
 				<Collapsible.Root disabled={!parameter.label.size && !parameter.description.size}>
 					<Item.Root size="sm" variant="outline">

@@ -5,7 +5,7 @@ import { getDashCtx } from '../dashboards/utils/ctx.svelte.ts';
 export class CoverageCtx {
 	dashCtx = getDashCtx();
 	coverage = $state<Coverage>(); // Coverage;
-	indices = $derived(new SvelteMap(this.coverage?.indices));
+	indices = $state(new SvelteMap<string, number>());
 	limits = $derived.by(() => {
 		const limits = new SvelteMap<'horizontal' | 'vertical', { value: number; axis: string }>();
 		if (!this.coverage) return limits;

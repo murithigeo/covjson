@@ -1,10 +1,11 @@
 import { minMax, NdArray, Parameter } from '@murithigeo/covjson-core';
 import { getRandomColor } from '$lib/utils.js';
+import { SvelteMap } from 'svelte/reactivity';
 /**
  * For a parameter with categoryEncoding, the bins are the categoryIds
  * @todo instead of setting up {label}, setup a onclick
  */
-export type FrequencyMap = Map<string | number | null, number>;
+export type FrequencyMap = SvelteMap<string | null, number>;
 /**
  * Summary statistics of the Parameter
  * Calculated against currently loaded data and the expected totalSize of previous and currently loaded parameters
@@ -54,7 +55,7 @@ export interface RangeConfig {
 		 * The color code for each category if parameter has categories.
 		 * Defaults to primary if color not not defined
 		 */
-		categories?: Map<string, string>;
+		categories?: SvelteMap<string | null, string>;
 	};
 	/**
 	 * The string to display when hovering over data in chart
@@ -70,14 +71,20 @@ export interface RangeConfig {
 export type RangeSummary = RangeConfig & RangeStatistics;
 export function generateRangeConfig(param: Parameter | string): RangeConfig {
 	const primary = getRandomColor();
-	const categories =
-		typeof param === 'string' || !param.categoryEncoding
-			? undefined
-			: new Map([...param.categoryEncoding.keys().map((key) => [key, primary] as const)]);
+	if (typeof param === 'string') {
+		return {
+			label: param,
+			key: param,
+			color: { primary }
+		};
+	}
+
 	return {
 		color: {
 			primary,
-			categories
+			categories: param.categoryEncoding
+				? new SvelteMap(param.categoryEncoding.keys().map((key) => [key, primary]))
+				: undefined
 		},
 		label: typeof param === 'string' ? param : param.label.query()?.value || param.key,
 		key: typeof param === 'string' ? param : param.key
@@ -89,8 +96,13 @@ export function getParameterStatistics(
 	data: Map<string, NdArray>,
 	stats: RangeSummary = generateRangeConfig(param)
 ): RangeSummary {
-	Object.assign(stats, getRangeStats(data.values().toArray()));
-	return stats;
+	return {
+		...stats,
+		...getRangeStats(
+			data.values().toArray(),
+			typeof param === 'string' ? undefined : param.categoryEncoding
+		)
+	};
 }
 
 /**
@@ -121,7 +133,9 @@ export function getRangeStats(
 			number | null
 		)[];
 		if (categoryEncoding) stats.frequency = categoricalHistogram(categoryEncoding, values);
-		else stats.frequency = nonCategoricalHistogram(values);
+		else {
+			stats.frequency = nonCategoricalHistogram(values);
+		}
 		[stats.min, stats.max] = minMax(values);
 		let median: number | null;
 		if (Array.isArray(medianIndex)) {
@@ -139,24 +153,23 @@ export function getRangeStats(
 }
 
 function categoricalHistogram(encoding: Map<string, number[]>, data: (number | null)[]) {
-	const map: FrequencyMap = new Map();
+	const map: FrequencyMap = new SvelteMap();
 	const nonNulls = data.filter((v) => typeof v === 'number');
 	map.set(null, data.length - nonNulls.length);
 	for (const [id, values] of encoding) {
 		map.set(id, nonNulls.filter((v) => values.includes(v)).length);
 	}
-
 	return map;
 }
 
 function nonCategoricalHistogram<T extends string | number>(data: (T | null)[]) {
-	const map: FrequencyMap = new Map();
+	const map: FrequencyMap = new SvelteMap();
 
 	const values = data.filter((v) => v !== null);
 	map.set(null, data.length - values.length);
 	const set = new Set(values);
 	for (const id of set) {
-		map.set(id, data.filter((v) => v === id).length);
+		map.set(id.toString(), data.filter((v) => v === id).length);
 	}
 	return map;
 }

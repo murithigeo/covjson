@@ -16,8 +16,6 @@
 	let { data: categories = $bindable(), parameterKey = $bindable() }: Props = $props();
 	const ctx = getDashCtx();
 
-	const rangeInfo = $derived(ctx.rangeInfo.get(parameterKey));
-	$inspect(ctx);
 	const cellStyle = 'border break-all whitespace-normal';
 </script>
 
@@ -57,7 +55,8 @@
 												<Table.Cell {rowspan} class={cn(cellStyle, '')}>{id}</Table.Cell>
 												<Table.Cell {rowspan} class={cn(cellStyle)}
 													><ColorPicker
-														hex={rangeInfo?.color.categories?.get(id) || rangeInfo?.color?.primary}
+														hex={ctx.rangeInfo.get(parameterKey)?.color.categories?.get(id) ||
+															ctx.rangeInfo.get(parameterKey)?.color?.primary}
 														onInput={({ hex }) => ctx.setParameterColor(parameterKey, hex, id)}
 														label=""
 													/></Table.Cell

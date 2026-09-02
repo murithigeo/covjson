@@ -9,9 +9,9 @@ import {
 	type RangeStatistics
 } from '$lib/statistics.js';
 import type { SliderValue, StringSliderValue } from '$lib/sliders/sliders.js';
-
+import './chart-register.ts';
 // todo automatically call onIndicesChange on the active Coverage
-export class DashboardContext {
+class DashboardContext {
 	onIndicesChange = $state<OnIndicesChange>();
 	detail = $state<'simple' | 'full'>('full');
 	pinned = $state(new SvelteMap<string, Coverage>());
@@ -31,69 +31,77 @@ export class DashboardContext {
 	selected = $derived(new SvelteSet(this.parameters.keys()));
 	now = $state<SliderValue<string>>();
 	tvalues = $state(new SvelteSet<string>());
-	rangeData = $state(new SvelteMap<string, Map<string, NdArray>>());
+	rangeData = $state(new SvelteMap<string, SvelteMap<string, NdArray>>());
 	rangeInfo = $state(new SvelteMap<string, RangeSummary>());
-	highlightCoverage = $derived<string | undefined>(this.coverages.keys().toArray()[0]);
-	highlightCovSummary = $derived.by(() => {
-		const stats = new SvelteMap<string, RangeStatistics>();
-		for (const [key, param] of this.parameters) {
-			if (!this.highlightCoverage) continue;
-			const data = this.rangeData.get(key)?.get(this.highlightCoverage);
-			if (!data) continue;
-			const config: RangeSummary = this.rangeInfo.get(key) || generateRangeConfig(param);
-			Object.assign(config, getRangeStats([data]));
-			stats.set(key, config);
-		}
-		return stats;
+	currentCoverage = $state<string | Coverage>();
+	currentCoverageSummary = $derived.by(() => {
+		if (!this.currentCoverage) return undefined;
+		const cov =
+			typeof this.currentCoverage === 'string'
+				? this.coverages.get(this.currentCoverage)
+				: this.currentCoverage;
+		if (!cov) return undefined;
+		const map = new Map<string, RangeSummary>();
+		//
+		this.rangeInfo
+			.entries()
+			.filter(([key]) => cov.ranges.has(key))
+			.forEach(([key, info]) => {
+				const param = this.parameters.get(key) || key;
+				const rangeData = this.rangeData.get(key)?.get(cov.uuid);
+				const ranges = new Map();
+
+				if (rangeData) ranges.set(cov.uuid, rangeData);
+
+				const specific = getParameterStatistics(param, ranges, info);
+				map.set(key, specific);
+			});
+		return map;
 	});
 	constructor() {
 		$effect(() => {
 			this.coverages.values().forEach((cov) => cov.t.forEach((t) => this.tvalues.add(t)));
 		});
 
-		// calculates range statistics
-		$effect(() => {
-			for (const [key, covRanges] of this.rangeData) {
-				const stats = getParameterStatistics(
-					this.parameters.get(key) || key,
-					covRanges,
-					this.rangeInfo.get(key)
-				);
-				this.rangeInfo.set(key, stats);
-			}
-		});
 		onDestroy(() => {
 			this.onIndicesChange = undefined;
 			this.input = [];
 			this.pinned.clear();
-			this.coverages.clear();
-			this.parameters.clear();
 			this.selected.clear();
-			this.parameterGroups.clear();
 			this.tvalues.clear();
 			this.rangeData.clear();
+			this.rangeInfo.clear();
 		});
 	}
-	updateParameterSelectionStatus(id: string): void {
-		if (this.selected.has(id) && this.selected.size > 1) {
-			this.selected.delete(id);
-		} else this.selected.add(id);
+	updateParameterSelectionStatus(id: string) {
+		// if (this.selected.has(id) && this.selected.size > 1) {
+		return (checked: boolean) => {
+			if (checked) this.selected.add(id);
+			else this.selected.delete(id);
+		};
 	}
+
 	trashCoverage(uuid: string) {
 		this.coverages.delete(uuid);
 		this.input = this.input?.filter(({ uuid: id }) => id !== uuid);
 	}
 	updateCoveragePinStatus(uuid: string): void {
-		if (this.pinned.has(uuid)) this.pinned.delete(uuid);
-		else if (this.coverages.has(uuid)) this.pinned.set(uuid, this.coverages.get(uuid)!);
+		this.input = this.input?.filter((cov) => cov.uuid !== uuid);
+		this.pinned.delete(uuid);
 	}
-	chartConfig = $derived<Record<string, RangeSummary>>(Object.fromEntries(this.rangeInfo));
+	updateRangeInfoStatistics(paramId: string) {
+		const param = this.parameters.get(paramId) || paramId;
+		const rangeData = this.rangeData.get(paramId);
+		const info = this.rangeInfo.get(paramId);
 
+		const updated = getParameterStatistics(param, rangeData || new Map(), info);
+		this.rangeInfo.set(paramId, updated);
+	}
 	updateRangeData(paramId: string, covUuid: string, range: NdArray) {
-		let data = this.rangeData.get(paramId);
-		data = data || new SvelteMap();
+		let data = this.rangeData.get(paramId) || new SvelteMap();
 		data.set(covUuid, range);
 		this.rangeData.set(paramId, data);
+		this.updateRangeInfoStatistics(paramId);
 	}
 
 	setNow(bounds: StringSliderValue): void {
@@ -103,18 +111,20 @@ export class DashboardContext {
 				if (bounds[i] !== this.now[i]) this.now[i] = bounds[i];
 			}
 	}
-	setActiveCoverage(coverage: Coverage | string) {
-		this.highlightCoverage = typeof coverage === 'string' ? coverage : coverage.uuid;
+	setCurrentCoverage(coverage: Coverage | string | undefined) {
+		this.currentCoverage = coverage;
 	}
 
 	setParameterColor(paramId: string, color: string | null, categoryId?: string) {
 		const config = this.rangeInfo.get(paramId);
 		if (color === null || !config) return;
-		config.color.primary = color;
-		if (config.color.categories && categoryId) {
-			config.color.categories.set(categoryId, color);
+		const updated = { ...config };
+		if (!categoryId) updated.color.primary = color;
+		if (updated.color.categories && categoryId) {
+			updated.color.categories.set(categoryId, color);
 		}
-		this.rangeInfo.set(paramId, config);
+
+		this.rangeInfo.set(paramId, updated);
 	}
 }
 

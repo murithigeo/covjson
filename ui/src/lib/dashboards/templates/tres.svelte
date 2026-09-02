@@ -6,24 +6,22 @@
 	import * as Item from '$lib/components/ui/item/index.js';
 	import { ChevronsUpDown, GroupIcon } from '@lucide/svelte';
 	import { buttonVariants } from '$lib/components/ui/button/index.js';
-	import { Separator } from '$lib/components/ui/separator/index.js';
 	import ParameterGroupComponent from '$lib/metadata/parameter-group.svelte';
 	import ParameterComponent from '$lib/metadata/parameter.svelte';
 	import CoverageComponent from '$lib/coverage/coverage.svelte';
-	import { Label } from '$lib/components/ui/label/index.js';
-	import { type ChartConfig } from '$lib/components/ui/chart/index.js';
 	import { setDashCtx } from '../utils/ctx.svelte.ts';
 	import DashControlCenter from '../utils/control-center.svelte';
 	import EmptyParameters from '$lib/empty/parameter.svelte';
-	import EmptyParameterGroups from '$lib/empty/parameter-group.svelte';
 	import EmptyCoverages from '$lib/empty/coverage.svelte';
 	let { onIndicesChange, data = $bindable(), detail = 'full', children }: DashboardProps = $props();
 	const ctx = setDashCtx();
-	$effect(() => {
-		ctx.onIndicesChange = onIndicesChange;
-		ctx.input = data;
-		ctx.detail = detail;
-	});
+
+	const setProperty = <K extends keyof typeof ctx, V extends (typeof ctx)[K]>(key: K, value: V) => {
+		ctx[key] = value;
+	};
+	$effect(() => setProperty('onIndicesChange', onIndicesChange));
+	$effect(() => setProperty('input', data));
+	$effect(() => setProperty('detail', detail));
 </script>
 
 <!-- May be instead of color, use a number to indicate which slot is set to -->
@@ -36,7 +34,7 @@
 
 		<Collapsible.Root
 			id="parameter-group-list"
-			open={ctx.parameterGroups.size}
+			open={!!ctx.parameterGroups.size}
 			disabled={!ctx.parameterGroups.size}
 		>
 			<Item.Root size="sm" variant="outline">
@@ -84,7 +82,7 @@
 			<EmptyCoverages />
 		{:else}
 			{#each ctx.coverages as [, coverage], i (i)}
-				<CoverageComponent {coverage} />
+				<CoverageComponent {coverage} isCurrent={!i} />
 			{/each}
 		{/if}
 	</div>

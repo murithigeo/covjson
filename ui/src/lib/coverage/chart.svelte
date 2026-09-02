@@ -1,29 +1,5 @@
 <script lang="ts" module>
-	import {
-		Chart as ChartJS,
-		Title,
-		Tooltip,
-		Legend,
-		BarElement,
-		LineElement,
-		LinearScale,
-		PointElement,
-		CategoryScale,
-		type ChartData,
-		type ChartDataset,
-		type ChartOptions
-	} from 'chart.js';
 	import { Line, Bar, Chart } from 'svelte-chartjs';
-
-	ChartJS.register(
-		Title,
-		Tooltip,
-		LineElement,
-		BarElement,
-		LinearScale,
-		PointElement,
-		CategoryScale
-	);
 </script>
 
 <script lang="ts">
@@ -32,7 +8,8 @@
 	import { getDashCtx } from '$lib/dashboards/utils/ctx.svelte.js';
 	import { getCoverageCtx } from './coverage-ctx.svelte.ts';
 	import EmptyChart from '$lib/empty/chart.svelte';
-	import type { RangeSummary } from '$lib/statistics.ts';
+	import type { SvelteMap } from 'svelte/reactivity';
+	import { type RangeSummary } from '$lib/statistics.js';
 	interface Props {
 		coverage: Coverage;
 	}
@@ -41,7 +18,7 @@
 	const ctx = getDashCtx();
 	const covCtx = getCoverageCtx();
 	let indices = $derived(covCtx.indices);
-	let selected = $derived(ctx.selected);
+	let selected = $state(ctx.selected);
 
 	/**
 	 * The axisName to be used as xAxis. Will be preloaded
@@ -63,8 +40,40 @@
 	});
 
 	let rows = $state<DataRow[]>([]);
-	let data = $state<ChartData<'bar' | 'line'>>({ labels: [], datasets: [] });
-	let chart = $state<Chart | null>(null);
+
+	let data = $derived.by<ChartData<'bar' | 'line'> | undefined>(() => {
+		if (!rows.length) return undefined;
+		const parameters: [string, Parameter][] = ctx.parameters
+			.entries()
+			.filter(([key]) => coverage.ranges.has(key))
+			.filter(([key]) => selected.has(key))
+			.toArray();
+
+		return {
+			labels: rows.length === 1 ? parameters.map(([key]) => key) : rows.map((row) => row[xAxis]),
+			datasets: parameters.map(([key, param]) => {
+				const info = ctx.rangeInfo.get(key);
+				const colors: Record<number, string | undefined> = {};
+				if (typeof info?.max === 'number') colors[info.max] = info.color.primary;
+
+				param.categoryEncoding?.forEach((values, catId) => {
+					const color = info?.color.categories?.get(catId);
+					for (const value of values) {
+						colors[value] = color || info?.color?.primary;
+					}
+				});
+
+				return {
+					data: rows.map((row) => row[key] as number),
+
+					gradient: {
+						borderColor: { axis: 'y', colors },
+						backgroundColor: { axis: 'y', colors } // Pass option to enable this
+					}
+				};
+			})
+		} as ChartData<'line'>;
+	});
 
 	let max = $derived.by(() => {
 		const maxes = ctx.rangeInfo
@@ -88,6 +97,7 @@
 				options.scales.x.title.text = 'composite';
 			}
 		}
+		if (rows.length === 1) delete options.scales.x;
 		options.responsive = true;
 		return options;
 	});
@@ -98,18 +108,21 @@
 			if (!selected.has(key)) return;
 			ctx.updateRangeData(key, coverage.uuid, value);
 		});
-		return rows;
+		updateRows(rows);
+	});
+
+	function updateRows(data: DataRow[]) {
+		rows = data;
+	}
+	$effect(() => {
+		dataPromise;
 	});
 </script>
 
-{#await dataPromise}
-	<EmptyChart status="loading" />
-{:then data}
-	{#if !data.length}
-		<Bar data={{}} bind:chart />
-	{:else if data.length === 1}
-		<Bar data={{}} {options} />
-	{:else}
-		<Line data={{}} {options} />
-	{/if}
-{/await}
+{#if !data}
+	<EmptyChart status="loaded" />
+{:else if rows.length === 1}
+	<Bar {data} {options} />
+{:else}
+	<Line {data} {options} />
+{/if}

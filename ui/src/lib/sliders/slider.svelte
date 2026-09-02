@@ -36,14 +36,14 @@
 	);
 </script>
 
+<!-- 
 <RangeSlider
 	bind:values={index}
 	pips
 	max={Math.abs(values.length - 1)}
 	id="slider"
 	class="pips-bottom"
-	,
-/>
+/> -->
 
 <style>
 </style>

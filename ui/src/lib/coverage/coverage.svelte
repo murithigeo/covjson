@@ -1,10 +1,19 @@
 <script lang="ts">
 	import * as Card from '$lib/components/ui/card/index.js';
 	import { Badge } from '$lib/components/ui/badge/index.js';
-	import { TrashIcon, PinIcon, PinOffIcon } from '@lucide/svelte';
 	import TemporalSlider from '$lib/sliders/temporal-control.svelte';
 	import * as ButtonGroup from '$lib/components/ui/button-group/index.js';
-	import { ArrowLeftIcon, ArrowRightIcon, ArrowUpIcon, ArrowDownIcon } from '@lucide/svelte';
+	import { SvelteMap } from 'svelte/reactivity';
+	import {
+		ArrowLeftIcon,
+		ArrowRightIcon,
+		ArrowUpIcon,
+		ArrowDownIcon,
+		FocusIcon,
+		TrashIcon,
+		PinIcon,
+		PinOffIcon
+	} from '@lucide/svelte';
 	import { Button, type ButtonProps } from '$lib/components/ui/button/index.js';
 	import { Coverage, indexOfNearest } from '@murithigeo/covjson-core';
 	import { Label } from '$lib/components/ui/label/index.js';
@@ -14,9 +23,10 @@
 	import type { SliderIndex, StringSliderValue } from '$lib/sliders/sliders.d.ts';
 	interface Props {
 		coverage: Coverage;
+		isCurrent?: boolean;
 	}
 	const buttonProps: ButtonProps = { variant: 'outline', size: 'icon-sm' };
-	let { coverage = $bindable() }: Props = $props();
+	let { coverage = $bindable(), isCurrent = $bindable() }: Props = $props();
 	const ctx = getDashCtx();
 	const covCtx = setCoverageCtx(coverage);
 
@@ -31,6 +41,17 @@
 			.map((t) => indexOfNearest(tAsEpoch, t)) as SliderIndex;
 	}
 	$effect(() => updateLocalTemporalIndices(ctx.now));
+	$effect(() => {
+		if (isCurrent) {
+			ctx.setCurrentCoverage(coverage);
+		} else {
+			// If isCurrent, then set to undefined, else do nothing
+			// if(ctx.currentCoverage.)
+		}
+	});
+	$effect(() => {
+		covCtx.indices = new SvelteMap([...coverage.indices]);
+	});
 </script>
 
 <Card.Root class="h-full w-full">
@@ -49,6 +70,11 @@
 		</Card.Description>
 		<Card.Action>
 			<ButtonGroup.Root>
+				<Button
+					onclick={() => ctx.setCurrentCoverage(coverage)}
+					class="rounded-full"
+					{...buttonProps}><FocusIcon /></Button
+				>
 				<Button
 					onclick={() => ctx.updateCoveragePinStatus(coverage.uuid)}
 					class="rounded-full"
