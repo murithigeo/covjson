@@ -1,5 +1,6 @@
 <script lang="ts" module>
 	import { Line, Bar, Chart } from 'svelte-chartjs';
+	import type { ChartData, ChartOptions } from 'chart.js';
 </script>
 
 <script lang="ts">
@@ -8,15 +9,25 @@
 	import { getDashCtx } from '$lib/dashboards/utils/ctx.svelte.js';
 	import { getCoverageCtx } from './coverage-ctx.svelte.ts';
 	import EmptyChart from '$lib/empty/chart.svelte';
-	import type { SvelteMap } from 'svelte/reactivity';
-	import { type RangeSummary } from '$lib/statistics.js';
 	interface Props {
 		coverage: Coverage;
 	}
 
 	let { coverage = $bindable() }: Props = $props();
+
 	const ctx = getDashCtx();
 	const covCtx = getCoverageCtx();
+	for (const [key, range] of coverage.ranges) {
+		if (range.type === 'NdArray') ctx.updateRangeData(key, coverage.uuid, range);
+		range.options = {
+			...range.options,
+			onNonCacheFetch(value) {
+				range.options.onNonCacheFetch?.(value);
+				ctx.updateRangeData(key, coverage.uuid, range);
+			}
+		};
+		coverage.ranges.set(key, range);
+	}
 	let indices = $derived(covCtx.indices);
 	let selected = $state(ctx.selected);
 
@@ -65,7 +76,6 @@
 
 				return {
 					data: rows.map((row) => row[key] as number),
-
 					gradient: {
 						borderColor: { axis: 'y', colors },
 						backgroundColor: { axis: 'y', colors } // Pass option to enable this
@@ -103,26 +113,23 @@
 	});
 
 	let dataPromise = $derived.by(async () => {
-		const rows = await coverage.query(xAxis)(indices, selected.keys().toArray());
-		coverage.ranges.forEach((value, key) => {
-			if (!selected.has(key)) return;
-			ctx.updateRangeData(key, coverage.uuid, value);
-		});
-		updateRows(rows);
+		rows = await coverage.query(xAxis)(indices, selected.keys().toArray());
+		// setRows(rows);
 	});
-
-	function updateRows(data: DataRow[]) {
-		rows = data;
-	}
+	// function setRows(data: DataRow[]) {
+	// 	rows = data;
+	// }
 	$effect(() => {
 		dataPromise;
 	});
 </script>
 
-{#if !data}
-	<EmptyChart status="loaded" />
-{:else if rows.length === 1}
-	<Bar {data} {options} />
-{:else}
-	<Line {data} {options} />
-{/if}
+<div class="w-full">
+	{#if !data}
+		<EmptyChart status="loaded" />
+	{:else if rows.length === 1}
+		<Bar data={data as ChartData<'bar'>} {options} />
+	{:else}
+		<Line data={data as ChartData<'line'>} {options} />
+	{/if}
+</div>

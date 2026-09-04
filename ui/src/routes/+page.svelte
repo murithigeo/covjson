@@ -10,7 +10,7 @@
 
 	//todo handle duplication of coverages on HMR
 	let map = $state<Map>();
-	let coverages = $state<Coverage[]>();
+	let coverages = $state<Coverage[]>([]);
 	let onIndicesChange = $state<OnIndicesChange>();
 	$effect(() => {
 		map?.on('load', ({ target: map }) => {

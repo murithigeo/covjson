@@ -54,7 +54,6 @@
 					return v.toFixed(2);
 				})
 				.join('/');
-			// .concat(symbol || '');
 		}
 		const stats: Partial<Record<keyof RangeStatistics | 'dataType', string>> & {
 			color?: RangeConfig['color'];

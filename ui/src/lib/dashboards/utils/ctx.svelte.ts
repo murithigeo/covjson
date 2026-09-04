@@ -1,27 +1,21 @@
 import { Coverage, NdArray, Parameter, type OnIndicesChange } from '@murithigeo/covjson-core';
 import { getContext, onDestroy, setContext } from 'svelte';
 import { SvelteSet, SvelteMap } from 'svelte/reactivity';
-import {
-	getParameterStatistics,
-	type RangeSummary,
-	getRangeStats,
-	generateRangeConfig,
-	type RangeStatistics
-} from '$lib/statistics.js';
+import { getParameterStatistics, type RangeSummary } from '$lib/statistics.js';
 import type { SliderValue, StringSliderValue } from '$lib/sliders/sliders.js';
 import './chart-register.ts';
+
 // todo automatically call onIndicesChange on the active Coverage
 class DashboardContext {
 	onIndicesChange = $state<OnIndicesChange>();
 	detail = $state<'simple' | 'full'>('full');
 	pinned = $state(new SvelteMap<string, Coverage>());
-	input = $state<Coverage[] | undefined>([]);
-	coverages = $derived.by(() => {
-		const set = new SvelteMap<string, Coverage>([...this.pinned]);
-		this.input?.forEach((cov) => set.set(cov.uuid, cov));
-		return set;
-	});
+	input = $state<Coverage[]>([]);
+	coverages = $derived(
+		new SvelteMap([...this.pinned, ...this.input.map((cov) => [cov.uuid, cov] as const)])
+	);
 
+	// todo make state so that stats remain. Just sort by range keys in current Coverage
 	parameters = $derived(
 		new SvelteMap<string, Parameter>(this.coverages.values().flatMap((v) => [...v.parameters]))
 	);
@@ -33,25 +27,21 @@ class DashboardContext {
 	tvalues = $state(new SvelteSet<string>());
 	rangeData = $state(new SvelteMap<string, SvelteMap<string, NdArray>>());
 	rangeInfo = $state(new SvelteMap<string, RangeSummary>());
-	currentCoverage = $state<string | Coverage>();
+	currentCoverage = $state<Coverage | undefined>();
 	currentCoverageSummary = $derived.by(() => {
 		if (!this.currentCoverage) return undefined;
-		const cov =
-			typeof this.currentCoverage === 'string'
-				? this.coverages.get(this.currentCoverage)
-				: this.currentCoverage;
-		if (!cov) return undefined;
+		const coverage = this.currentCoverage;
 		const map = new Map<string, RangeSummary>();
 		//
 		this.rangeInfo
 			.entries()
-			.filter(([key]) => cov.ranges.has(key))
+			.filter(([key]) => coverage.ranges.has(key))
 			.forEach(([key, info]) => {
 				const param = this.parameters.get(key) || key;
-				const rangeData = this.rangeData.get(key)?.get(cov.uuid);
+				const rangeData = this.rangeData.get(key)?.get(coverage.uuid);
 				const ranges = new Map();
 
-				if (rangeData) ranges.set(cov.uuid, rangeData);
+				if (rangeData) ranges.set(coverage.uuid, rangeData);
 
 				const specific = getParameterStatistics(param, ranges, info);
 				map.set(key, specific);
@@ -85,15 +75,16 @@ class DashboardContext {
 		this.coverages.delete(uuid);
 		this.input = this.input?.filter(({ uuid: id }) => id !== uuid);
 	}
-	updateCoveragePinStatus(uuid: string): void {
-		this.input = this.input?.filter((cov) => cov.uuid !== uuid);
-		this.pinned.delete(uuid);
+	updateCoveragePinStatus(coverage: Coverage) {
+		return (checked: boolean) => {
+			if (checked) this.pinned.set(coverage.uuid, coverage);
+			else this.pinned.delete(coverage.uuid);
+		};
 	}
 	updateRangeInfoStatistics(paramId: string) {
 		const param = this.parameters.get(paramId) || paramId;
 		const rangeData = this.rangeData.get(paramId);
 		const info = this.rangeInfo.get(paramId);
-
 		const updated = getParameterStatistics(param, rangeData || new Map(), info);
 		this.rangeInfo.set(paramId, updated);
 	}
@@ -111,8 +102,11 @@ class DashboardContext {
 				if (bounds[i] !== this.now[i]) this.now[i] = bounds[i];
 			}
 	}
-	setCurrentCoverage(coverage: Coverage | string | undefined) {
-		this.currentCoverage = coverage;
+	setCurrentCoverage(coverage: Coverage) {
+		return (checked: boolean) => {
+			if (checked) this.currentCoverage = coverage;
+			else this.currentCoverage = undefined;
+		};
 	}
 
 	setParameterColor(paramId: string, color: string | null, categoryId?: string) {

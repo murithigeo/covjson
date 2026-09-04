@@ -41,7 +41,6 @@ export class CoverageCtx {
 		onDestroy(() => {
 			this.coverage = undefined;
 			this.indices.clear();
-			this.limits.clear();
 		});
 	}
 	crementIdx(operator: '+' | '-', direction: 'vertical' | 'horizontal') {

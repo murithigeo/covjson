@@ -27,6 +27,10 @@ export interface NdArrayOptions<T extends string | number = string | number> {
    *
    */
   transform?: (val: T | null, dataType: 'string' | 'float' | 'integer') => T | null;
+  /**
+   * Callback to execute if the value fetched was not cached thus meaning new data was appended
+   */
+  onNonCacheFetch?(value: NdArray<T>): void;
 }
 
 type NdArrX<T extends string | number> = NumberNdArray | StringNdArray | ValuesNdArray<T>;
@@ -93,6 +97,7 @@ export class NdArray<T extends string | number = string | number> {
     const value = this.ndarr.get(...indices);
     if (value !== undefined) return value;
     await this.loadTileset(indices);
+    this.options.onNonCacheFetch?.(this);
     return this.ndarr.get(...indices) as T; // Dont recurse to avoid infinite loops
   }
 

@@ -257,7 +257,6 @@ export class Coverage<
       const rows = prod
         .map((indices) => new Map([...ref, ...indices]))
         .map(async (indices) => this.getData(indices, rangeIds));
-      //todo return an object where {string:DataRow[],numeric:DataRow<number>}
       return Promise.all(rows);
     };
   }

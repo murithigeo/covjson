@@ -12,8 +12,10 @@
 		FocusIcon,
 		TrashIcon,
 		PinIcon,
-		PinOffIcon
+		PinOffIcon,
+		MousePointer2Icon
 	} from '@lucide/svelte';
+	import { Toggle } from '$lib/components/ui/toggle/index.js';
 	import { Button, type ButtonProps } from '$lib/components/ui/button/index.js';
 	import { Coverage, indexOfNearest } from '@murithigeo/covjson-core';
 	import { Label } from '$lib/components/ui/label/index.js';
@@ -23,10 +25,9 @@
 	import type { SliderIndex, StringSliderValue } from '$lib/sliders/sliders.d.ts';
 	interface Props {
 		coverage: Coverage;
-		isCurrent?: boolean;
 	}
 	const buttonProps: ButtonProps = { variant: 'outline', size: 'icon-sm' };
-	let { coverage = $bindable(), isCurrent = $bindable() }: Props = $props();
+	let { coverage = $bindable() }: Props = $props();
 	const ctx = getDashCtx();
 	const covCtx = setCoverageCtx(coverage);
 
@@ -41,14 +42,6 @@
 			.map((t) => indexOfNearest(tAsEpoch, t)) as SliderIndex;
 	}
 	$effect(() => updateLocalTemporalIndices(ctx.now));
-	$effect(() => {
-		if (isCurrent) {
-			ctx.setCurrentCoverage(coverage);
-		} else {
-			// If isCurrent, then set to undefined, else do nothing
-			// if(ctx.currentCoverage.)
-		}
-	});
 	$effect(() => {
 		covCtx.indices = new SvelteMap([...coverage.indices]);
 	});
@@ -69,7 +62,32 @@
 			{/each}
 		</Card.Description>
 		<Card.Action>
-			<ButtonGroup.Root>
+			<Toggle
+				aria-label="Pin Coverage"
+				class="data-[state=on]:bg-transparent data-[state=on]:*:[svg]:fill-yellow-500 data-[state=on]:*:[svg]:stroke-yellow-500"
+				pressed={ctx.pinned.has(coverage.uuid)}
+				onPressedChange={ctx.updateCoveragePinStatus(coverage)}
+				size="sm"
+				variant="outline"
+			>
+				<PinIcon />
+			</Toggle>
+			<Button
+				onclick={() => ctx.trashCoverage(coverage.uuid)}
+				disabled={ctx.pinned.has(coverage.uuid)}
+				{...buttonProps}
+			>
+				<TrashIcon /></Button
+			>
+			<Toggle
+				aria-label="Select Coverage"
+				class="data-[state=on]:bg-transparent data-[state=on]:*:[svg]:fill-yellow-500 data-[state=on]:*:[svg]:stroke-yellow-500"
+				size="sm"
+				variant="outline"
+				pressed={ctx.currentCoverage?.uuid === coverage.uuid}
+				onPressedChange={ctx.setCurrentCoverage(coverage)}><MousePointer2Icon /></Toggle
+			>
+			<!-- <ButtonGroup.Root>
 				<Button
 					onclick={() => ctx.setCurrentCoverage(coverage)}
 					class="rounded-full"
@@ -93,10 +111,10 @@
 				>
 					<TrashIcon /></Button
 				>
-			</ButtonGroup.Root>
+			</ButtonGroup.Root> -->
 		</Card.Action>
 	</Card.Header>
-	<Card.Content>
+	<Card.Content class="w-full">
 		<Chart bind:coverage />
 	</Card.Content>
 	<Card.Footer>

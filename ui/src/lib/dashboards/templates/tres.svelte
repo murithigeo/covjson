@@ -26,7 +26,7 @@
 
 <!-- May be instead of color, use a number to indicate which slot is set to -->
 <div class="flex flex-col gap-2 lg:grid lg:grid-cols-3">
-	<div class="sticky top-0 h-100 w-full space-y-2 opacity-[1] md:h-screen">
+	<div class="h-100 w-full space-y-2 opacity-[1] md:sticky md:top-0 md:h-screen">
 		{@render children?.()}
 	</div>
 	<div class="mr-2 flex h-screen w-full flex-col overflow-y-auto" id="parameter-preview">
@@ -82,7 +82,7 @@
 			<EmptyCoverages />
 		{:else}
 			{#each ctx.coverages as [, coverage], i (i)}
-				<CoverageComponent {coverage} isCurrent={!i} />
+				<CoverageComponent {coverage} />
 			{/each}
 		{/if}
 	</div>
