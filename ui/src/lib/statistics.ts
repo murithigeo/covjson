@@ -133,7 +133,7 @@ export function getRangeStats(
 			number | null
 		)[];
 		if (categoryEncoding) stats.frequency = categoricalHistogram(categoryEncoding, values);
-		else {
+		else if (stats.dataType === 'integer') {
 			stats.frequency = nonCategoricalHistogram(values);
 		}
 		[stats.min, stats.max] = minMax(values);

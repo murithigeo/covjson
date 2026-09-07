@@ -4,7 +4,7 @@ import { SvelteMap } from 'svelte/reactivity';
 import { getDashCtx } from '../dashboards/utils/ctx.svelte.ts';
 export class CoverageCtx {
 	dashCtx = getDashCtx();
-	coverage = $state<Coverage>(); // Coverage;
+	coverage: Coverage; // Coverage;
 	indices = $state(new SvelteMap<string, number>());
 	limits = $derived.by(() => {
 		const limits = new SvelteMap<'horizontal' | 'vertical', { value: number; axis: string }>();
@@ -39,7 +39,6 @@ export class CoverageCtx {
 		this.coverage = coverage;
 		$effect(() => this.dashCtx.onIndicesChange?.(this.coverage, new Map(this.indices)));
 		onDestroy(() => {
-			this.coverage = undefined;
 			this.indices.clear();
 		});
 	}
@@ -59,6 +58,25 @@ export class CoverageCtx {
 		if (!['Trajectory', 'Section'].includes(this.coverage.domainType)) axisName = 't';
 		if (this.indices.get(axisName) !== index) this.indices.set(axisName, index);
 	}
+
+	xAxis = $derived.by<'composite' | 'z' | 't'>(() => {
+		if (!this.coverage) return 't';
+		const {
+			domainType,
+			t: { length: tLen },
+			z: { length: zLen }
+		} = this.coverage;
+		if (domainType === 'Section') return 'z';
+		if (domainType === 'Trajectory') return 'composite';
+		if (domainType === 'Grid') {
+			if (!zLen && !tLen) return 'z';
+			if (zLen < 2) return 't';
+			if (tLen < 2) return 'z';
+			return 'z';
+		}
+
+		return 't';
+	});
 }
 
 const CtxKey = Symbol('CovKey');

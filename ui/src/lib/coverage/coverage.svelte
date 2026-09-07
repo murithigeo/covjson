@@ -9,10 +9,8 @@
 		ArrowRightIcon,
 		ArrowUpIcon,
 		ArrowDownIcon,
-		FocusIcon,
 		TrashIcon,
 		PinIcon,
-		PinOffIcon,
 		MousePointer2Icon
 	} from '@lucide/svelte';
 	import { Toggle } from '$lib/components/ui/toggle/index.js';
@@ -45,22 +43,16 @@
 	$effect(() => {
 		covCtx.indices = new SvelteMap([...coverage.indices]);
 	});
+
+	function toggleHandler(status: boolean[]) {}
 </script>
 
-<Card.Root class="h-full w-full">
+<Card.Root class="border">
 	<Card.Header>
-		<Card.Title
-			>{coverage.id || 'No ID Available'}
+		<Card.Title>
 			<Badge variant="outline">{coverage.domain.domainType}</Badge></Card.Title
 		>
-		<Card.Description class="flex flex-row space-x-2">
-			{#each coverage.axesSize as [axisName, size] (axisName)}
-				<Label
-					><Badge variant="outline">{axisName}</Badge>{covCtx.indices.get(axisName) || 1}/{size -
-						1}</Label
-				>
-			{/each}
-		</Card.Description>
+		<Card.Description class="flex flex-row space-x-2"></Card.Description>
 		<Card.Action>
 			<Toggle
 				aria-label="Pin Coverage"
@@ -75,6 +67,7 @@
 			<Button
 				onclick={() => ctx.trashCoverage(coverage.uuid)}
 				disabled={ctx.pinned.has(coverage.uuid)}
+				size="icon-sm"
 				{...buttonProps}
 			>
 				<TrashIcon /></Button
@@ -87,34 +80,9 @@
 				pressed={ctx.currentCoverage?.uuid === coverage.uuid}
 				onPressedChange={ctx.setCurrentCoverage(coverage)}><MousePointer2Icon /></Toggle
 			>
-			<!-- <ButtonGroup.Root>
-				<Button
-					onclick={() => ctx.setCurrentCoverage(coverage)}
-					class="rounded-full"
-					{...buttonProps}><FocusIcon /></Button
-				>
-				<Button
-					onclick={() => ctx.updateCoveragePinStatus(coverage.uuid)}
-					class="rounded-full"
-					{...buttonProps}
-				>
-					{#if ctx.pinned.has(coverage.uuid)}
-						<PinOffIcon />
-					{:else}
-						<PinIcon />
-					{/if}
-				</Button>
-				<Button
-					onclick={() => ctx.trashCoverage(coverage.uuid)}
-					disabled={ctx.pinned.has(coverage.uuid)}
-					{...buttonProps}
-				>
-					<TrashIcon /></Button
-				>
-			</ButtonGroup.Root> -->
 		</Card.Action>
 	</Card.Header>
-	<Card.Content class="w-full">
+	<Card.Content>
 		<Chart bind:coverage />
 	</Card.Content>
 	<Card.Footer>

@@ -30,35 +30,9 @@
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-export type MinMax = [number | null, number | null];
-/**
- * Get the smallest and largest values in array
- */
-export function minMax(arr: (number | null)[]): [number | null, number | null] {
-  let len = arr.length;
-  let min: number | null = Infinity;
-  let max: number | null = -Infinity;
-  while (len--) {
-    const el = arr[len];
-    if (el == null) {
-      // do nothing
-    } else if (el < min) {
-      min = el;
-    } else if (el > max) {
-      max = el;
-    }
-  }
-  if (min === Infinity) {
-    min = max;
-  } else if (max === -Infinity) {
-    max = min;
-  }
-  if (min === Infinity || min === -Infinity) {
-    // all values were null
-    min = null;
-    max = null;
-  }
-  return [min, max];
+export type MinMax = [number, number];
+export function minMax(arr: (number | null)[]): MinMax {
+  return [Math.min(...(arr as number[])), Math.max(...(arr as number[]))];
 }
 
 /**

@@ -223,6 +223,8 @@ export class Coverage<
     ref.forEach((value, key) => {
       if (!this.axesSize.has(key)) return;
 
+      //
+      if (key === 'compositeIndex') key = 't';
       if (key === 't' || key === 'z') row[key] = this[key][value];
       else row[`${key}Index`] = value;
     });

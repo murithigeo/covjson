@@ -71,7 +71,7 @@
 	<Item.Root class="w-full" id="parameter:{key}">
 		<Item.Media>
 			<Checkbox
-				checked={ctx.selected.has(key)}
+				checked={ctx?.selected.has(key)}
 				onCheckedChange={ctx.updateParameterSelectionStatus(key)}
 			/></Item.Media
 		>
@@ -83,6 +83,7 @@
 						{rangeInfo?.dataType || 'Unknown'}
 					</p></Badge
 				>
+				<Badge {variant}>{ctx.rangeData.get(key)?.size || 0} Covs</Badge>
 				{#if parameter.unit?.symbol?.value}
 					<Badge {variant}>{parameter.unit.symbol.value}</Badge>
 				{/if}
@@ -107,15 +108,12 @@
 	<Collapsible.Content>
 		<Card.Root>
 			<Card.Content>
-				<Collapsible.Root open>
+				<Collapsible.Root disabled={rangeInfo?.dataType !== 'integer'}>
 					<Item.Root size="sm" variant="outline"
 						><Item.Media variant="icon"><ChartNoAxesColumnIcon /></Item.Media>
 						<Item.Content><Item.Title>Histogram</Item.Title></Item.Content>
 						<Item.Actions>
-							<Collapsible.Trigger
-								class={buttonVariants({ variant: 'ghost' })}
-								disabled={!parameter.unit}
-							>
+							<Collapsible.Trigger class={buttonVariants({ variant: 'ghost' })}>
 								<ChevronsUpDown />
 							</Collapsible.Trigger>
 						</Item.Actions></Item.Root
@@ -151,7 +149,7 @@
 				<UnitComponent data={parameter.unit} />
 				<Collapsible.Root>
 					<Item.Root size="sm" variant="outline">
-						<Item.Media>
+						<Item.Media variant="icon">
 							<SunSnowIcon />
 						</Item.Media>
 						<Item.Content>

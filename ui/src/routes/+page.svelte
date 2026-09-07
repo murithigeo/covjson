@@ -20,6 +20,8 @@
 				// data: window.location.href + 'grid-multi-z-t.covjson',
 				// data: 'https://covjson.org/playground/coverages/grid-tiled.covjson',
 				data: 'https://covjson.org/playground/coverages/grid-categorical.covjson',
+				// data: 'https://covjson.org/playground/coverages/pointseries.covjson',
+
 				layers: ['grid-outline', 'grid-layer', 'section'],
 				listenTo: ['click'],
 				tempLayerPaint: {

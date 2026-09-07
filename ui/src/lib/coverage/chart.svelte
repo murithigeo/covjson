@@ -1,22 +1,31 @@
-<script lang="ts" module>
-	import { Line, Bar, Chart } from 'svelte-chartjs';
-	import type { ChartData, ChartOptions } from 'chart.js';
+<script module lang="ts">
+	import { Coverage, isUndefined, minMax, type DataRow } from '@murithigeo/covjson-core';
+	import {
+		LineChart,
+		LinearGradient,
+		Highlight,
+		type LineChartProps,
+		BarChart,
+		type BarChartProps,
+		type ChartProps
+	} from 'layerchart';
+	import { scaleBand } from 'd3-scale';
+	import EmptyChart from '$lib/empty/chart.svelte';
+	import * as Chart from '$lib/components/ui/chart/index.js';
+	import { Parameter } from '@murithigeo/covjson-core';
 </script>
 
 <script lang="ts">
-	// Houses the logic to load and visualize data
-	import { Coverage, type DataRow, Parameter } from '@murithigeo/covjson-core';
-	import { getDashCtx } from '$lib/dashboards/utils/ctx.svelte.js';
 	import { getCoverageCtx } from './coverage-ctx.svelte.ts';
-	import EmptyChart from '$lib/empty/chart.svelte';
+	import { getDashCtx } from '$lib/dashboards/utils/ctx.svelte.js';
+
 	interface Props {
 		coverage: Coverage;
 	}
-
 	let { coverage = $bindable() }: Props = $props();
+	const [ctx, cCtx] = [getDashCtx(), getCoverageCtx()];
 
-	const ctx = getDashCtx();
-	const covCtx = getCoverageCtx();
+	// Add callback to automaticall update range summary
 	for (const [key, range] of coverage.ranges) {
 		if (range.type === 'NdArray') ctx.updateRangeData(key, coverage.uuid, range);
 		range.options = {
@@ -28,108 +37,97 @@
 		};
 		coverage.ranges.set(key, range);
 	}
-	let indices = $derived(covCtx.indices);
-	let selected = $state(ctx.selected);
+	let xAxis = $derived(cCtx.xAxis);
 
-	/**
-	 * The axisName to be used as xAxis. Will be preloaded
-	 */
-	let xAxis = $derived.by<string>(() => {
-		const {
-			domainType,
-			t: { length: tLen },
-			z: { length: zLen }
-		} = coverage;
-		if (domainType === 'Section') return 'z';
-		if (domainType === 'Grid') {
-			if (!zLen && !tLen) return 'z';
-			if (zLen < 2) return 't';
-			if (tLen < 2) return 'z';
-			return 'z';
-		}
-		return 't';
-	});
+	type AugmentedDataRow = Omit<DataRow, 't'> & { t?: Date };
 
 	let rows = $state<DataRow[]>([]);
+	const updateRows = (data: DataRow[]) => (rows = data);
 
-	let data = $derived.by<ChartData<'bar' | 'line'> | undefined>(() => {
-		if (!rows.length) return undefined;
-		const parameters: [string, Parameter][] = ctx.parameters
-			.entries()
-			.filter(([key]) => coverage.ranges.has(key))
-			.filter(([key]) => selected.has(key))
-			.toArray();
-
-		return {
-			labels: rows.length === 1 ? parameters.map(([key]) => key) : rows.map((row) => row[xAxis]),
-			datasets: parameters.map(([key, param]) => {
-				const info = ctx.rangeInfo.get(key);
-				const colors: Record<number, string | undefined> = {};
-				if (typeof info?.max === 'number') colors[info.max] = info.color.primary;
-
-				param.categoryEncoding?.forEach((values, catId) => {
-					const color = info?.color.categories?.get(catId);
-					for (const value of values) {
-						colors[value] = color || info?.color?.primary;
-					}
-				});
-
-				return {
-					data: rows.map((row) => row[key] as number),
-					gradient: {
-						borderColor: { axis: 'y', colors },
-						backgroundColor: { axis: 'y', colors } // Pass option to enable this
-					}
-				};
-			})
-		} as ChartData<'line'>;
-	});
-
-	let max = $derived.by(() => {
-		const maxes = ctx.rangeInfo
-			.entries()
-			.filter(([key]) => selected.has(key) && coverage.ranges.has(key))
-			.map(([, { max }]) => max)
-			.filter((v) => typeof v === 'number');
-		return Math.max(...maxes);
-	});
-
-	let options = $derived.by(() => {
-		const options: ChartOptions<'line' | 'bar'> = {};
-		options.scales = {};
-		options.scales.y = { max };
-		options.scales.x = {};
-		options.scales.x.title = { display: true };
-
-		if (xAxis === 't') {
-			options.scales.x.title.text = 'z';
-			if (coverage.domainType === 'Trajectory' || coverage.domainType === 'Section') {
-				options.scales.x.title.text = 'composite';
-			}
-		}
-		if (rows.length === 1) delete options.scales.x;
-		options.responsive = true;
-		return options;
-	});
-
-	let dataPromise = $derived.by(async () => {
-		rows = await coverage.query(xAxis)(indices, selected.keys().toArray());
-		// setRows(rows);
-	});
-	// function setRows(data: DataRow[]) {
-	// 	rows = data;
-	// }
+	let dataPromise = $derived(
+		coverage.query(xAxis)(cCtx.indices, ctx.selected.keys().toArray()).then(updateRows)
+	);
 	$effect(() => {
 		dataPromise;
 	});
+	let data = $derived.by(() => {
+		if (!rows.length) return undefined;
+		const props: ChartProps<AugmentedDataRow> = {
+			brush: { axis: 'both' },
+			transform: { mode: 'domain', axis: 'both' },
+			highlight: { lines: true, points: true, axis: 'both' }
+			// yNice: true
+		};
+		// props.props = {};
+		if (rows.length === 1) {
+			const parameters = ctx.parameters
+				.entries()
+				.filter(([key]) => coverage.ranges.has(key))
+				.filter(([key]) => ctx.selected.has(key))
+				.map(([key, param]) => [key, param] as const)
+				.toArray();
+			props.series = parameters.map(([key, param]) => {
+				const info = ctx.rangeInfo.get(key);
+				const data = rows[0][key];
+				let color = info?.color.primary;
+				if (param.categoryEncoding) {
+					const catId = param.categoryEncoding
+						.entries()
+						.find(([, values]) => values.some((v) => v === data))?.[0];
+					if (catId) color = info?.color.categories?.get(catId);
+				}
+				return {
+					key,
+					label: info?.label,
+					color,
+					data: [{ key: key, value: data }]
+				};
+			});
+			props.x = 'key';
+			props.y = 'value';
+			props.axis = 'x';
+			props.rule = true;
+
+			// props.props.bars = {
+			// 	stroke: 'none',
+			// 	rounded: 'all',
+			// 	radius: 8,
+			// 	motion: { type: 'tween', duration: 500 }
+			// };
+			// props.x1Scale = scaleBand().padding(0.25);
+		} else {
+			props.props = {};
+			props.x = xAxis;
+			props.series = Object.values(ctx.chartConfig);
+			props.data = rows.map((row) => ({
+				...row,
+				t: isUndefined(row.t) ? undefined : new Date(row.t)
+			}));
+			props.props.xAxis = {
+				label: xAxis === 't' ? 'Date[Time]' : xAxis === 'z' ? 'Elevation' : 'Node'
+			};
+		}
+		return props;
+	});
+	$inspect(data);
 </script>
 
-<div class="w-full">
-	{#if !data}
-		<EmptyChart status="loaded" />
-	{:else if rows.length === 1}
-		<Bar data={data as ChartData<'bar'>} {options} />
-	{:else}
-		<Line data={data as ChartData<'line'>} {options} />
-	{/if}
-</div>
+{#if !data}
+	<EmptyChart status="loaded" />
+{:else}
+	<Chart.Container config={ctx.chartConfig}>
+		{#if rows.length === 1}
+			<BarChart {...data}>
+				{#snippet tooltip()}
+					<Chart.Tooltip hideLabel />
+				{/snippet}
+			</BarChart>
+		{:else}
+			<LineChart {...data}>
+				{#snippet tooltip()}
+					<Chart.Tooltip hideLabel />
+				{/snippet}
+			</LineChart>
+		{/if}
+	</Chart.Container>
+{/if}

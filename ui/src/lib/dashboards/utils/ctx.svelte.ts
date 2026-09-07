@@ -3,7 +3,6 @@ import { getContext, onDestroy, setContext } from 'svelte';
 import { SvelteSet, SvelteMap } from 'svelte/reactivity';
 import { getParameterStatistics, type RangeSummary } from '$lib/statistics.js';
 import type { SliderValue, StringSliderValue } from '$lib/sliders/sliders.js';
-import './chart-register.ts';
 
 // todo automatically call onIndicesChange on the active Coverage
 class DashboardContext {
@@ -120,7 +119,14 @@ class DashboardContext {
 
 		this.rangeInfo.set(paramId, updated);
 	}
+	chartConfig = $derived.by<ChartConfig>(() => {
+		const entries = this.rangeInfo
+			.entries()
+			.map(([key, info]) => [key, { key, color: info.color.primary, label: info.label }]);
+		return Object.fromEntries(entries);
+	});
 }
+type ChartConfig = Record<string, Record<'label' | 'key' | 'color', string>>;
 
 const DashboardKey = Symbol('DASH');
 

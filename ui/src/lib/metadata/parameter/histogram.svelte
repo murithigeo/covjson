@@ -1,12 +1,9 @@
 <script module lang="ts">
-	import { Bar } from 'svelte-chartjs';
-	import type { ChartData, ChartOptions } from 'chart.js';
+	import { BarChart } from 'layerchart';
 </script>
 
 <script lang="ts">
-	import type { FrequencyMap, RangeConfig } from '$lib/statistics.js';
 	import * as Card from '$lib/components/ui/card/index.js';
-	import { isUndefined } from '@murithigeo/covjson-core';
 	import { getDashCtx } from '$lib/dashboards/utils/ctx.svelte.js';
 
 	interface Props {
@@ -25,30 +22,18 @@
 				?.label?.query()?.value || catId
 		);
 	}
-	let info = $derived(ctx.rangeInfo.get(parameterKey));
-	let data = $derived<ChartData<'bar'>>({
-		labels:
-			info?.frequency
-				?.keys()
-				.map((key) => getLabelForCategoryId(key))
-				.toArray() || [],
-		datasets:
-			info?.frequency
-				?.entries()
-				.map(([key, size]) => ({
-					// label: getLabelForCatId(key),
-					data: [{ x: getLabelForCategoryId(key), y: size }],
-					backgroundColor: info?.color.categories?.get(key) || info.color.primary
-				}))
-				.toArray() || []
-	});
-	let options = $derived.by<ChartOptions<'bar'>>(() => {
-		return {};
-	});
+	let info = $derived(ctx.rangeInfo.get(parameterKey)?);
 </script>
 
 <Card.Root>
 	<Card.Content>
-		<Bar {data} {options} />
+		<!-- {#if info && info.frequency}
+			<BarChart
+				data={info.frequency?.entries().map(([key, size]) => ({ [key]: size }))}
+				series={info.color.categories
+					?.entries()
+					.map(([key, color]) => ({ key, label: getLabelForCategoryId(key) || info.label, color }))}
+			/>
+		{/if} -->
 	</Card.Content>
 </Card.Root>

@@ -29,7 +29,7 @@
 	<div class="h-100 w-full space-y-2 opacity-[1] md:sticky md:top-0 md:h-screen">
 		{@render children?.()}
 	</div>
-	<div class="mr-2 flex h-screen w-full flex-col overflow-y-auto" id="parameter-preview">
+	<div class="mr-2 flex w-full flex-col overflow-y-auto" id="parameter-preview">
 		<div class="sticky top-0 w-full"><DashControlCenter /></div>
 
 		<Collapsible.Root
