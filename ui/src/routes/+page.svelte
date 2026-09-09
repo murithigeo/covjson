@@ -19,8 +19,9 @@
 				type: 'coveragejson',
 				// data: window.location.href + 'grid-multi-z-t.covjson',
 				// data: 'https://covjson.org/playground/coverages/grid-tiled.covjson',
-				data: 'https://covjson.org/playground/coverages/grid-categorical.covjson',
+				// data: 'https://covjson.org/playground/coverages/grid-categorical.covjson',
 				// data: 'https://covjson.org/playground/coverages/pointseries.covjson',
+				data: window.location.href + 'sample-data/categorical-pointseries.covjson',
 
 				layers: ['grid-outline', 'grid-layer', 'section'],
 				listenTo: ['click'],

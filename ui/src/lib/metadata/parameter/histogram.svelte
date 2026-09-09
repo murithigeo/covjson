@@ -1,5 +1,5 @@
 <script module lang="ts">
-	import { BarChart } from 'layerchart';
+	// import { BarChart } from 'layerchart';
 </script>
 
 <script lang="ts">

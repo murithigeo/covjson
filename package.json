@@ -27,6 +27,11 @@
 		"vitest": "^4.1.10"
 	},
 	"dependencies": {
-		"@tanstack/svelte-table": "^9.2.4"
+		"@sveltejs/adapter-auto": "^7.0.1",
+		"@sveltejs/kit": "^2.70.3",
+		"@tanstack/svelte-table": "^9.2.4",
+		"bits-ui": "^2.19.1",
+		"maplibre-gl": "^6.8.0",
+		"svelte-maplibre": "^2.0.0"
 	}
 }

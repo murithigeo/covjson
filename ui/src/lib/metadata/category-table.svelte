@@ -33,12 +33,12 @@
 	<Collapsible.Content>
 		<Card.Root>
 			<Card.Content>
-				<Table.Root class="relative table-auto">
+				<Table.Root class="table-auto">
 					<Table.Caption>List of Categories and their Localization Values</Table.Caption>
 					<Table.Header>
 						<Table.Row>
+							<Table.Head></Table.Head>
 							<Table.Head>Id</Table.Head>
-							<Table.Head>Color</Table.Head>
 							<Table.Head>Scope</Table.Head>
 							<Table.Head>Language</Table.Head>
 							<Table.Head>Value</Table.Head>
@@ -52,8 +52,9 @@
 									{#each label as [lang, value], i (lang)}
 										<Table.Row>
 											{#if i === 0}
-												<Table.Cell {rowspan} class={cn(cellStyle, '')}>{id}</Table.Cell>
-												<Table.Cell {rowspan} class={cn(cellStyle)}
+												<Table.Cell
+													{rowspan}
+													class={cn(cellStyle, 'rounded-full whitespace-nowrap')}
 													><ColorPicker
 														hex={ctx.rangeInfo.get(parameterKey)?.color.categories?.get(id) ||
 															ctx.rangeInfo.get(parameterKey)?.color?.primary}
@@ -61,7 +62,9 @@
 														label=""
 													/></Table.Cell
 												>
-												<Table.Cell rowspan={label.size}>Label</Table.Cell>
+												<Table.Cell {rowspan} class={cn(cellStyle, '')}>{id}</Table.Cell>
+
+												<Table.Cell rowspan={label.size} class={cn(cellStyle)}>Label</Table.Cell>
 											{/if}
 											<Table.Cell class={cn(cellStyle, '')}>{label.getTagName(lang)}</Table.Cell>
 											<Table.Cell class={cn(cellStyle, '')} {lang}>{value}</Table.Cell>
@@ -88,7 +91,7 @@
 										<Table.Cell rowspan={2}>
 											{id}
 										</Table.Cell>
-										<Table.Cell>Label</Table.Cell>
+										<Table.Cell class={cn(cellStyle)}>Label</Table.Cell>
 										<Table.Cell>{label.getTagName(label_value?.tag || 'en')}</Table.Cell>
 										<Table.Cell lang={label_value?.tag}>{label_value?.value || '--'}</Table.Cell>
 									</Table.Row>

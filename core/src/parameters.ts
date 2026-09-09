@@ -79,6 +79,12 @@ export class Parameter extends Metadata<PR> {
       description: this.description.size ? Object.fromEntries(this.description) : undefined
     };
   }
+  getCategoryId(int: number): Category | undefined {
+    if (!this.categoryEncoding) return undefined;
+    const id = this.categoryEncoding.entries().find(([, values]) => values.includes(int))?.[0];
+    if (!id) return undefined;
+    return this.observedProperty.categories?.find((cat) => cat.id === id);
+  }
 }
 
 export class ObservedProperty extends Metadata<Obs> {
