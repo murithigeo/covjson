@@ -9,7 +9,12 @@
 </script>
 
 <Dialog.Root>
-	<Dialog.Trigger><Badge variant="outline" style="background-color:{hex}"></Badge></Dialog.Trigger>
+	<Dialog.Trigger
+		><div
+			style="background-color:{hex}; border-color:{hex};"
+			class="size-4 shrink-0 rounded-xs"
+		></div></Dialog.Trigger
+	>
 	<Dialog.Content>
 		<ColorPicker {...props} bind:hex isDialog={false} /></Dialog.Content
 	>

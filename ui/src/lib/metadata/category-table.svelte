@@ -52,9 +52,7 @@
 									{#each label as [lang, value], i (lang)}
 										<Table.Row>
 											{#if i === 0}
-												<Table.Cell
-													{rowspan}
-													class={cn(cellStyle, 'rounded-full whitespace-nowrap')}
+												<Table.Cell {rowspan} class={cn(cellStyle, 'rounded-full')}
 													><ColorPicker
 														hex={ctx.rangeInfo.get(parameterKey)?.color.categories?.get(id) ||
 															ctx.rangeInfo.get(parameterKey)?.color?.primary}
@@ -64,7 +62,9 @@
 												>
 												<Table.Cell {rowspan} class={cn(cellStyle, '')}>{id}</Table.Cell>
 
-												<Table.Cell rowspan={label.size} class={cn(cellStyle)}>Label</Table.Cell>
+												<Table.Cell rowspan={label.size} class={cn(cellStyle, 'whitespace-nowrap')}
+													>Label</Table.Cell
+												>
 											{/if}
 											<Table.Cell class={cn(cellStyle, '')}>{label.getTagName(lang)}</Table.Cell>
 											<Table.Cell class={cn(cellStyle, '')} {lang}>{value}</Table.Cell>
@@ -74,8 +74,9 @@
 									{#each description as [lang, value], i (lang)}
 										<Table.Row>
 											{#if i === 0}
-												<Table.Cell rowspan={description.size} class={cn(cellStyle, '')}
-													>Description</Table.Cell
+												<Table.Cell
+													rowspan={description.size}
+													class={cn(cellStyle, 'whitespace-normal')}>Description</Table.Cell
 												>
 											{/if}
 											<Table.Cell class={cn(cellStyle, '')}

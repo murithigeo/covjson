@@ -1,4 +1,10 @@
-import { Coverage, NdArray, Parameter, type OnIndicesChange } from '@murithigeo/covjson-core';
+import {
+	Coverage,
+	NdArray,
+	Parameter,
+	ParameterGroup,
+	type OnIndicesChange
+} from '@murithigeo/covjson-core';
 import { getContext, onDestroy, setContext } from 'svelte';
 import { SvelteSet, SvelteMap } from 'svelte/reactivity';
 import { getParameterStatistics, type RangeSummary } from '$lib/statistics.js';
@@ -13,14 +19,9 @@ class DashboardContext {
 	coverages = $derived(
 		new SvelteMap([...this.pinned, ...this.input.map((cov) => [cov.uuid, cov] as const)])
 	);
+	parameters = $state(new SvelteMap<string, Parameter>());
+	parameterGroups = $state(new SvelteSet<ParameterGroup>());
 
-	// todo make state so that stats remain. Just sort by range keys in current Coverage
-	parameters = $derived(
-		new SvelteMap<string, Parameter>(this.coverages.values().flatMap((v) => [...v.parameters]))
-	);
-	parameterGroups = $derived(
-		new SvelteSet(this.coverages.values().flatMap((cov) => cov.parameterGroups))
-	);
 	selected = $derived(new SvelteSet(this.parameters.keys()));
 	now = $state<SliderValue<string>>();
 	tvalues = $state(new SvelteSet<string>());
@@ -51,7 +52,11 @@ class DashboardContext {
 		$effect(() => {
 			this.coverages.values().forEach((cov) => cov.t.forEach((t) => this.tvalues.add(t)));
 		});
-
+		$effect(() => {
+			this.input.forEach((cov) =>
+				cov.parameters.forEach((param, key) => this.setParameter(key, param))
+			);
+		});
 		onDestroy(() => {
 			this.onIndicesChange = undefined;
 			this.input = [];
@@ -125,6 +130,10 @@ class DashboardContext {
 			.map(([key, info]) => [key, { key, color: info.color.primary, label: info.label }]);
 		return Object.fromEntries(entries);
 	});
+	setParameter(key: string, parameter: Parameter) {
+		if (this.parameters.has(key)) return;
+		this.parameters.set(key, parameter);
+	}
 }
 type ChartConfig = Record<string, Record<'label' | 'key' | 'color', string>>;
 

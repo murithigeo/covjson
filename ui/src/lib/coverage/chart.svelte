@@ -1,5 +1,12 @@
 <script module lang="ts">
-	import { Coverage, isUndefined, minMax, type DataRow, Parameter } from '@murithigeo/covjson-core';
+	import {
+		Coverage,
+		isUndefined,
+		minMax,
+		type DataRow,
+		Parameter,
+		indexOfNearest
+	} from '@murithigeo/covjson-core';
 	import {
 		LineChart,
 		LinearGradient,
@@ -21,12 +28,15 @@
 <script lang="ts">
 	import { getCoverageCtx } from './coverage-ctx.svelte.ts';
 	import { getDashCtx } from '$lib/dashboards/utils/ctx.svelte.js';
+	import type { RangeSummary } from '$lib/statistics.js';
 
 	interface Props {
 		coverage: Coverage;
 	}
 	let { coverage = $bindable() }: Props = $props();
 	const [ctx, cCtx] = [getDashCtx(), getCoverageCtx()];
+
+	const tAsEpoch = coverage.t.map((v) => new Date(v).getTime());
 
 	// Add callback to automaticall update range summary
 	for (const [key, range] of coverage.ranges) {
@@ -128,14 +138,12 @@
 
 	function generateLinearGradientStops(
 		{ yScale, padding, height }: ChartState<any, AnyScale, AnyScale>,
-		parameterKey: string
+		info: RangeSummary
 	): [number, string][] {
 		const stops: [number, string][] = [];
 		const { top, bottom } = padding;
 		const getOffset = (v: number) => yScale(v) / (height + top + bottom);
-		const param = ctx.parameters.get(parameterKey)!;
-		const info = ctx.rangeInfo.get(parameterKey)!;
-
+		const param = ctx.parameters.get(info.key)!;
 		const categoryValues = param
 			.categoryEncoding!.values()
 			.toArray()
@@ -147,6 +155,22 @@
 			else stops.push([getOffset(num), info.color.categories!.get(catId) || info.color.primary!]);
 		}
 		return stops;
+	}
+
+	function resolveTooltipInfo({ name, value }: { name: string; value: unknown }) {
+		const info = ctx.rangeInfo.get(name);
+		const param = ctx.rangeInfo.get(name);
+
+		const categoryId = param.getCategoryId(value as number)?.id;
+		if (!catId)
+			return {
+				color: info.color.primary!,
+				categoryId: undefined
+			};
+		return {
+			color: info.color.categories.get(categoryId)!,
+			categoryId
+		};
 	}
 </script>
 
@@ -163,7 +187,26 @@
 		{:else}
 			<LineChart {...lineChartProps!}>
 				{#snippet tooltip()}
-					<Chart.Tooltip hideLabel />
+					<Chart.Tooltip
+						labelFormatter={(e) => {
+							if (e instanceof Date) {
+								const idx = indexOfNearest(tAsEpoch, e.getTime());
+								return coverage.t[idx];
+							}
+							return e;
+						}}
+					>
+						{#snippet formatter(props)}
+							{@const info = resolveTooltipInfo(props)}
+							<div
+								class={cn(
+									'flex w-full items-stretch gap-2 [&>svg]:size-2.5 [&>svg]:text-muted-foreground'
+								)}
+							>
+								<div style="background-color:{info.color};border-color:{info.color}"></div>
+							</div>
+						{/snippet}
+					</Chart.Tooltip>
 				{/snippet}
 				{#snippet marks({ context })}
 					{#each context.series.series as serie, i (i)}
@@ -173,7 +216,7 @@
 						{:else}
 							<LinearGradient
 								vertical
-								stops={generateLinearGradientStops(context, serie.key)}
+								stops={generateLinearGradientStops(context, info)}
 								units="userSpaceOnUse"
 							>
 								<!-- Make the label show the category/color when hovered/clicked -->

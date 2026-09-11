@@ -4,7 +4,8 @@ import type {
   UnitSymbol as USymbol,
   ObservedProperty as Obs,
   I18N as I18n,
-  Unit as U
+  Unit as U,
+  CategoryEncoding as CatEncoding
 } from 'coveragejson';
 import { isUndefined } from './domain/utils.ts';
 
@@ -16,14 +17,13 @@ abstract class Metadata<T> {
 }
 
 export class I18N extends Map<string, string> {
-  language: string;
-  constructor(value?: I18n | undefined | string | [string, string][], locale?: string) {
+  language = navigator.language;
+  constructor(value?: I18n | undefined | string | [string, string][]) {
     if (!isUndefined(value)) {
       if (typeof value === 'string') value = [['en', value]];
       if (!Array.isArray(value)) value = Object.entries(value);
     }
     super(value);
-    this.language = locale || navigator.language;
   }
   query(key: string = this.language): Record<'tag' | 'value', string> | undefined {
     if (this.size === 0) return undefined;
@@ -54,15 +54,15 @@ export class Parameter extends Metadata<PR> {
   key: string;
   unit: Unit | undefined;
   categoryEncoding?: Map<string, number[]>;
-  constructor(pr: PR, key: string, locale?: string) {
+  constructor(pr: PR, key: string) {
     super();
     this.type = pr.type;
-    this.label = new I18N(pr.label, locale);
-    this.description = new I18N(pr.description, locale);
+    this.label = new I18N(pr.label);
+    this.description = new I18N(pr.description);
     this.id = pr.id;
     this.key = key;
-    this.observedProperty = new ObservedProperty(pr.observedProperty, locale);
-    if (pr.unit) this.unit = new Unit(pr.unit, locale);
+    this.observedProperty = new ObservedProperty(pr.observedProperty);
+    if (pr.unit) this.unit = new Unit(pr.unit);
     if (pr.categoryEncoding) {
       this.categoryEncoding = new Map();
       Object.entries(pr.categoryEncoding)
@@ -85,6 +85,23 @@ export class Parameter extends Metadata<PR> {
     if (!id) return undefined;
     return this.observedProperty.categories?.find((cat) => cat.id === id);
   }
+  /**
+   * Formats a numeric value by appending the unit value to the end
+   */
+  formatValue(val: number): string {
+    let value = val.toString();
+    if (!this.unit || !this.unit.symbol || !this.unit.symbol.value) return value;
+    value += ` ${this.unit.symbol.value}`;
+    return value;
+  }
+}
+
+// export class Categories extends Map<string,{label:n}
+
+export class CategoryEncoding extends Map<string, number[]> {
+  constructor(encodings: CatEncoding) {
+    super(Object.entries(encodings).map(([key, val]) => [key, Array.isArray(val) ? val : [val]]));
+  }
 }
 
 export class ObservedProperty extends Metadata<Obs> {
@@ -93,12 +110,12 @@ export class ObservedProperty extends Metadata<Obs> {
   label: I18N;
   description: I18N;
 
-  constructor(obs: Obs, locale?: string) {
+  constructor(obs: Obs) {
     super();
     this.id = obs?.id;
-    this.label = new I18N(obs.label, locale);
-    this.description = new I18N(obs.description || {}, locale);
-    if (obs.categories) this.categories = obs.categories.map((e) => new Category(e, locale));
+    this.label = new I18N(obs.label);
+    this.description = new I18N(obs.description);
+    if (obs.categories) this.categories = obs.categories.map((e) => new Category(e));
   }
 
   toPlain(): Obs {
@@ -118,10 +135,10 @@ export class Unit extends Metadata<U> {
   description = undefined;
   id?: string;
   symbol?: Symbol;
-  constructor(unit: U, locale?: string) {
+  constructor(unit: U) {
     super();
     if ('label' in unit && unit.label) this.label = new I18N(unit.label);
-    else this.label = new I18N(undefined, locale);
+    else this.label = new I18N(undefined);
     this.id = unit?.id;
     if ('symbol' in unit) this.symbol = new Symbol(unit.symbol);
   }
@@ -171,13 +188,13 @@ export class ParameterGroup extends Metadata<CoverageJSON.ParameterGroup> {
   description: I18N;
   members: string[];
 
-  constructor(obj: CoverageJSON.ParameterGroup, locale?: string) {
+  constructor(obj: CoverageJSON.ParameterGroup) {
     super();
     this.id = obj.id;
     if ('observedProperty' in obj && obj.observedProperty)
-      this.observedProperty = new ObservedProperty(obj.observedProperty, locale);
-    this.label = new I18N(obj.label, locale);
-    this.description = new I18N(obj.description, locale);
+      this.observedProperty = new ObservedProperty(obj.observedProperty);
+    this.label = new I18N(obj.label);
+    this.description = new I18N(obj.description);
     this.members = obj.members.map((id) => id.toUpperCase());
   }
   hasParameter(id: string) {
@@ -199,10 +216,10 @@ export class Category extends Metadata<Cat> {
   id: string;
   label: I18N;
   description: I18N;
-  constructor(obj: Cat, locale?: string) {
+  constructor(obj: Cat) {
     super();
-    this.label = new I18N(obj.label, locale);
-    this.description = new I18N(obj.description || {}, locale);
+    this.label = new I18N(obj.label);
+    this.description = new I18N(obj.description || {});
     this.id = obj.id;
   }
   toPlain(): Cat {

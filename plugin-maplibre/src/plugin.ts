@@ -92,18 +92,11 @@ export class MaplibrePlugin extends maplibregl.GeoJSONSource {
 		}
 	}
 	getCoveragesFromFeatureList(features: maplibregl.MapGeoJSONFeature[], point: Position) {
-		// console.log(this._coverages);
 		return features
 			.map(({ properties }) => properties.uuid as string)
 			.map((id) => this._coverages.get(id.toString()))
 			.filter((v) => v !== undefined)
-			.map((v) => {
-				v = v
-					.clone() // Handles error where indices remain  at 0
-					.calculateIndices(point);
-				this._coverages.set(v.uuid, v);
-				return v;
-			});
+			.map((v) => v.calculateIndices(point)); // todo check if indices get calculated correctly
 	}
 	onIndicesChange: OnIndicesChange = (coverage, indices) => {
 		if (typeof coverage === 'string') {
