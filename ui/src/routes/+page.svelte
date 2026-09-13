@@ -13,6 +13,8 @@
 	let coverages = $state<Coverage[]>([]);
 	let onIndicesChange = $state<OnIndicesChange>();
 	$effect(() => {
+		if (!map) return;
+		if (!map.loaded) return;
 		map?.on('load', ({ target: map }) => {
 			const source = 'cov-load-test';
 			map.addSource(source, {

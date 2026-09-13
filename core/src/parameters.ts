@@ -85,15 +85,6 @@ export class Parameter extends Metadata<PR> {
     if (!id) return undefined;
     return this.observedProperty.categories?.find((cat) => cat.id === id);
   }
-  /**
-   * Formats a numeric value by appending the unit value to the end
-   */
-  formatValue(val: number): string {
-    let value = val.toString();
-    if (!this.unit || !this.unit.symbol || !this.unit.symbol.value) return value;
-    value += ` ${this.unit.symbol.value}`;
-    return value;
-  }
 }
 
 // export class Categories extends Map<string,{label:n}
@@ -149,6 +140,11 @@ export class Unit extends Metadata<U> {
       symbol: this.symbol?.toPlain()
     };
     return unit;
+  }
+
+  format(value: number): string {
+    if (!this.symbol?.value) return value.toString();
+    return value + this.symbol.value;
   }
 }
 

@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { Parameter, isUndefined } from '@murithigeo/covjson-core';
+	import { isUndefined } from '@murithigeo/covjson-core';
 	import LocaleTable from './locale-table.svelte';
 	import ObservedProperty from './observed-property.svelte';
 	import * as Card from '$lib/components/ui/card/index.js';
@@ -12,7 +12,7 @@
 	import type { RangeStatistics, RangeConfig } from '$lib/statistics.js';
 	import UnitComponent from './parameter/unit.svelte';
 	import Histogram from './parameter/histogram.svelte';
-
+	import { ReactiveParameter as Parameter } from '$lib/dashboards/utils/parameter.svelte.js';
 	import {
 		ChevronsUpDown,
 		SunSnowIcon,
@@ -43,7 +43,7 @@
 	const label = $derived(parameter.label);
 
 	let rangeInfo = $derived.by(() => {
-		const overall = ctx.rangeInfo.get(key);
+		const overall = ctx.parameters.get(key)!.stats;
 		const coverage = ctx.currentCoverageSummary?.get(key);
 		function processStats(arr: (string | number | null | undefined)[]) {
 			return arr
@@ -55,9 +55,7 @@
 				})
 				.join('/');
 		}
-		const stats: Partial<Record<keyof RangeStatistics | 'dataType', string>> & {
-			color?: RangeConfig['color'];
-		} = { color: overall?.color };
+		const stats: Partial<Record<keyof RangeStatistics | 'dataType', string>> & {} = {};
 		stats.min = processStats([coverage?.min, overall?.min]);
 		stats.max = processStats([coverage?.max, overall?.max]);
 		stats.mean = processStats([coverage?.mean, overall?.mean]);
@@ -79,16 +77,16 @@
 			<Item.Title lang={label.query()?.tag}
 				><Label>{label.query()?.value || parameter.key || parameter.id}</Label>
 				<Badge {variant}
-					><p class={`text-[${ctx.rangeInfo.get(key)?.color || ''}]`}>
+					><p class={`text-[${ctx.parameters.get(key)?.color || ''}]`}>
 						{rangeInfo?.dataType || 'Unknown'}
 					</p></Badge
 				>
-				<Badge {variant}>{ctx.rangeData.get(key)?.size || 0} Covs</Badge>
+				<Badge {variant}>{parameter.values.size || 0} Covs</Badge>
 				{#if parameter.unit?.symbol?.value}
 					<Badge {variant}>{parameter.unit.symbol.value}</Badge>
 				{/if}
 				<ColorPicker
-					hex={rangeInfo?.color?.primary}
+					hex={parameter?.color}
 					onInput={({ hex }) => ctx.setParameterColor(key, hex)}
 					label=""
 				/>

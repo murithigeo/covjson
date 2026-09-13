@@ -7,8 +7,8 @@ import {
 } from '@murithigeo/covjson-core';
 import { getContext, onDestroy, setContext } from 'svelte';
 import { SvelteSet, SvelteMap } from 'svelte/reactivity';
-import { getParameterStatistics, type RangeSummary } from '$lib/statistics.js';
 import type { SliderValue, StringSliderValue } from '$lib/sliders/sliders.js';
+import { calculateStats, ReactiveParameter } from './parameter.svelte.js';
 
 // todo automatically call onIndicesChange on the active Coverage
 class DashboardContext {
@@ -19,43 +19,31 @@ class DashboardContext {
 	coverages = $derived(
 		new SvelteMap([...this.pinned, ...this.input.map((cov) => [cov.uuid, cov] as const)])
 	);
-	parameters = $state(new SvelteMap<string, Parameter>());
+	parameters = $state(new SvelteMap<string, ReactiveParameter>());
 	parameterGroups = $state(new SvelteSet<ParameterGroup>());
 
 	selected = $derived(new SvelteSet(this.parameters.keys()));
 	now = $state<SliderValue<string>>();
 	tvalues = $state(new SvelteSet<string>());
-	rangeData = $state(new SvelteMap<string, SvelteMap<string, NdArray>>());
-	rangeInfo = $state(new SvelteMap<string, RangeSummary>());
 	currentCoverage = $state<Coverage | undefined>();
 	currentCoverageSummary = $derived.by(() => {
 		if (!this.currentCoverage) return undefined;
 		const coverage = this.currentCoverage;
-		const map = new Map<string, RangeSummary>();
-		//
-		this.rangeInfo
+		const stats = this.parameters
 			.entries()
-			.filter(([key]) => coverage.ranges.has(key))
-			.forEach(([key, info]) => {
-				const param = this.parameters.get(key) || key;
-				const rangeData = this.rangeData.get(key)?.get(coverage.uuid);
-				const ranges = new Map();
+			.filter(([, param]) => param.values.has(coverage.uuid))
+			.map(([key, param]) => [key, calculateStats([param.values.get(coverage.uuid)!])] as const);
 
-				if (rangeData) ranges.set(coverage.uuid, rangeData);
-
-				const specific = getParameterStatistics(param, ranges, info);
-				map.set(key, specific);
-			});
-		return map;
+		return new Map(stats);
 	});
 	constructor() {
 		$effect(() => {
 			this.coverages.values().forEach((cov) => cov.t.forEach((t) => this.tvalues.add(t)));
 		});
 		$effect(() => {
-			this.input.forEach((cov) =>
-				cov.parameters.forEach((param, key) => this.setParameter(key, param))
-			);
+			this.input
+				.flatMap(({ parameters }) => [...parameters])
+				.forEach(([key, param]) => this.setParameter(key, param));
 		});
 		onDestroy(() => {
 			this.onIndicesChange = undefined;
@@ -63,8 +51,6 @@ class DashboardContext {
 			this.pinned.clear();
 			this.selected.clear();
 			this.tvalues.clear();
-			this.rangeData.clear();
-			this.rangeInfo.clear();
 		});
 	}
 	updateParameterSelectionStatus(id: string) {
@@ -85,18 +71,13 @@ class DashboardContext {
 			else this.pinned.delete(coverage.uuid);
 		};
 	}
-	updateRangeInfoStatistics(paramId: string) {
-		const param = this.parameters.get(paramId) || paramId;
-		const rangeData = this.rangeData.get(paramId);
-		const info = this.rangeInfo.get(paramId);
-		const updated = getParameterStatistics(param, rangeData || new Map(), info);
-		this.rangeInfo.set(paramId, updated);
-	}
+
 	updateRangeData(paramId: string, covUuid: string, range: NdArray) {
-		let data = this.rangeData.get(paramId) || new SvelteMap();
-		data.set(covUuid, range);
-		this.rangeData.set(paramId, data);
-		this.updateRangeInfoStatistics(paramId);
+		let param = this.parameters.get(paramId);
+		if (!param) return;
+
+		param = param.updateRangeData(covUuid, range);
+		this.parameters = this.parameters.set(paramId, param);
 	}
 
 	setNow(bounds: StringSliderValue): void {
@@ -114,25 +95,21 @@ class DashboardContext {
 	}
 
 	setParameterColor(paramId: string, color: string | null, categoryId?: string) {
-		const config = this.rangeInfo.get(paramId);
-		if (color === null || !config) return;
-		const updated = { ...config };
-		if (!categoryId) updated.color.primary = color;
-		if (updated.color.categories && categoryId) {
-			updated.color.categories.set(categoryId, color);
-		}
+		let param = this.parameters.get(paramId);
+		if (!param) return;
+		param = param?.setColor(color, categoryId);
 
-		this.rangeInfo.set(paramId, updated);
+		this.parameters = this.parameters.set(paramId, param);
 	}
 	chartConfig = $derived.by<ChartConfig>(() => {
-		const entries = this.rangeInfo
+		const entries = this.parameters
 			.entries()
-			.map(([key, info]) => [key, { key, color: info.color.primary, label: info.label }]);
+			.map(([key, param]) => [key, { key, color: param.color, label: param.simpleLabel }]);
 		return Object.fromEntries(entries);
 	});
 	setParameter(key: string, parameter: Parameter) {
 		if (this.parameters.has(key)) return;
-		this.parameters.set(key, parameter);
+		this.parameters.set(key, new ReactiveParameter(parameter));
 	}
 }
 type ChartConfig = Record<string, Record<'label' | 'key' | 'color', string>>;

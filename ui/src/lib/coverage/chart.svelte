@@ -1,12 +1,5 @@
 <script module lang="ts">
-	import {
-		Coverage,
-		isUndefined,
-		minMax,
-		type DataRow,
-		Parameter,
-		indexOfNearest
-	} from '@murithigeo/covjson-core';
+	import { Coverage, isUndefined, type DataRow, indexOfNearest } from '@murithigeo/covjson-core';
 	import {
 		LineChart,
 		LinearGradient,
@@ -18,29 +11,36 @@
 		type ChartProps,
 		type AnyScale,
 		type ChartState,
-		Points
+		Points,
+		Legend
 	} from 'layerchart';
-	import { scaleBand, scaleUtc } from 'd3-scale';
+	import { scaleUtc, scaleOrdinal } from 'd3-scale';
 	import EmptyChart from '$lib/empty/chart.svelte';
 	import * as Chart from '$lib/components/ui/chart/index.js';
+	import { ReactiveParameter } from '$lib/dashboards/utils/parameter.svelte.js';
 </script>
 
 <script lang="ts">
 	import { getCoverageCtx } from './coverage-ctx.svelte.ts';
 	import { getDashCtx } from '$lib/dashboards/utils/ctx.svelte.js';
-	import type { RangeSummary } from '$lib/statistics.js';
+	import { onMount } from 'svelte';
 
 	interface Props {
 		coverage: Coverage;
 	}
 	let { coverage = $bindable() }: Props = $props();
-	const [ctx, cCtx] = [getDashCtx(), getCoverageCtx()];
+	const ctx = getDashCtx();
+	const cCtx = getCoverageCtx();
 
 	const tAsEpoch = coverage.t.map((v) => new Date(v).getTime());
 
-	// Add callback to automaticall update range summary
 	for (const [key, range] of coverage.ranges) {
-		if (range.type === 'NdArray') ctx.updateRangeData(key, coverage.uuid, range);
+		if (!ctx.parameters.has(key) && coverage.parameters.has(key)) {
+			ctx.setParameter(key, coverage.parameters.get(key)!);
+		}
+		if (range.type === 'NdArray') {
+			ctx.updateRangeData(key, coverage.uuid, range);
+		}
 		range.options = {
 			...range.options,
 			onNonCacheFetch(value) {
@@ -66,7 +66,7 @@
 	let commonChartProps: ChartProps<AugmentedDataRow> = {
 		brush: { axis: 'both' },
 		transform: { mode: 'domain', axis: 'both' },
-
+		legend: true,
 		yNice: true
 	};
 	let barChartProps = $derived.by(() => {
@@ -77,18 +77,16 @@
 			.filter(([key]) => coverage.ranges.has(key))
 			.filter(([key]) => ctx.selected.has(key))
 			.map(([key, param]) => {
-				const info = ctx.rangeInfo.get(key);
 				const data = rows[0][key];
-				let color = info?.color.primary;
-				if (param.categoryEncoding) {
-					const catId = param.categoryEncoding
-						.entries()
-						.find(([, values]) => values.some((v) => v === data))?.[0];
-					if (catId) color = info?.color.categories?.get(catId);
+				let color: string | undefined = param.color;
+				if (param.categories.size > 0) {
+					color = param.getCategoryId(data as number)?.color;
+					if (!color) color = param.color;
 				}
+
 				return {
 					key,
-					label: info?.label,
+					label: param.simpleLabel,
 					color,
 					data: [{ key: key, value: data }]
 				};
@@ -113,20 +111,22 @@
 		const props: LineChartProps<AugmentedDataRow> = { ...commonChartProps };
 		props.props = {};
 		props.x = xAxis;
+		//@ts-expect-error modifying t results in incompatible data-tyoe
 		props.data = rows.map((v) => ({ ...v, t: isUndefined(v.t) ? undefined : new Date(v.t) }));
-		props.series = ctx.rangeInfo
+		props.series = ctx.parameters
 			.entries()
 			.filter(([key]) => ctx.selected.has(key))
 			.filter(([key]) => coverage.ranges.has(key))
 			.map(([key, info]) => [key, info] as const)
 			.toArray()
-			.map(([key, { color, label }]) => {
+			.map(([key, { color, simpleLabel: label }]) => {
 				return {
 					key,
 					label,
-					color: color.primary
+					color
 				};
 			});
+
 		if (xAxis === 'composite' || xAxis === 't') {
 			props.xScale = scaleUtc();
 		}
@@ -136,41 +136,14 @@
 		return props;
 	});
 
+	// What if we dont have the gradient but style the points
 	function generateLinearGradientStops(
 		{ yScale, padding, height }: ChartState<any, AnyScale, AnyScale>,
-		info: RangeSummary
+		param: ReactiveParameter
 	): [number, string][] {
-		const stops: [number, string][] = [];
 		const { top, bottom } = padding;
 		const getOffset = (v: number) => yScale(v) / (height + top + bottom);
-		const param = ctx.parameters.get(info.key)!;
-		const categoryValues = param
-			.categoryEncoding!.values()
-			.toArray()
-			.flat()
-			.sort((a, b) => b - a);
-		for (let num of categoryValues) {
-			const catId = param.getCategoryId(num)?.id;
-			if (!catId) stops.push([getOffset(num), info.color.primary]);
-			else stops.push([getOffset(num), info.color.categories!.get(catId) || info.color.primary!]);
-		}
-		return stops;
-	}
-
-	function resolveTooltipInfo({ name, value }: { name: string; value: unknown }) {
-		const info = ctx.rangeInfo.get(name);
-		const param = ctx.rangeInfo.get(name);
-
-		const categoryId = param.getCategoryId(value as number)?.id;
-		if (!catId)
-			return {
-				color: info.color.primary!,
-				categoryId: undefined
-			};
-		return {
-			color: info.color.categories.get(categoryId)!,
-			categoryId
-		};
+		return param.colorScale.map((scale) => [getOffset(scale[0]), scale[1]]);
 	}
 </script>
 
@@ -195,33 +168,22 @@
 							}
 							return e;
 						}}
-					>
-						{#snippet formatter(props)}
-							{@const info = resolveTooltipInfo(props)}
-							<div
-								class={cn(
-									'flex w-full items-stretch gap-2 [&>svg]:size-2.5 [&>svg]:text-muted-foreground'
-								)}
-							>
-								<div style="background-color:{info.color};border-color:{info.color}"></div>
-							</div>
-						{/snippet}
-					</Chart.Tooltip>
+					></Chart.Tooltip>
 				{/snippet}
 				{#snippet marks({ context })}
 					{#each context.series.series as serie, i (i)}
-						{@const info = ctx.rangeInfo.get(serie.key)};
-						{#if !info?.color?.categories}
+						{@const param = ctx.parameters.get(serie.key)!};
+						{#if !param?.categories.size}
 							<Spline y={serie.key} stroke={serie.color} />
 						{:else}
 							<LinearGradient
 								vertical
-								stops={generateLinearGradientStops(context, info)}
+								stops={generateLinearGradientStops(context, param)}
 								units="userSpaceOnUse"
 							>
 								<!-- Make the label show the category/color when hovered/clicked -->
 								{#snippet children({ gradient })}
-									<Spline y={serie.key} stroke={gradient}></Spline>
+									<Spline y={serie.key} stroke={gradient} />
 									<Points y={serie.key} fill={gradient} />
 								{/snippet}
 							</LinearGradient>
@@ -232,4 +194,14 @@
 			</LineChart>
 		{/if}
 	</Chart.Container>
+	{@const cScale = ctx.parameters
+		.get('TEMPERATURE')!
+		.colorScale.sort(([numA], [numB]) => numA - numB)}
+	<Legend
+		scale={scaleOrdinal(
+			cScale.map(([num]) => num),
+			cScale.map(([, color]) => color)
+		)}
+		variant="ramp"
+	/>
 {/if}

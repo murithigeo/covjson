@@ -108,7 +108,8 @@ export class MaplibrePlugin extends maplibregl.GeoJSONSource {
 		if (!geometry) return;
 
 		this.indices = indices;
-		let mapSource = this.map.getSource<maplibregl.GeoJSONSource>(this.tempSourceId);
+		if (!this.map.isStyleLoaded()) return;
+		let mapSource = this.map.getSource<maplibregl.GeoJSONSource>?.(this.tempSourceId);
 		if (!mapSource) {
 			this.map.addSource(this.tempSourceId, {
 				type: 'geojson',

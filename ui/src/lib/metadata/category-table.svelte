@@ -54,8 +54,8 @@
 											{#if i === 0}
 												<Table.Cell {rowspan} class={cn(cellStyle, 'rounded-full')}
 													><ColorPicker
-														hex={ctx.rangeInfo.get(parameterKey)?.color.categories?.get(id) ||
-															ctx.rangeInfo.get(parameterKey)?.color?.primary}
+														hex={ctx.parameters.get(parameterKey)?.categories?.get(id)?.color ||
+															ctx.parameters.get(parameterKey)?.color}
 														onInput={({ hex }) => ctx.setParameterColor(parameterKey, hex, id)}
 														label=""
 													/></Table.Cell
