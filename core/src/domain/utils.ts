@@ -364,9 +364,21 @@ export function tIndicesOfNearest(a: string[], t: string) {
   return indicesOfNearest(sinceEpoch.slice(1), sinceEpoch[0]);
 }
 
-export function isUndefined<T>(val: T | undefined): val is undefined {
+export function isUndefined(val: unknown): val is undefined {
   return typeof val === 'undefined';
 }
 export function isNull(val: unknown | null): val is null {
   return val === undefined;
+}
+
+export class CustomDate extends Date {
+  /**
+   * The original date argument
+   */
+  value: string;
+  constructor(value: string) {
+    super(value);
+    this.value = value;
+  }
+  // Implement the parse string
 }

@@ -1,4 +1,4 @@
-<script lang="ts" generics="T extends string|number">
+<script lang="ts" generics="T extends any">
 	import { Slider, type SliderMultiRootPropsWithoutHTML } from 'bits-ui';
 	import type { ClassValue } from 'clsx';
 	import { cn } from '$lib/utils.js';

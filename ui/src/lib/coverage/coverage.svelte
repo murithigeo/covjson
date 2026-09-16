@@ -10,22 +10,21 @@
 		ArrowUpIcon,
 		ArrowDownIcon,
 		TrashIcon,
-		PinIcon,
-		MousePointer2Icon
+		PinIcon
 	} from '@lucide/svelte';
 	import { Toggle } from '$lib/components/ui/toggle/index.js';
 	import { Button, type ButtonProps } from '$lib/components/ui/button/index.js';
 	import { Coverage, indexOfNearest } from '@murithigeo/covjson-core';
-	import { Label } from '$lib/components/ui/label/index.js';
 	import Chart from './chart.svelte';
 	import { setCoverageCtx } from './coverage-ctx.svelte.ts';
 	import { getDashCtx } from '../dashboards/utils/ctx.svelte.ts';
 	import type { SliderIndex, StringSliderValue } from '$lib/sliders/sliders.d.ts';
 	interface Props {
 		coverage: Coverage;
+		checked?: boolean;
 	}
 	const buttonProps: ButtonProps = { variant: 'outline', size: 'icon-sm' };
-	let { coverage = $bindable() }: Props = $props();
+	let { coverage = $bindable(), checked = $bindable(false) }: Props = $props();
 	const ctx = getDashCtx();
 	const covCtx = setCoverageCtx(coverage);
 
@@ -43,11 +42,14 @@
 	$effect(() => {
 		covCtx.indices = new SvelteMap([...coverage.indices]);
 	});
-
-	function toggleHandler(status: boolean[]) {}
+	$effect(() => ctx.setCurrentCoverage(coverage)(checked));
 </script>
 
-<Card.Root class="border">
+<Card.Root
+	class="cursor-pointer border data-checked:border-green-600"
+	onclick={() => (checked = !checked)}
+	data-checked={checked}
+>
 	<Card.Header>
 		<Card.Title>
 			<Badge variant="outline">{coverage.domain.domainType}</Badge></Card.Title
@@ -71,14 +73,6 @@
 				{...buttonProps}
 			>
 				<TrashIcon /></Button
-			>
-			<Toggle
-				aria-label="Select Coverage"
-				class="data-[state=on]:bg-transparent data-[state=on]:*:[svg]:fill-yellow-500 data-[state=on]:*:[svg]:stroke-yellow-500"
-				size="sm"
-				variant="outline"
-				pressed={ctx.currentCoverage?.uuid === coverage.uuid}
-				onPressedChange={ctx.setCurrentCoverage(coverage)}><MousePointer2Icon /></Toggle
 			>
 		</Card.Action>
 	</Card.Header>

@@ -82,7 +82,7 @@
 			<EmptyCoverages />
 		{:else}
 			{#each ctx.coverages as [, coverage], i (i)}
-				<CoverageComponent {coverage} />
+				<CoverageComponent {coverage} checked={!i} />
 			{/each}
 		{/if}
 	</div>

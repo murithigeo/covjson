@@ -27,19 +27,6 @@
 	"svelte": "./dist/index.js",
 	"types": "./dist/index.d.ts",
 	"type": "module",
-	"exports": {
-		"tres-dashboard": {
-			"types": "./dist/client/tres.d.ts",
-			"default": "./dist/client/tres.js"
-		},
-		"tres-dashboard/svelte": {
-			"types": "./dist/client/tres.d.ts"
-		},
-		"tres-dashboard/ssr": {
-			"types": "./dist/server/ssr.d.ts",
-			"default": "./dist/server/ssr.js"
-		}
-	},
 	"peerDependencies": {
 		"svelte": "^5.0.0"
 	},

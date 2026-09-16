@@ -2,7 +2,7 @@ import { BaseDomain } from './base-domain.ts';
 import type { Trajectory as TrajDomain, Position } from 'coveragejson';
 import type { Referencing } from '../referencing.ts';
 import type { LineString } from 'geojson';
-import { isUndefined } from './utils.ts';
+import { CustomDate, isUndefined } from './utils.ts';
 import nearestPointOnLine from '@turf/nearest-point-on-line';
 
 /**
@@ -68,7 +68,7 @@ export class Trajectory extends BaseDomain<TrajDomain> {
     return this;
   }
 
-  get t(): string[] {
-    return this.axes.composite.values.map(([t]) => t);
+  get t() {
+    return this.axes.composite.values.map(([t]) => new CustomDate(t));
   }
 }

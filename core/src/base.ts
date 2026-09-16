@@ -1,3 +1,4 @@
+import type { CustomDate } from './domain/utils.ts';
 import { Referencing, type UserReferencingOptions as RefOptions } from './referencing.ts';
 import type { Domain, Position, ReferenceSystemConnection as RSC } from 'coveragejson';
 
@@ -41,7 +42,7 @@ export abstract class Base<T> {
   /**
    * Get temporal (t) values within the object
    */
-  abstract get t(): string[];
+  abstract get t(): CustomDate[];
   /**
    * Get elevation (z) values within the object
    */

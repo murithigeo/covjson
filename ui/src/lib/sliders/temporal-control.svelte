@@ -6,8 +6,9 @@
 	import { Button, type ButtonProps } from '$lib/components/ui/button/index.js';
 	import { TimerResetIcon, RepeatIcon, RepeatOffIcon, PlayIcon, PauseIcon } from '@lucide/svelte';
 	import type { Snippet } from 'svelte';
+	import type { CustomDate } from '@murithigeo/covjson-core';
 
-	interface Props extends ComponentProps<typeof Slider<string>> {
+	interface Props extends ComponentProps<typeof Slider<CustomDate>> {
 		children?: Snippet;
 		loop?: boolean;
 		duration?: number;

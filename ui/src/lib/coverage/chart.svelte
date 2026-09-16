@@ -1,5 +1,5 @@
 <script module lang="ts">
-	import { Coverage, isUndefined, type DataRow, indexOfNearest } from '@murithigeo/covjson-core';
+	import { Coverage, isUndefined, type DataRow, CustomDate } from '@murithigeo/covjson-core';
 	import {
 		LineChart,
 		LinearGradient,
@@ -12,9 +12,14 @@
 		type AnyScale,
 		type ChartState,
 		Points,
-		Legend
+		Legend,
+		AreaChart,
+		ScatterChart,
+		defaultChartPadding,
+		Bars
 	} from 'layerchart';
-	import { scaleUtc, scaleOrdinal } from 'd3-scale';
+
+	import { scaleUtc, scaleOrdinal, scaleThreshold } from 'd3-scale';
 	import EmptyChart from '$lib/empty/chart.svelte';
 	import * as Chart from '$lib/components/ui/chart/index.js';
 	import { ReactiveParameter } from '$lib/dashboards/utils/parameter.svelte.js';
@@ -23,7 +28,7 @@
 <script lang="ts">
 	import { getCoverageCtx } from './coverage-ctx.svelte.ts';
 	import { getDashCtx } from '$lib/dashboards/utils/ctx.svelte.js';
-	import { onMount } from 'svelte';
+	import { SvelteMap } from 'svelte/reactivity';
 
 	interface Props {
 		coverage: Coverage;
@@ -31,8 +36,6 @@
 	let { coverage = $bindable() }: Props = $props();
 	const ctx = getDashCtx();
 	const cCtx = getCoverageCtx();
-
-	const tAsEpoch = coverage.t.map((v) => new Date(v).getTime());
 
 	for (const [key, range] of coverage.ranges) {
 		if (!ctx.parameters.has(key) && coverage.parameters.has(key)) {
@@ -50,158 +53,148 @@
 		};
 		coverage.ranges.set(key, range);
 	}
-	let xAxis = $derived(cCtx.xAxis);
 
-	type AugmentedDataRow = Omit<DataRow, 't'> & { t?: Date };
-
-	let rows = $state<DataRow[]>([]);
-	const updateRows = (data: DataRow[]) => (rows = data);
-
-	let dataPromise = $derived(
-		coverage.query(xAxis)(cCtx.indices, ctx.selected.keys().toArray()).then(updateRows)
-	);
-	$effect(() => {
-		dataPromise;
+	let parameters = $derived.by<[string, ReactiveParameter][]>(() => {
+		return ctx.parameters
+			.entries()
+			.filter(([key]) => coverage.ranges.has(key))
+			.filter(([key]) => ctx.selected.has(key))
+			.toArray();
 	});
-	let commonChartProps: ChartProps<AugmentedDataRow> = {
+	/**
+	 * Should be remapped as t if composite is xAxis
+	 */
+	let x = $derived(cCtx.xAxis);
+	let chartType = $state<'bar' | 'line' | 'area' | 'scatter'>('bar');
+	let data = $derived.by(() => {
+		const rangeIds = parameters.map(([key]) => key);
+		return coverage.query(cCtx.indices, rangeIds, [x]);
+	});
+
+	let commonChartProps: ChartProps<DataRow> = $derived({
 		brush: { axis: 'both' },
 		transform: { mode: 'domain', axis: 'both' },
-		legend: true,
-		yNice: true
-	};
-	let barChartProps = $derived.by(() => {
-		if (rows.length !== 1) return undefined;
-		const props: BarChartProps<AugmentedDataRow> = { ...commonChartProps };
-		props.series = ctx.parameters
-			.entries()
-			.filter(([key]) => coverage.ranges.has(key))
-			.filter(([key]) => ctx.selected.has(key))
-			.map(([key, param]) => {
-				const data = rows[0][key];
-				let color: string | undefined = param.color;
-				if (param.categories.size > 0) {
-					color = param.getCategoryId(data as number)?.color;
-					if (!color) color = param.color;
-				}
-
-				return {
-					key,
-					label: param.simpleLabel,
-					color,
-					data: [{ key: key, value: data }]
-				};
-			})
-			.toArray();
-		props.x = 'key';
-		props.y = 'value';
-		props.axis = 'x';
-		props.rule = true;
-		props.labels = { offset: 12 };
-		props.props = {};
-		props.props.bars = {
-			stroke: 'none',
-			radius: 8,
-			rounded: 'all',
-			motion: { type: 'tween', duration: 500 }
-		};
-		return props;
+		rule: true,
+		padding: defaultChartPadding()
 	});
-	let lineChartProps = $derived.by(() => {
-		if (rows.length < 2) return undefined;
-		const props: LineChartProps<AugmentedDataRow> = { ...commonChartProps };
-		props.props = {};
-		props.x = xAxis;
-		//@ts-expect-error modifying t results in incompatible data-tyoe
-		props.data = rows.map((v) => ({ ...v, t: isUndefined(v.t) ? undefined : new Date(v.t) }));
-		props.series = ctx.parameters
-			.entries()
-			.filter(([key]) => ctx.selected.has(key))
-			.filter(([key]) => coverage.ranges.has(key))
-			.map(([key, info]) => [key, info] as const)
-			.toArray()
-			.map(([key, { color, simpleLabel: label }]) => {
-				return {
-					key,
-					label,
-					color
-				};
-			});
 
-		if (xAxis === 'composite' || xAxis === 't') {
-			props.xScale = scaleUtc();
-		}
-		props.props.xAxis = {
-			label: xAxis === 't' ? 'Date[Time]' : xAxis === 'z' ? 'Elevation' : 'Node'
-		};
-		return props;
-	});
+	let context = $state<ChartState>();
+	let tooltipData = $derived<null | DataRow>(context?.tooltip.data);
 
 	// What if we dont have the gradient but style the points
-	function generateLinearGradientStops(
-		{ yScale, padding, height }: ChartState<any, AnyScale, AnyScale>,
-		param: ReactiveParameter
-	): [number, string][] {
-		const { top, bottom } = padding;
-		const getOffset = (v: number) => yScale(v) / (height + top + bottom);
-		return param.colorScale.map((scale) => [getOffset(scale[0]), scale[1]]);
-	}
+
+	let offsetMultiplier = $derived.by(() => {
+		if (!context) return (v: number) => v;
+		const { padding, yScale, height } = context;
+		return (v: number) => yScale(v) / (height + padding.top + padding.bottom);
+	});
+
+	type ColorStop = [number, string];
+	let gradients = $derived.by(() => {
+		const gradients = parameters.map(([key, param]): [string, ColorStop[]] => [
+			key,
+			param.colorScale.length ? param.colorScale : [[param.stats.max!, param.color]]
+		]);
+		return new SvelteMap(gradients);
+	});
+	let offsetedGradients = $derived.by(() => {
+		const values = gradients
+			.entries()
+			.map(([key, stops]): [string, ColorStop[]] => [
+				key,
+				stops.map(([int, color]) => [offsetMultiplier(int), color])
+			]);
+		return new SvelteMap(values);
+	});
+	const labelFormatter = (value: any) => (value instanceof CustomDate ? value.value : value);
+	/**
+	 * Get the max value of the current data with some wiggle room
+	 */
+	const getMax = (data: DataRow[]): number => {
+		const values = parameters
+			.flatMap(([key]) => data.map((row) => row[key]))
+			.filter((value) => typeof value === 'number');
+		return Math.max(...values) * 1.2;
+	};
 </script>
 
-{#if !lineChartProps && !barChartProps}
-	<EmptyChart status="loaded" />
-{:else}
-	<Chart.Container config={ctx.chartConfig}>
-		{#if rows.length === 1}
-			<BarChart {...barChartProps!}>
-				{#snippet tooltip()}
-					<Chart.Tooltip hideLabel />
-				{/snippet}
-			</BarChart>
+<div class="grid-cols-1 items-center">
+	{#await data}
+		<EmptyChart status="loading" />
+	{:then data}
+		{#if !data.length}
+			<EmptyChart status="loaded" />
 		{:else}
-			<LineChart {...lineChartProps!}>
-				{#snippet tooltip()}
-					<Chart.Tooltip
-						labelFormatter={(e) => {
-							if (e instanceof Date) {
-								const idx = indexOfNearest(tAsEpoch, e.getTime());
-								return coverage.t[idx];
-							}
-							return e;
-						}}
-					></Chart.Tooltip>
-				{/snippet}
-				{#snippet marks({ context })}
-					{#each context.series.series as serie, i (i)}
-						{@const param = ctx.parameters.get(serie.key)!};
-						{#if !param?.categories.size}
-							<Spline y={serie.key} stroke={serie.color} />
-						{:else}
-							<LinearGradient
-								vertical
-								stops={generateLinearGradientStops(context, param)}
-								units="userSpaceOnUse"
-							>
-								<!-- Make the label show the category/color when hovered/clicked -->
-								{#snippet children({ gradient })}
-									<Spline y={serie.key} stroke={gradient} />
-									<Points y={serie.key} fill={gradient} />
-								{/snippet}
-							</LinearGradient>
-						{/if}
-						<Highlight points lines />
-					{/each}
-				{/snippet}
-			</LineChart>
+			<Chart.Container config={ctx.chartConfig} class="cursor-default">
+				{#if chartType === 'bar'}
+					<BarChart
+						bind:context
+						{...commonChartProps}
+						// Incorrect rendering (Unexpected value NaN parsing x attribute.)
+						transform={undefined}
+						{x}
+						{data}
+						props={{ bars: { rounded: 'none' } }}
+						series={parameters.map(([key, param]) => ({
+							param,
+							key,
+							label: param.simpleLabel,
+							color: param.color
+						}))}
+						seriesLayout="group"
+						yDomain={[null, getMax(data)]}
+					>
+						{#snippet tooltip()}{@render CustomTooltip()}{/snippet}
+						{#snippet marks({ context })}
+							{#each context.series.series as serie, i (i)}
+								<LinearGradient
+									stops={offsetedGradients.get(serie.key)?.sort(([numA], [numB]) => numB - numA)}
+									vertical
+									units="userSpaceOnUse"
+								>
+									{#snippet children({ gradient, id })}
+										<Bars fill={gradient} y={serie.key} {id} />
+									{/snippet}
+								</LinearGradient>
+							{/each}
+						{/snippet}
+					</BarChart>
+				{:else if chartType === 'line'}
+					<LineChart {...commonChartProps} bind:context>
+						{#snippet tooltip()}{@render CustomTooltip()}{/snippet}
+					</LineChart>
+				{:else if chartType === 'scatter'}
+					<ScatterChart {...commonChartProps} {data}>
+						{#snippet tooltip()}{@render CustomTooltip()}{/snippet}
+					</ScatterChart>
+				{/if}
+			</Chart.Container>
+			{#each gradients as [key, scale]}
+				<Legend
+					scale={scaleThreshold(
+						scale.map(([num]) => context?.yScale?.(num) || num),
+						scale.map(([, color]) => color)
+					)}
+					title={key}
+					value={tooltipData?.[key]}
+				/>
+			{/each}
 		{/if}
-	</Chart.Container>
-	{@const cScale = ctx.parameters
-		.get('TEMPERATURE')!
-		.colorScale.sort(([numA], [numB]) => numA - numB)}
-	<Legend
-		scale={scaleOrdinal(
-			cScale.map(([num]) => num),
-			cScale.map(([, color]) => color)
-		)}
-		variant="ramp"
-	/>
-{/if}
+	{/await}
+</div>
+
+<!-- {#each parameters as [key, parameter] (key)}
+			{@const stops = parameter.colorScale.sort(([numA], [numB]) => numA - numB)}
+			<Legend
+				title={parameter.simpleLabel}
+				value={highlightData?.[key]}
+				scale={scaleThreshold(
+					stops.map(([int]) => int),
+					stops.map(([, color]) => color)
+				)}
+			/>
+		{/each} -->
+
+{#snippet CustomTooltip()}
+	<Chart.Tooltip {labelFormatter} />
+{/snippet}

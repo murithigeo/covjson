@@ -9,7 +9,7 @@ import type {
 import type { Referencing } from '../referencing.ts';
 import inside from 'point-in-polygon-hao';
 import type { Polygon as PolygonGeometry } from 'geojson';
-import { calcNumAxisBounds } from './utils.ts';
+import { calcNumAxisBounds, CustomDate } from './utils.ts';
 
 abstract class Base<T extends PolygonDomain | PolySeriesD | MP | MPs> extends BaseDomain<T> {
   constructor(domain: T) {
@@ -44,8 +44,9 @@ abstract class Base<T extends PolygonDomain | PolySeriesD | MP | MPs> extends Ba
   get z(): number[] {
     return this.axes.z?.values || [];
   }
-  get t(): string[] {
-    return this.axes.t?.values || [];
+  get t() {
+    if (!this.axes.t) return [];
+    return this.axes.t.values.map((v) => new CustomDate(v));
   }
   queryIndices(ref: Position | number | string): Map<'composite' | 't', number> {
     const indices = new Map().set('composite', 0).set('t', 0).set('z', 0);

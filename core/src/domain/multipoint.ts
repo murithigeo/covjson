@@ -12,7 +12,8 @@ import {
   calc2dTupleAxisBounds,
   calcNumAxisBounds,
   isUndefined,
-  denormalizeNumAxis
+  denormalizeNumAxis,
+  CustomDate
 } from './utils.ts';
 import nearestPointOnLine from '@turf/nearest-point-on-line';
 import type { WithoutRegularlySpacedAxis } from './types.d.ts';
@@ -45,8 +46,9 @@ abstract class Base<T extends MpD | MpsD> extends BaseDomain<T> {
   get z(): number[] {
     return this.axes.composite.values.map(([, , z]) => z).filter((v) => v !== undefined);
   }
-  get t(): string[] {
-    return this.axes.t?.values || [];
+  get t() {
+    if (!this.axes.t) return [];
+    return this.axes.t.values.map((v) => new CustomDate(v));
   }
   get axesSize(): Map<keyof T['axes'], number> {
     return new Map().set('composite', this.axes.composite.values.length).set('t', this.t.length);
@@ -108,8 +110,8 @@ export class MultiPointSeries extends Base<MpsD> {
 }
 
 export class Section extends BaseDomain<SectionDomain> {
-  get t(): string[] {
-    return this.axes.composite.values.map(([t]) => t);
+  get t() {
+    return this.axes.composite.values.map(([t]) => new CustomDate(t));
   }
 
   calculateAxesBounds(timeZone?: string): this {

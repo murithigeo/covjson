@@ -11,6 +11,7 @@ import { BaseDomain } from './base-domain.ts';
 import {
   calcNumAxisBounds,
   calcStrAxisBounds,
+  CustomDate,
   denormalizeNumAxis,
   isUndefined,
   normalizeNumAxis,
@@ -40,8 +41,9 @@ abstract class Base<T extends PointD | PSeriesD | VertProfDomain> extends BaseDo
     if (!this.axes.z) return [];
     return denormalizeNumAxis(this.axes.z).values;
   }
-  get t(): string[] {
-    return this.axes.t?.values || [];
+  get t() {
+    if (!this.axes.t) return [];
+    return this.axes.t.values.map((v) => new CustomDate(v));
   }
   calculateAxesBounds(timeZone?: string): this {
     this.axes.x.bounds = calcNumAxisBounds(this.axes.x.values) as Position2D;
@@ -113,9 +115,7 @@ export class VerticalProfile extends Base<VertProfDomain> {
   get z(): number[] {
     return denormalizeNumAxis(this.axes.z).values;
   }
-  get t(): string[] {
-    return this.axes.t?.values || [];
-  }
+
   _reproject(referencing: Referencing): this {
     super._reproject(referencing);
 

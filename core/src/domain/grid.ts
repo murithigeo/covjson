@@ -9,7 +9,8 @@ import {
   numAxisIsNormalized,
   calcNumAxisBounds,
   calcStrAxisBounds,
-  isUndefined
+  isUndefined,
+  CustomDate
 } from './utils.ts';
 import bboxPolygon from '@turf/bbox-polygon';
 import type { WithoutRegularlySpacedAxis } from './types.d.ts';
@@ -78,8 +79,9 @@ export class Grid extends BaseDomain<GridDomain> {
     return this;
   }
 
-  get t(): string[] {
-    return this.axes.t?.values || [];
+  get t() {
+    if (!this.axes.t) return [];
+    return this.axes.t?.values.map((v) => new CustomDate(v));
   }
   get z(): number[] {
     if (!this.axes.z) return [];

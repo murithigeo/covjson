@@ -1,5 +1,6 @@
 import {
 	Coverage,
+	CustomDate,
 	NdArray,
 	Parameter,
 	ParameterGroup,
@@ -24,7 +25,7 @@ class DashboardContext {
 
 	selected = $derived(new SvelteSet(this.parameters.keys()));
 	now = $state<SliderValue<string>>();
-	tvalues = $state(new SvelteSet<string>());
+	tvalues = $state(new SvelteSet<CustomDate>());
 	currentCoverage = $state<Coverage | undefined>();
 	currentCoverageSummary = $derived.by(() => {
 		if (!this.currentCoverage) return undefined;

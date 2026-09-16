@@ -34,7 +34,6 @@ export class ReactiveParameter extends Parameter {
 	});
 	constructor(param: Parameter) {
 		super(param.toPlain(), param.key);
-
 		this.observedProperty.categories?.forEach((cat) => {
 			this.setCategory(cat, param.categoryEncoding!.get(cat.id)!);
 		});

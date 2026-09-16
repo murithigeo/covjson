@@ -1,7 +1,7 @@
 import type { Coverage as CRG, Domain, NdArray as Nd, Position } from 'coveragejson';
 import { Base, type ReferenceArgument } from './base.ts';
 import { Parameter, ParameterGroup } from './parameters.ts';
-import { BaseDomain, getDomain, type GridType } from './domain/index.ts';
+import { BaseDomain, CustomDate, getDomain, type GridType } from './domain/index.ts';
 import { load } from './load.ts';
 import type { InferDomainClass, WithoutRegularlySpacedAxis } from './domain/types.d.ts';
 import { Referencing } from './referencing.ts';
@@ -33,7 +33,7 @@ export class Coverage<
   D extends Domain = Domain,
   ID extends InferDomainClass<D> = InferDomainClass<D>
 > extends Base<CRG<D>> {
-  get t(): string[] {
+  get t() {
     return this.domain.t;
   }
   get z(): number[] {
@@ -76,10 +76,7 @@ export class Coverage<
 
     this.parameters = new Map();
     for (const id in parameters)
-      this.parameters.set(
-        id.toUpperCase(),
-        new Parameter(parameters[id], id.toUpperCase(), options.language)
-      );
+      this.parameters.set(id.toUpperCase(), new Parameter(parameters[id], id.toUpperCase()));
 
     this.parameterGroups = parameterGroups.map((e) => new ParameterGroup(e));
     this.properties = properties;
@@ -219,14 +216,16 @@ export class Coverage<
       .filter((id) => this.ranges.has(id))
       .map(async (id) => [id, await this.ranges.get(id)!.get(ref)] as const);
 
-    const row = Object.fromEntries(await Promise.all(values));
+    const row: DataRow = Object.fromEntries(await Promise.all(values));
     ref.forEach((value, key) => {
       if (!this.axesSize.has(key)) return;
 
       //
       if (key === 'compositeIndex') key = 't';
-      if (key === 't' || key === 'z') row[key] = this[key][value];
-      else row[`${key}Index`] = value;
+      if (key === 't') row.t = this.t[value];
+      if (key === 'z') {
+        row.z = this.z[value];
+      } else row[`${key}Index`] = value;
     });
     return row;
   }
@@ -242,10 +241,14 @@ export class Coverage<
    * // In a grid, you might want to preload all z axis values while using a particular t axis value
    * query("z") === [{z:0,POTM:10},{z:1,POTM:20}] etc
    */
-  query(...axisNames: string[]) {
+  query(
+    ref: ReferenceArgument,
+    rangeIds = [...this.ranges.keys()],
+    preloadAxisNames = Array<string>()
+  ) {
     const consider = this.axesSize
       .entries()
-      .filter(([axisName, count]) => count > 1 && axisNames.includes(axisName)) // count>1 means filtering out 1D values
+      .filter(([axisName, count]) => count > 1 && preloadAxisNames.includes(axisName)) // count>1 means filtering out 1D values
       .map(([axisName, count]) => [axisName, [...Array(count).keys()]] as const)
       .toArray();
 
@@ -254,19 +257,17 @@ export class Coverage<
       (combo) => new Map(combo.map((idx, i) => [consider[i][0], idx]))
     );
 
-    return (ref: ReferenceArgument, rangeIds?: string[]) => {
-      if (!(ref instanceof Map)) ref = this.queryIndices(ref);
-      const rows = prod
-        .map((indices) => new Map([...ref, ...indices]))
-        .map(async (indices) => this.getData(indices, rangeIds));
-      return Promise.all(rows);
-    };
+    if (!(ref instanceof Map)) ref = this.queryIndices(ref);
+    const rows = prod
+      .map((indices) => new Map([...ref, ...indices]))
+      .map(async (indices) => this.getData(indices, rangeIds));
+    return Promise.all(rows);
   }
 }
 
 export type DataValue = string | number | null;
 export type DataRow<T extends DataValue = DataValue> = Record<string, T | null> & {
-  t?: string;
+  t?: CustomDate;
   z?: number;
   xIndex?: number;
   yIndex?: number;

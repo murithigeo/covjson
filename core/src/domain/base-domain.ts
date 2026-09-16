@@ -16,6 +16,7 @@ import { Base } from '../base.ts';
 import type { Referencing } from '../referencing.ts';
 import type { WithoutRegularlySpacedAxis } from './types.d.ts';
 import { indexOfNearest } from '../utils.ts';
+import type { CustomDate } from './utils.ts';
 
 export abstract class BaseDomain<D extends Domain = Domain> extends Base<D> {
   type: D['type'];
@@ -35,7 +36,7 @@ export abstract class BaseDomain<D extends Domain = Domain> extends Base<D> {
   /**
    * An unsorted list of t values in the domain's axes
    */
-  abstract get t(): string[];
+  abstract get t(): CustomDate[];
   /**
    * An unsorted list of z values in the domain's axes.
    * For some domains, it is cheaper to find the value's index here instead of looping through tuples

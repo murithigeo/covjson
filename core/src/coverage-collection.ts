@@ -9,11 +9,11 @@ import type {
 import { Parameter, ParameterGroup } from './parameters.ts';
 import { Coverage, type CoverageOptions } from './coverage.ts';
 import { Referencing, type UserReferencingOptions } from './referencing.ts';
-import { Base } from './base.ts';
+import { Base, type ReferenceArgument } from './base.ts';
 import type { FeatureCollection } from 'geojson';
 import type { InferDomainClass } from './domain/types.d.ts';
 import { minMax, type MinMax, type WithRequiredProperty } from './utils.ts';
-import { isUndefined } from './domain/utils.ts';
+import { CustomDate, isUndefined } from './domain/utils.ts';
 
 export class CoverageCollection<T extends Domain = Domain> extends Base<CovColl<T>> {
   _reproject(): this {
@@ -29,7 +29,7 @@ export class CoverageCollection<T extends Domain = Domain> extends Base<CovColl<
   /**
    * Key is the range name and value the bounds.
    */
-  minMax: Record<string, MinMax>;
+  minMax: Record<string, MinMax | [null, null]>;
   options: WithRequiredProperty<CoverageOptions, 'ranges'>;
   constructor(
     doc: Omit<CovColl, 'coverages'> & {
@@ -55,10 +55,7 @@ export class CoverageCollection<T extends Domain = Domain> extends Base<CovColl<
     this.properties = properties;
     this.#parameters = new Map();
     for (const id in parameters) {
-      this.#parameters.set(
-        id.toUpperCase(),
-        new Parameter(parameters[id], id.toUpperCase(), this.options.language)
-      );
+      this.#parameters.set(id.toUpperCase(), new Parameter(parameters[id], id.toUpperCase()));
     }
     this.minMax = {};
 
@@ -161,11 +158,12 @@ export class CoverageCollection<T extends Domain = Domain> extends Base<CovColl<
       .toArray()
       .sort((a, b) => a - b);
   }
-  get t(): string[] {
-    return new Set(this.coverages.flatMap(({ domain }) => domain.t))
-      .keys()
-      .toArray()
-      .sort((a, b) => new Date(a).getTime() - new Date(b).getTime());
+  get t() {
+    const all = this.coverages.flatMap(({ domain }) => domain.t).map((v) => v.value);
+
+    return [...new Set(all)]
+      .map((v) => new CustomDate(v))
+      .sort((a, b) => a.getTime() - b.getTime());
   }
   private set referencing(referencing: ReferenceSystemConnection[] | undefined) {
     this.#referencing = referencing;
@@ -189,10 +187,8 @@ export class CoverageCollection<T extends Domain = Domain> extends Base<CovColl<
   /**
    * @param axisNames Axis names to preload data for
    */
-  query(...axisNames: string[]) {
-    const awaiting = this.coverages.map((cov) => cov.query(...axisNames));
-    return (ref: Position | string | number, rangeIds?: string[]) =>
-      awaiting.map((query) => query(ref, rangeIds));
+  query(ref: ReferenceArgument, rangeIds?: string[], axisNames?: string[]) {
+    return this.coverages.map((cov) => cov.query(ref, rangeIds, axisNames));
   }
   /**
    * Recompile list of parameters from constituent coverages
