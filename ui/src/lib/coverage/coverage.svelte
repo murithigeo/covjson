@@ -15,7 +15,7 @@
 	import { Toggle } from '$lib/components/ui/toggle/index.js';
 	import { Button, type ButtonProps } from '$lib/components/ui/button/index.js';
 	import { Coverage, indexOfNearest } from '@murithigeo/covjson-core';
-	import Chart from './chart.svelte';
+	import Chart from '$lib/charts/coverage.svelte';
 	import { setCoverageCtx } from './coverage-ctx.svelte.ts';
 	import { getDashCtx } from '../dashboards/utils/ctx.svelte.ts';
 	import type { SliderIndex, StringSliderValue } from '$lib/sliders/sliders.d.ts';

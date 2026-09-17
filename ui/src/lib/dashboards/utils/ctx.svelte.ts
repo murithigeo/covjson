@@ -6,6 +6,7 @@ import {
 	ParameterGroup,
 	type OnIndicesChange
 } from '@murithigeo/covjson-core';
+import type { ChartConfig } from '$lib/charts/types.js';
 import { getContext, onDestroy, setContext } from 'svelte';
 import { SvelteSet, SvelteMap } from 'svelte/reactivity';
 import type { SliderValue, StringSliderValue } from '$lib/sliders/sliders.js';
@@ -33,7 +34,10 @@ class DashboardContext {
 		const stats = this.parameters
 			.entries()
 			.filter(([, param]) => param.values.has(coverage.uuid))
-			.map(([key, param]) => [key, calculateStats([param.values.get(coverage.uuid)!])] as const);
+			.map(
+				([key, param]) =>
+					[key, calculateStats([param.values.get(coverage.uuid)!], param.categoryEncoding)] as const
+			);
 
 		return new Map(stats);
 	});
@@ -113,7 +117,6 @@ class DashboardContext {
 		this.parameters.set(key, new ReactiveParameter(parameter));
 	}
 }
-type ChartConfig = Record<string, Record<'label' | 'key' | 'color', string>>;
 
 const DashboardKey = Symbol('DASH');
 

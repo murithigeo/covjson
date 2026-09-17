@@ -19,14 +19,14 @@
 		Bars
 	} from 'layerchart';
 
-	import { scaleUtc, scaleOrdinal, scaleThreshold } from 'd3-scale';
+	import { scaleThreshold } from 'd3-scale';
 	import EmptyChart from '$lib/empty/chart.svelte';
 	import * as Chart from '$lib/components/ui/chart/index.js';
 	import { ReactiveParameter } from '$lib/dashboards/utils/parameter.svelte.js';
 </script>
 
 <script lang="ts">
-	import { getCoverageCtx } from './coverage-ctx.svelte.ts';
+	import { getCoverageCtx } from '$lib/coverage/coverage-ctx.svelte.js';
 	import { getDashCtx } from '$lib/dashboards/utils/ctx.svelte.js';
 	import { SvelteMap } from 'svelte/reactivity';
 
@@ -84,29 +84,25 @@
 	// What if we dont have the gradient but style the points
 
 	let offsetMultiplier = $derived.by(() => {
-		if (!context) return (v: number) => v;
-		const { padding, yScale, height } = context;
-		return (v: number) => yScale(v) / (height + padding.top + padding.bottom);
+		return (v: number) =>
+			!context
+				? v
+				: context.yScale(v) / (context.height + context.padding.top + context.padding.bottom);
 	});
 
 	type ColorStop = [number, string];
-	let gradients = $derived.by(() => {
-		const gradients = parameters.map(([key, param]): [string, ColorStop[]] => [
-			key,
-			param.colorScale.length ? param.colorScale : [[param.stats.max!, param.color]]
-		]);
-		return new SvelteMap(gradients);
-	});
+
+	let scales = $derived(new SvelteMap(parameters.map(([key, param]) => [key, param.cScale])));
+
 	let offsetedGradients = $derived.by(() => {
-		const values = gradients
+		const values = scales
 			.entries()
 			.map(([key, stops]): [string, ColorStop[]] => [
 				key,
-				stops.map(([int, color]) => [offsetMultiplier(int), color])
+				stops.map(([int, color]): ColorStop => [offsetMultiplier(int) || 0, color])
 			]);
 		return new SvelteMap(values);
 	});
-	const labelFormatter = (value: any) => (value instanceof CustomDate ? value.value : value);
 	/**
 	 * Get the max value of the current data with some wiggle room
 	 */
@@ -148,7 +144,7 @@
 						{#snippet marks({ context })}
 							{#each context.series.series as serie, i (i)}
 								<LinearGradient
-									stops={offsetedGradients.get(serie.key)?.sort(([numA], [numB]) => numB - numA)}
+									stops={offsetedGradients.get(serie.key)!}
 									vertical
 									units="userSpaceOnUse"
 								>
@@ -169,10 +165,10 @@
 					</ScatterChart>
 				{/if}
 			</Chart.Container>
-			{#each gradients as [key, scale]}
+			{#each scales as [key, scale]}
 				<Legend
 					scale={scaleThreshold(
-						scale.map(([num]) => context?.yScale?.(num) || num),
+						scale.map(([int]) => offsetMultiplier(int)),
 						scale.map(([, color]) => color)
 					)}
 					title={key}
@@ -183,18 +179,8 @@
 	{/await}
 </div>
 
-<!-- {#each parameters as [key, parameter] (key)}
-			{@const stops = parameter.colorScale.sort(([numA], [numB]) => numA - numB)}
-			<Legend
-				title={parameter.simpleLabel}
-				value={highlightData?.[key]}
-				scale={scaleThreshold(
-					stops.map(([int]) => int),
-					stops.map(([, color]) => color)
-				)}
-			/>
-		{/each} -->
-
 {#snippet CustomTooltip()}
-	<Chart.Tooltip {labelFormatter} />
+	<Chart.Tooltip
+		labelFormatter={(value: any) => (value instanceof CustomDate ? value.value : value)}
+	/>
 {/snippet}

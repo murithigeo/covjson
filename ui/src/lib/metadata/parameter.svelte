@@ -9,10 +9,9 @@
 	import { buttonVariants } from '$lib/components/ui/button/index.js';
 	import { Badge, type BadgeVariant } from '$lib/components/ui/badge/index.js';
 	import { Label } from '$lib/components/ui/label/index.js';
-	import type { RangeStatistics, RangeConfig } from '$lib/statistics.js';
 	import UnitComponent from './parameter/unit.svelte';
-	import Histogram from './parameter/histogram.svelte';
-	import { ReactiveParameter as Parameter } from '$lib/dashboards/utils/parameter.svelte.js';
+	import Histogram from '$lib/charts/parameter-histogram.svelte';
+	import { ReactiveParameter, type Statistics } from '$lib/dashboards/utils/parameter.svelte.js';
 	import {
 		ChevronsUpDown,
 		SunSnowIcon,
@@ -24,7 +23,7 @@
 	import ColorPicker from './parameter/color-picker.svelte';
 	import CategoryTable from './category-table.svelte';
 	type Props = MetadataRenderProps<
-		Parameter,
+		ReactiveParameter,
 		{
 			open?: boolean;
 			key: string;
@@ -55,7 +54,7 @@
 				})
 				.join('/');
 		}
-		const stats: Partial<Record<keyof RangeStatistics | 'dataType', string>> & {} = {};
+		const stats: Partial<Record<keyof Statistics | 'dataType', string>> & {} = {};
 		stats.min = processStats([coverage?.min, overall?.min]);
 		stats.max = processStats([coverage?.max, overall?.max]);
 		stats.mean = processStats([coverage?.mean, overall?.mean]);
@@ -106,7 +105,7 @@
 	<Collapsible.Content>
 		<Card.Root>
 			<Card.Content>
-				<Collapsible.Root disabled={rangeInfo?.dataType !== 'integer'}>
+				<Collapsible.Root disabled={parameter.cScale.length < 1}>
 					<Item.Root size="sm" variant="outline"
 						><Item.Media variant="icon"><ChartNoAxesColumnIcon /></Item.Media>
 						<Item.Content><Item.Title>Histogram</Item.Title></Item.Content>
@@ -117,7 +116,7 @@
 						</Item.Actions></Item.Root
 					>
 					<Collapsible.Content>
-						<Histogram parameterKey={key} />
+						<Histogram bind:parameter />
 					</Collapsible.Content>
 				</Collapsible.Root>
 				<Collapsible.Root disabled={!parameter.label.size && !parameter.description.size}>
