@@ -1,25 +1,15 @@
 <script module lang="ts">
-	import { Coverage, isUndefined, type DataRow, CustomDate } from '@murithigeo/covjson-core';
+	import { Coverage, CustomDate } from '@murithigeo/covjson-core';
 	import {
 		LineChart,
 		LinearGradient,
-		Highlight,
-		type LineChartProps,
 		Spline,
-		BarChart,
-		type BarChartProps,
-		type ChartProps,
-		type AnyScale,
 		type ChartState,
-		Points,
-		Legend,
-		AreaChart,
-		ScatterChart,
-		defaultChartPadding,
-		Bars
+		ChartGroup,
+		defaultChartPadding
 	} from 'layerchart';
 
-	import { scaleThreshold } from 'd3-scale';
+	import { scaleOrdinal, scaleThreshold } from 'd3-scale';
 	import EmptyChart from '$lib/empty/chart.svelte';
 	import * as Chart from '$lib/components/ui/chart/index.js';
 	import { ReactiveParameter } from '$lib/dashboards/utils/parameter.svelte.js';
@@ -28,7 +18,6 @@
 <script lang="ts">
 	import { getCoverageCtx } from '$lib/coverage/coverage-ctx.svelte.js';
 	import { getDashCtx } from '$lib/dashboards/utils/ctx.svelte.js';
-	import { SvelteMap } from 'svelte/reactivity';
 
 	interface Props {
 		coverage: Coverage;
@@ -65,53 +54,10 @@
 	 * Should be remapped as t if composite is xAxis
 	 */
 	let x = $derived(cCtx.xAxis);
-	let chartType = $state<'bar' | 'line' | 'area' | 'scatter'>('bar');
 	let data = $derived.by(() => {
 		const rangeIds = parameters.map(([key]) => key);
 		return coverage.query(cCtx.indices, rangeIds, [x]);
 	});
-
-	let commonChartProps: ChartProps<DataRow> = $derived({
-		brush: { axis: 'both' },
-		transform: { mode: 'domain', axis: 'both' },
-		rule: true,
-		padding: defaultChartPadding()
-	});
-
-	let context = $state<ChartState>();
-	let tooltipData = $derived<null | DataRow>(context?.tooltip.data);
-
-	// What if we dont have the gradient but style the points
-
-	let offsetMultiplier = $derived.by(() => {
-		return (v: number) =>
-			!context
-				? v
-				: context.yScale(v) / (context.height + context.padding.top + context.padding.bottom);
-	});
-
-	type ColorStop = [number, string];
-
-	let scales = $derived(new SvelteMap(parameters.map(([key, param]) => [key, param.cScale])));
-
-	let offsetedGradients = $derived.by(() => {
-		const values = scales
-			.entries()
-			.map(([key, stops]): [string, ColorStop[]] => [
-				key,
-				stops.map(([int, color]): ColorStop => [offsetMultiplier(int) || 0, color])
-			]);
-		return new SvelteMap(values);
-	});
-	/**
-	 * Get the max value of the current data with some wiggle room
-	 */
-	const getMax = (data: DataRow[]): number => {
-		const values = parameters
-			.flatMap(([key]) => data.map((row) => row[key]))
-			.filter((value) => typeof value === 'number');
-		return Math.max(...values) * 1.2;
-	};
 </script>
 
 <div class="grid-cols-1 items-center">
@@ -121,66 +67,74 @@
 		{#if !data.length}
 			<EmptyChart status="loaded" />
 		{:else}
-			<Chart.Container config={ctx.chartConfig} class="cursor-default">
-				{#if chartType === 'bar'}
-					<BarChart
-						bind:context
-						{...commonChartProps}
-						// Incorrect rendering (Unexpected value NaN parsing x attribute.)
-						transform={undefined}
-						{x}
-						{data}
-						props={{ bars: { rounded: 'none' } }}
-						series={parameters.map(([key, param]) => ({
-							param,
-							key,
-							label: param.simpleLabel,
-							color: param.color
-						}))}
-						seriesLayout="group"
-						yDomain={[null, getMax(data)]}
-					>
-						{#snippet tooltip()}{@render CustomTooltip()}{/snippet}
-						{#snippet marks({ context })}
-							{#each context.series.series as serie, i (i)}
-								<LinearGradient
-									stops={offsetedGradients.get(serie.key)!}
-									vertical
-									units="userSpaceOnUse"
-								>
-									{#snippet children({ gradient, id })}
-										<Bars fill={gradient} y={serie.key} {id} />
-									{/snippet}
-								</LinearGradient>
-							{/each}
-						{/snippet}
-					</BarChart>
-				{:else if chartType === 'line'}
-					<LineChart {...commonChartProps} bind:context>
-						{#snippet tooltip()}{@render CustomTooltip()}{/snippet}
-					</LineChart>
-				{:else if chartType === 'scatter'}
-					<ScatterChart {...commonChartProps} {data}>
-						{#snippet tooltip()}{@render CustomTooltip()}{/snippet}
-					</ScatterChart>
-				{/if}
-			</Chart.Container>
-			{#each scales as [key, scale]}
-				<Legend
-					scale={scaleThreshold(
-						scale.map(([int]) => offsetMultiplier(int)),
-						scale.map(([, color]) => color)
-					)}
-					title={key}
-					value={tooltipData?.[key]}
-				/>
-			{/each}
+			<ChartGroup>
+				<div class="flex flex-col">
+					{#each parameters as [key, parameter]}
+						{@const scale = scale}
+						<Chart.Container config={ctx.chartConfig}>
+							<LineChart
+								brush={{ axis: 'both' }}
+								transform={{ mode: 'domain', axis: 'both' }}
+								padding={defaultChartPadding({ top: 40 })}
+								data={data.map((row) => {
+									const value = row[key] as number | string | null;
+									const category = parameter.getCategoryId(value)?.id || 'default';
+
+									return { [x]: row[x], value, category };
+								})}
+								{x}
+								c="category"
+								y="value"
+								legend={{ placement: 'top-right', variant: 'ramp' }}
+								cScale={scaleOrdinal()}
+								cDomain={parameter.categories
+									.entries()
+									.toArray()
+									.flatMap(([, { values }]) => values)
+									.sort((a, b) => a - b)}
+								cRange={parameter.categories
+									.entries()
+									.toArray()
+									.flatMap(([, { color = parameter.color, values }]) =>
+										values.map((int) => [int, color])
+									)
+									.map(([, color]) => color)}
+							>
+								{#snippet tooltip()}{@render CustomTooltip()}
+								{/snippet}
+								{#snippet marks({ context })}
+									{@const getOffset = (v: number) =>
+										context.yScale(v) /
+										(context.height + context.padding.top + context.padding.bottom)}
+									<LinearGradient
+										stops={parameter.categories
+											.entries()
+											.toArray()
+											.flatMap(([, { color = parameter.color, values }]): ColorStop[] =>
+												values.map((int) => [int, color])
+											)
+											.map(([int, color]): ColorStop => [getOffset(int), color])
+											.sort(([a], [b]) => a - b)}
+										vertical
+										units="userSpaceOnUse"
+									>
+										{#snippet children({ gradient })}
+											<Spline
+												stroke={gradient}
+												defined={(d) => d.value !== null && d.value !== undefined}
+											/>
+										{/snippet}
+									</LinearGradient>
+								{/snippet}
+							</LineChart>
+						</Chart.Container>
+					{/each}
+				</div>
+			</ChartGroup>
 		{/if}
 	{/await}
 </div>
 
 {#snippet CustomTooltip()}
-	<Chart.Tooltip
-		labelFormatter={(value: any) => (value instanceof CustomDate ? value.value : value)}
-	/>
+	<Chart.Tooltip labelFormatter={(value) => (value instanceof CustomDate ? value.value : value)} />
 {/snippet}

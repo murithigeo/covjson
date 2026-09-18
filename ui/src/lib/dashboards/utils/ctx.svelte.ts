@@ -10,7 +10,7 @@ import type { ChartConfig } from '$lib/charts/types.js';
 import { getContext, onDestroy, setContext } from 'svelte';
 import { SvelteSet, SvelteMap } from 'svelte/reactivity';
 import type { SliderValue, StringSliderValue } from '$lib/sliders/sliders.js';
-import { calculateStats, ReactiveParameter } from './parameter.svelte.js';
+import { ReactiveParameter, calculateMedian, type Statistics } from './parameter.svelte.js';
 
 // todo automatically call onIndicesChange on the active Coverage
 class DashboardContext {
@@ -33,11 +33,25 @@ class DashboardContext {
 		const coverage = this.currentCoverage;
 		const stats = this.parameters
 			.entries()
-			.filter(([, param]) => param.values.has(coverage.uuid))
-			.map(
-				([key, param]) =>
-					[key, calculateStats([param.values.get(coverage.uuid)!], param.categoryEncoding)] as const
-			);
+			.filter(([, param]) => param.ranges.has(coverage.uuid))
+			.map(([key, param]): [string, Statistics] => {
+				const range = param.ranges.get(coverage.uuid)!;
+				const [min, max] = range.minMax;
+
+				return [
+					key,
+					{
+						min,
+						max,
+						median: calculateMedian(range.ndarr.data),
+						mean:
+							range.dataType === 'string'
+								? null
+								: range.values.filter((v) => typeof v === 'number').reduce((l, r) => l + r, 0) /
+									range.totalSize
+					}
+				];
+			});
 
 		return new Map(stats);
 	});

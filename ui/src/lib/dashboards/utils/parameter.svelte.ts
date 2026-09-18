@@ -5,39 +5,25 @@ import {
 	ObservedProperty,
 	Unit,
 	NdArray,
-	minMax
+	minMax,
+	isNull
 } from '@murithigeo/covjson-core';
 import { SvelteMap } from 'svelte/reactivity';
 
-export type Statistics = Record<'min' | 'max' | 'mean', number | null> & {
-	median: string | number | null;
-	dataType: 'string' | 'float' | 'integer';
-	frequency?: SvelteMap<string, number>;
-};
-
 type ColorStop = [number, string];
-export class ReactiveParameter extends Parameter {
+export class ReactiveParameter extends Parameter implements Statistics {
 	/**
 	 * Doubles as the initial color for categories
 	 */
 	color = $state(getRandomColor());
-	values = $state(new SvelteMap<string, NdArray>());
-	stats = $derived(calculateStats([...this.values.values()], this.categoryEncoding));
+	ranges = $state(new SvelteMap<string, NdArray>());
 	categories = $state(new SvelteMap<string, CategoryState>());
-	/**
-	 * A list of number stops and their colors
-	 */
-	cScale = $derived.by<ColorStop[]>(() => {
-		if (!this.categories.size) return [[this.stats.max || 0, this.color]];
 
-		return this.categories
-			.entries()
-			.toArray()
-			.flatMap(([, { color, values }]) =>
-				values.map((int): ColorStop => [int, color || this.color])
-			)
-			.sort(([numA], [numB]) => Number(numB) - Number(numA));
-	});
+	dataType = $state<'string' | 'float' | 'integer'>('integer');
+	median = $state<number | null | string>(null);
+	max = $state<number | null>(null);
+	min = $state<number | null>(null);
+	mean = $state<number | null>(null);
 	constructor(param: Parameter) {
 		super(param.toPlain(), param.key);
 		this.observedProperty.categories?.forEach((cat) => {
@@ -75,12 +61,64 @@ export class ReactiveParameter extends Parameter {
 	}
 
 	updateRangeData(covId: string, data: NdArray) {
-		this.values.set(covId, data);
+		this.ranges.set(covId, data);
+		const ranges = this.ranges.values().toArray();
+		if (ranges.length && ranges[0].dataType !== this.dataType) this.dataType = this.dataType;
+		this.computeMinMax(ranges);
+		this.computeCategoryBins(ranges);
+		this.computeMedian(ranges);
+		this.computeMean(ranges);
 		return this;
+	}
+
+	/**
+	 * Computes [max|min]imum possible value for the parameter
+	 * Will not recalculate if parameter is categorical
+	 */
+	computeMinMax(ranges: NdArray[]): void {
+		if (this.dataType === 'string') return;
+
+		if (this.categoryEncoding) {
+			if (!isNull(this.min)) return;
+			[this.min, this.max] = minMax(this.categoryEncoding.values().toArray().flat());
+
+			return;
+		}
+		[this.min, this.max] = minMax(ranges.flatMap((range) => range.ndarr.data as number[]));
+	}
+
+	/**
+	 * Calculates the mode of each category in ranges loaded
+	 */
+	computeCategoryBins(ranges: NdArray[]): void {
+		if (!this.categories.size) return;
+		const flatData = ranges.map((range) => range.ndarr.data).flat();
+
+		for (const [id, category] of this.categories) {
+			category.size = flatData.filter((v) => category.values.includes(v as number)).length;
+			this.categories.set(id, category);
+		}
+	}
+	/**
+	 *
+	 */
+	computeMean(ranges: NdArray[]): void {
+		if (this.dataType === 'string') return;
+		const total = ranges
+			.map((range) => range.ndarr.data as (number | null)[])
+			.flat()
+			.filter((v) => typeof v === 'number')
+			.reduce((l, r) => l + r, 0);
+		const totalSize = ranges.reduce((l, r) => l + r.totalSize, 0);
+		this.mean = total / totalSize;
 	}
 
 	setCategory(category: Category, values: number[]) {
 		this.categories.set(category.id, new CategoryState(category, this.color, values));
+	}
+
+	computeMedian(ranges: readonly NdArray[]): void {
+		this.median = calculateMedian(ranges.flatMap((range) => range.ndarr.data));
 	}
 }
 
@@ -106,59 +144,34 @@ class CategoryState extends Category {
 	}
 }
 
-export function calculateStats(
-	data: NdArray[],
-	categoryEncoding?: Map<string, number[]>
-): Statistics {
-	let stats: Statistics = {
-		min: null,
-		max: null,
-		median: null,
-		mean: null,
-		frequency: undefined,
-		dataType: 'string'
-	};
+export type Statistics = Record<'mean' | 'min' | 'max', number | null> & {
+	median: number | string | null;
+};
+export function calculateMedian(data: (number | string | null)[]): string | number | null {
+	if (data.length < 1) return null;
 
-	if (!data.length) return stats;
-	const ranges = data.values().toArray();
-	[{ dataType: stats.dataType }] = ranges;
+	let isNumber = typeof data[0] === 'number';
 
-	const values = ranges.flatMap((v) => v.ndarr.data);
-	const totalSize = ranges.reduce((l, r) => l + r.totalSize, 0);
+	if (!data.length) return null;
 
-	let medianIndex: number | [number, number] = (totalSize - 1) / 2;
-	if (medianIndex % 1 !== 0) {
-		medianIndex = Math.trunc(medianIndex);
-		medianIndex = [medianIndex, medianIndex + 1];
+	const compareFn = !isNumber
+		? (a: any, b: any) => String(a).localeCompare(b)
+		: (a: any, b: any) => Number(a) - Number(b);
+
+	data.sort(compareFn);
+	let index: number[] | number = Math.floor(data.length / 2);
+
+	if (data.length % 2 === 0) {
+		index = [index, index - 1];
 	}
-
-	if (stats.dataType === 'string') {
-		if (!Array.isArray(medianIndex)) {
-			stats.median = values.sort((a, b) => String(a).localeCompare(String(b)))[medianIndex];
-		}
-	} else {
-		[stats.min, stats.max] = minMax(values as number[]);
-		stats.mean = values.filter((v) => typeof v === 'number').reduce((l, r) => l + r, 0) / totalSize;
-		const v = values.map((v) => Number(v)).sort((a, b) => a - b);
-		if (Array.isArray(medianIndex)) {
-			stats.median = medianIndex
-				.map((i) => v[i])
-				.filter((v) => !isNaN(v))
-				.reduce((l, r) => l + r, 0);
-			stats.median /= 2;
-		} else stats.median = v[medianIndex];
-		if (categoryEncoding && categoryEncoding.size) {
-			stats.frequency = new SvelteMap();
-			const groups = Object.groupBy(
-				values,
-				(item) =>
-					categoryEncoding.entries().find(([, values]) => values.includes(item as number))?.[0]!
-			);
-			groups['NULL'] = values.filter((v) => v === null);
-			for (const catId in groups) {
-				stats.frequency.set(catId, groups[catId]!.length);
-			}
-		}
+	if (!isNumber) {
+		if (Array.isArray(index)) return null;
+		return data[index];
 	}
-	return stats;
+	if (typeof index === 'number') return data[index];
+	const total = index
+		.map((i) => data[i])
+		.filter((v) => typeof v === 'number')
+		.reduce((l, r) => l + r, 0);
+	return total / 2;
 }

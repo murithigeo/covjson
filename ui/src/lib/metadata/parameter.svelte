@@ -10,8 +10,7 @@
 	import { Badge, type BadgeVariant } from '$lib/components/ui/badge/index.js';
 	import { Label } from '$lib/components/ui/label/index.js';
 	import UnitComponent from './parameter/unit.svelte';
-	import Histogram from '$lib/charts/parameter-histogram.svelte';
-	import { ReactiveParameter, type Statistics } from '$lib/dashboards/utils/parameter.svelte.js';
+	import { ReactiveParameter } from '$lib/dashboards/utils/parameter.svelte.js';
 	import {
 		ChevronsUpDown,
 		SunSnowIcon,
@@ -41,27 +40,22 @@
 	const ctx = getDashCtx();
 	const label = $derived(parameter.label);
 
-	let rangeInfo = $derived.by(() => {
-		const overall = ctx.parameters.get(key)!.stats;
-		const coverage = ctx.currentCoverageSummary?.get(key);
-		function processStats(arr: (string | number | null | undefined)[]) {
-			return arr
-				.map((v) => {
-					if (isUndefined(v) || v === null) return 'NULL';
-					if (typeof v === 'string') return v;
-					if (overall?.dataType && overall?.dataType === 'integer') return Math.round(v);
-					return v.toFixed(2);
-				})
-				.join('/');
-		}
-		const stats: Partial<Record<keyof Statistics | 'dataType', string>> & {} = {};
-		stats.min = processStats([coverage?.min, overall?.min]);
-		stats.max = processStats([coverage?.max, overall?.max]);
-		stats.mean = processStats([coverage?.mean, overall?.mean]);
-		stats.median = processStats([coverage?.median, overall?.median]);
-		stats.dataType = overall?.dataType || 'Uknown';
-		return stats;
-	});
+	function processStats(...stats: (number | string | null | undefined)[]) {
+		return stats
+			.map((v) => {
+				if (isUndefined(v) || v === null) return 'NULL';
+				if (typeof v === 'string') return v;
+				if (parameter.dataType === 'integer') return Math.round(v);
+				return v.toFixed(2);
+			})
+			.join('/');
+	}
+	let covStats = $derived(ctx.currentCoverageSummary?.get(key));
+
+	let min = $derived(processStats(covStats?.min, parameter.min));
+	let max = $derived(processStats(covStats?.max, parameter.max));
+	let median = $derived(processStats(covStats?.median, parameter.median));
+	let mean = $derived(processStats(covStats?.mean, parameter.mean));
 </script>
 
 <Collapsible.Root bind:open>
@@ -77,10 +71,10 @@
 				><Label>{label.query()?.value || parameter.key || parameter.id}</Label>
 				<Badge {variant}
 					><p class={`text-[${ctx.parameters.get(key)?.color || ''}]`}>
-						{rangeInfo?.dataType || 'Unknown'}
+						{parameter.dataType || 'Unknown'}
 					</p></Badge
 				>
-				<Badge {variant}>{parameter.values.size || 0} Covs</Badge>
+				<Badge {variant}>{parameter.ranges.size || 0} Covs</Badge>
 				{#if parameter.unit?.symbol?.value}
 					<Badge {variant}>{parameter.unit.symbol.value}</Badge>
 				{/if}
@@ -91,10 +85,10 @@
 				/>
 			</Item.Title>
 			<Item.Description class="grid grid-cols-2 gap-1">
-				<Label><Badge {variant}>min</Badge>{rangeInfo?.min}</Label>
-				<Label><Badge {variant}>mean</Badge>{rangeInfo?.mean}</Label>
-				<Label><Badge {variant}>max</Badge>{rangeInfo?.max}</Label>
-				<Label class="text-ellipsis"><Badge {variant}>median</Badge>{rangeInfo?.median}</Label>
+				<Label><Badge {variant}>min</Badge>{min}</Label>
+				<Label><Badge {variant}>mean</Badge>{mean}</Label>
+				<Label><Badge {variant}>max</Badge>{max}</Label>
+				<Label class="text-ellipsis"><Badge {variant}>median</Badge>{median}</Label>
 			</Item.Description>
 		</Item.Content><Item.Actions>
 			<Collapsible.Trigger class={buttonVariants({ variant: 'ghost' })}>
@@ -105,20 +99,6 @@
 	<Collapsible.Content>
 		<Card.Root>
 			<Card.Content>
-				<Collapsible.Root disabled={parameter.cScale.length < 1}>
-					<Item.Root size="sm" variant="outline"
-						><Item.Media variant="icon"><ChartNoAxesColumnIcon /></Item.Media>
-						<Item.Content><Item.Title>Histogram</Item.Title></Item.Content>
-						<Item.Actions>
-							<Collapsible.Trigger class={buttonVariants({ variant: 'ghost' })}>
-								<ChevronsUpDown />
-							</Collapsible.Trigger>
-						</Item.Actions></Item.Root
-					>
-					<Collapsible.Content>
-						<Histogram bind:parameter />
-					</Collapsible.Content>
-				</Collapsible.Root>
 				<Collapsible.Root disabled={!parameter.label.size && !parameter.description.size}>
 					<Item.Root size="sm" variant="outline">
 						<Item.Media variant="icon"><LanguagesIcon class="size-5" /></Item.Media>
@@ -164,7 +144,7 @@
 						{/if}
 					</Collapsible.Content>
 				</Collapsible.Root>
-				<CategoryTable data={parameter.observedProperty.categories} parameterKey={key} />
+				<CategoryTable data={parameter.categories} parameterKey={key} />
 			</Card.Content>
 		</Card.Root>
 	</Collapsible.Content>

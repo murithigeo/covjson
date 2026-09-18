@@ -1,5 +1,4 @@
 <script lang="ts">
-	import { Category } from '@murithigeo/covjson-core';
 	import * as Table from '$lib/components/ui/table/index.js';
 	import * as Collapsible from '$lib/components/ui/collapsible/index.js';
 	import * as Item from '$lib/components/ui/item/index.js';
@@ -7,19 +6,19 @@
 	import { getDashCtx } from '$lib/dashboards/utils/ctx.svelte.js';
 	import * as Card from '$lib/components/ui/card/index.js';
 	import type { MetadataRenderProps } from './types.d.ts';
+	import { ReactiveParameter } from '$lib/dashboards/utils/parameter.svelte.js';
 	import { cn } from '$lib/utils.js';
 	import ColorPicker from './parameter/color-picker.svelte';
 	import { ChevronsUpDownIcon, ChartColumnStacked } from '@lucide/svelte';
-	import { type PartialBy } from '$lib/dashboards/utils/types.js';
 
-	type Props = PartialBy<MetadataRenderProps<Category[], { parameterKey: string }>, 'data'>;
-	let { data: categories = $bindable(), parameterKey = $bindable() }: Props = $props();
+	type Props = MetadataRenderProps<ReactiveParameter['categories'], { parameterKey: string }>;
+	let { data: categories = $bindable(), parameterKey }: Props = $props();
 	const ctx = getDashCtx();
 
 	const cellStyle = 'border break-all whitespace-normal';
 </script>
 
-<Collapsible.Root disabled={!categories || !categories.length}>
+<Collapsible.Root disabled={!categories.size}>
 	<Item.Root size="sm" variant="outline">
 		<Item.Media variant="icon"><ChartColumnStacked /></Item.Media>
 		<Item.Content>Category Encodings</Item.Content>
@@ -39,6 +38,7 @@
 						<Table.Row>
 							<Table.Head></Table.Head>
 							<Table.Head>Id</Table.Head>
+							<Table.Head>n</Table.Head>
 							<Table.Head>Scope</Table.Head>
 							<Table.Head>Language</Table.Head>
 							<Table.Head>Value</Table.Head>
@@ -46,7 +46,7 @@
 					</Table.Header>
 					<Table.Body>
 						{#if categories}
-							{#each categories as { id, label, description } (id)}
+							{#each categories as [, { id, label, description, color: hex, size }] (id)}
 								{#if ctx.detail === 'full'}
 									{@const rowspan = label.size + description.size}
 									{#each label as [lang, value], i (lang)}
@@ -54,14 +54,13 @@
 											{#if i === 0}
 												<Table.Cell {rowspan} class={cn(cellStyle, 'rounded-full')}
 													><ColorPicker
-														hex={ctx.parameters.get(parameterKey)?.categories?.get(id)?.color ||
-															ctx.parameters.get(parameterKey)?.color}
+														{hex}
 														onInput={({ hex }) => ctx.setParameterColor(parameterKey, hex, id)}
 														label=""
 													/></Table.Cell
 												>
 												<Table.Cell {rowspan} class={cn(cellStyle, '')}>{id}</Table.Cell>
-
+												<Table.Cell {rowspan} class={cn(cellStyle)}>{size || 0}</Table.Cell>
 												<Table.Cell rowspan={label.size} class={cn(cellStyle, 'whitespace-nowrap')}
 													>Label</Table.Cell
 												>

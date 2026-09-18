@@ -368,7 +368,7 @@ export function isUndefined(val: unknown): val is undefined {
   return typeof val === 'undefined';
 }
 export function isNull(val: unknown | null): val is null {
-  return val === undefined;
+  return val === null;
 }
 
 export class CustomDate extends Date {

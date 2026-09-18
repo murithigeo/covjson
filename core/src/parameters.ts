@@ -76,7 +76,10 @@ export class Parameter extends Metadata<PR> {
       observedProperty: this.observedProperty?.toPlain(),
       unit: this.observedProperty.categories ? undefined : this.unit?.toPlain(),
       label: this.label.size ? Object.fromEntries(this.label) : undefined,
-      description: this.description.size ? Object.fromEntries(this.description) : undefined
+      description: this.description.size ? Object.fromEntries(this.description) : undefined,
+      categoryEncoding: this.categoryEncoding
+        ? Object.fromEntries(this.categoryEncoding?.entries())
+        : undefined
     };
   }
   getCategoryId(int: number): Category | undefined {
