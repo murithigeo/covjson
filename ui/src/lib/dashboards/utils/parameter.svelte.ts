@@ -12,6 +12,7 @@ import { SvelteMap } from 'svelte/reactivity';
 
 type ColorStop = [number, string];
 export class ReactiveParameter extends Parameter implements Statistics {
+	isCategorical = !!this.categoryEncoding;
 	/**
 	 * Doubles as the initial color for categories
 	 */
@@ -122,7 +123,7 @@ export class ReactiveParameter extends Parameter implements Statistics {
 	}
 }
 
-class CategoryState extends Category {
+export class CategoryState extends Category {
 	color = $state<string>();
 	values: number[];
 	/**
