@@ -11,7 +11,7 @@ import { getContext, onDestroy, setContext } from 'svelte';
 import { SvelteSet, SvelteMap } from 'svelte/reactivity';
 import type { SliderValue, StringSliderValue } from '$lib/sliders/sliders.js';
 import { ReactiveParameter, calculateMedian, type Statistics } from './parameter.svelte.js';
-
+import { MultiDate } from './date.ts';
 // todo automatically call onIndicesChange on the active Coverage
 class DashboardContext {
 	onIndicesChange = $state<OnIndicesChange>();
@@ -26,7 +26,8 @@ class DashboardContext {
 
 	selected = $derived(new SvelteSet(this.parameters.keys()));
 	now = $state<SliderValue<string>>();
-	tvalues = $state(new SvelteSet<CustomDate>());
+	tvalues = $state<MultiDate[]>([]);
+
 	currentCoverage = $state<Coverage | undefined>();
 	currentCoverageSummary = $derived.by(() => {
 		if (!this.currentCoverage) return undefined;
@@ -56,9 +57,7 @@ class DashboardContext {
 		return new Map(stats);
 	});
 	constructor() {
-		$effect(() => {
-			this.coverages.values().forEach((cov) => cov.t.forEach((t) => this.tvalues.add(t)));
-		});
+		$effect(() => this.coverages.values().forEach((cov) => this.updateTemporalList(...cov.t)));
 		$effect(() => {
 			this.input
 				.flatMap(({ parameters }) => [...parameters])
@@ -69,7 +68,7 @@ class DashboardContext {
 			this.input = [];
 			this.pinned.clear();
 			this.selected.clear();
-			this.tvalues.clear();
+			this.tvalues = [];
 		});
 	}
 	updateParameterSelectionStatus(id: string) {
@@ -129,6 +128,17 @@ class DashboardContext {
 	setParameter(key: string, parameter: Parameter) {
 		if (this.parameters.has(key)) return;
 		this.parameters.set(key, new ReactiveParameter(parameter));
+	}
+	updateTemporalList(...values: CustomDate[]) {
+		for (const date of values) {
+			const idx = this.tvalues.findIndex((obj) => obj.getTime() === new Date(date).getTime());
+			if (idx < 0) {
+				this.tvalues.push(new MultiDate(date.value));
+				continue;
+			}
+			this.tvalues[idx] = this.tvalues[idx].addItems(date.value);
+		}
+		this.tvalues.sort((a, b) => a.getTime() - b.getTime());
 	}
 }
 

@@ -1,13 +1,13 @@
 <script lang="ts" generics="T extends any">
-	import { Slider, type SliderMultiRootPropsWithoutHTML } from 'bits-ui';
 	import type { ClassValue } from 'clsx';
-	import { cn } from '$lib/utils.js';
-	import { GitCommitHorizontalIcon, LineDotRightHorizontalIcon } from '@lucide/svelte';
 	import type { SliderIndex, SliderValue } from './sliders.d.ts';
 	import RangeSlider from 'svelte-range-slider-pips';
+	import type { Component } from 'svelte';
+	type RangeProps = Component<typeof RangeSlider>;
+
 	interface Props extends Omit<
-		SliderMultiRootPropsWithoutHTML,
-		'min' | 'max' | 'value' | 'values' | 'formatter' | 'type'
+		RangeProps,
+		'min' | 'max' | 'value' | 'values' | 'formatter' | 'type' | 'rangeFormatter'
 	> {
 		min?: T;
 		max?: T;
@@ -26,24 +26,25 @@
 		index = $bindable([0, 0, Math.abs(values.length - 1)]),
 		value = $bindable(),
 		formatter = (val) => val,
+
 		class: className,
 		onIndexChange,
 		...props
 	}: Props = $props();
-
-	$effect(() =>
-		onIndexChange?.({ index, value: [values[index[0]], values[index[1]], values[index[2]]] })
-	);
 </script>
 
-<!-- 
 <RangeSlider
 	bind:values={index}
+	{...props}
 	pips
 	max={Math.abs(values.length - 1)}
+	min={0}
 	id="slider"
 	class="pips-bottom"
-/> -->
+	float
+	rangeFloat
+	rangeFormatter={formatter}
+/>
 
 <style>
 </style>

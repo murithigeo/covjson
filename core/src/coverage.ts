@@ -202,14 +202,19 @@ export class Coverage<
    *
    * @param point The point to get data for
    * @param rangeIds The parameter IDs to get data for. Should be in uppercase
+   * @param computeCategories If set, then a key `{rangeId}:${catId} will be included
    * @returns {Promise<Record<string,RangeValue|undefined>>} If the range does not exist, the value is undefined
-   * @todo Check that loaded values are persisted once loaded (range is replaced)
    * @example
    *  const data=await coverage.getData([0,0],["QC","POTM","x"])
    *  data==={"QC":50,"POTM":100,"x":undefined}
    */
-  async getData(ref: ReferenceArgument, rangeIds = this.ranges.keys().toArray()): Promise<DataRow> {
+  async getData(
+    ref: ReferenceArgument,
+    rangeIds?: string[],
+    computeCategories = false
+  ): Promise<DataRow> {
     if (!(ref instanceof Map)) ref = this.queryIndices(ref);
+    if (!rangeIds) rangeIds = [...this.parameters.keys()];
 
     const values = rangeIds
       .map((id) => id.toUpperCase())
@@ -219,14 +224,21 @@ export class Coverage<
     const row: DataRow = Object.fromEntries(await Promise.all(values));
     ref.forEach((value, key) => {
       if (!this.axesSize.has(key)) return;
-
-      //
       if (key === 'compositeIndex') key = 't';
       if (key === 't') row.t = this.t[value];
       if (key === 'z') {
         row.z = this.z[value];
       } else row[`${key}Index`] = value;
     });
+    if (computeCategories) {
+      this.parameters.forEach((parameter, key) => {
+        if (!parameter.categoryEncoding) return;
+        const value = row[key];
+        if (value === null) return;
+        row[`${key}:category`] = parameter.getCategory(value as number)?.id || 'NULL';
+      });
+    }
+
     return row;
   }
 
@@ -244,7 +256,8 @@ export class Coverage<
   query(
     ref: ReferenceArgument,
     rangeIds = [...this.ranges.keys()],
-    preloadAxisNames = Array<string>()
+    preloadAxisNames = Array<string>(),
+    computeCategories = false
   ) {
     const consider = this.axesSize
       .entries()
@@ -260,7 +273,7 @@ export class Coverage<
     if (!(ref instanceof Map)) ref = this.queryIndices(ref);
     const rows = prod
       .map((indices) => new Map([...ref, ...indices]))
-      .map(async (indices) => this.getData(indices, rangeIds));
+      .map(async (indices) => this.getData(indices, rangeIds, computeCategories));
     return Promise.all(rows);
   }
 }

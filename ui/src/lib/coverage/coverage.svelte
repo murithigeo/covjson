@@ -4,6 +4,7 @@
 	import TemporalSlider from '$lib/sliders/temporal-control.svelte';
 	import * as ButtonGroup from '$lib/components/ui/button-group/index.js';
 	import { SvelteMap } from 'svelte/reactivity';
+	import DownloadChart from '$lib/charts/download.svelte';
 	import {
 		ArrowLeftIcon,
 		ArrowRightIcon,
@@ -43,6 +44,7 @@
 		covCtx.indices = new SvelteMap([...coverage.indices]);
 	});
 	$effect(() => ctx.setCurrentCoverage(coverage)(checked));
+	let chartRef = $state<HTMLElement | null>(null);
 </script>
 
 <Card.Root
@@ -77,9 +79,17 @@
 		</Card.Action>
 	</Card.Header>
 	<Card.Content>
-		<Chart bind:coverage />
+		<Chart bind:coverage bind:ref={chartRef} />
 	</Card.Content>
-	<Card.Footer>
+	<Card.Footer class="flex flex-col">
+		<!-- <DownloadChart
+			bind:ref={chartRef}
+			filename={coverage.parameters
+				.keys()
+				.filter((key) => ctx.selected.has(key))
+				.toArray()
+				.join('-')}
+		/> -->
 		<TemporalSlider
 			bind:index
 			values={coverage.t}

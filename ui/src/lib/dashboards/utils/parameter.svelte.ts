@@ -54,7 +54,7 @@ export class ReactiveParameter extends Parameter implements Statistics {
 		this.categories = this.categories.set(catState.id, catState);
 		return this;
 	}
-	getCategoryId(int: number): CategoryState | undefined {
+	override getCategory(int: number): CategoryState | undefined {
 		for (const [, cat] of this.categories) {
 			if (cat.values.includes(int)) return cat;
 		}

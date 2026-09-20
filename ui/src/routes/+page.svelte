@@ -5,6 +5,7 @@
 	import { Coverage, type OnIndicesChange } from '@murithigeo/covjson-core';
 	import TresDashboard from '$lib/dashboards/templates/tres.svelte';
 	const { addSourceType } = maplibregl;
+
 	//@ts-expect-error incompatibility with inbuilt maplibre type
 	addSourceType('coveragejson', MaplibrePlugin).catch(() => {});
 
@@ -24,6 +25,7 @@
 				// data: 'https://covjson.org/playground/coverages/grid-categorical.covjson',
 				// data: 'https://covjson.org/playground/coverages/pointseries.covjson',
 				data: window.location.href + 'sample-data/categorical-pointseries.covjson',
+				// data: 'https://covjson.org/playground/coverages/profile-collection.covjson',
 
 				layers: ['grid-outline', 'grid-layer', 'section'],
 				listenTo: ['click'],
@@ -48,12 +50,7 @@
 				type: 'line',
 				paint: { 'line-color': 'red', 'line-width': 0.4 }
 			});
-			// map.addLayer({
-			// 	source,
-			// 	id: 'profile',
-			// 	type: 'symbol',
-			// 	layout: { 'icon-image': 'bulldozer' }
-			// });
+
 			map.addLayer({
 				source,
 				id: 'section',
@@ -63,7 +60,6 @@
 				}
 			});
 			map.on('click', 'section', (e) => {
-				// console.log(e.coverages);
 				if (coverages) coverages = [];
 				coverages = e.coverages;
 			});
