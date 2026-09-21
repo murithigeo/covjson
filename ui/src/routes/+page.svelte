@@ -24,7 +24,8 @@
 				// data: 'https://covjson.org/playground/coverages/grid-tiled.covjson',
 				// data: 'https://covjson.org/playground/coverages/grid-categorical.covjson',
 				// data: 'https://covjson.org/playground/coverages/pointseries.covjson',
-				data: window.location.href + 'sample-data/categorical-pointseries.covjson',
+				// data: window.location.href + 'sample-data/categorical-pointseries.covjson',
+				data: window.location.href + 'sample-data/grid-multi-z-t.covjson',
 				// data: 'https://covjson.org/playground/coverages/profile-collection.covjson',
 
 				layers: ['grid-outline', 'grid-layer', 'section'],

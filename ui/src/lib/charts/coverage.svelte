@@ -1,5 +1,5 @@
 <script module lang="ts">
-	import { Coverage, CustomDate, isNull } from '@murithigeo/covjson-core';
+	import { Coverage, CustomDate, isNull, isUndefined } from '@murithigeo/covjson-core';
 	import {
 		LineChart,
 		LinearGradient,
@@ -52,14 +52,24 @@
 			.filter(([key]) => ctx.selected.has(key))
 			.toArray();
 	});
+	let config = $derived(ctx.chartConfig);
+	let x = $derived(cCtx.x);
+	let y1 = $derived(cCtx.y1);
+	let series = $derived(Object.values(config).map(({ color, ...props }) => props));
 	/**
 	 * Should be remapped as t if composite is xAxis
 	 */
-	let x = $derived(cCtx.xAxis);
 
-	let data = $derived(coverage.query(cCtx.indices, [...ctx.selected], [x], true));
+	let data = $derived(
+		coverage.query(
+			cCtx.indices,
+			[...ctx.selected],
+			[x, y1].filter((x) => !isUndefined(x)),
+			true
+		)
+	);
 
-	let series = $derived(parameters.map(([key, param]) => ({ key, label: param.simpleLabel })));
+	function y1DomainStream() {}
 </script>
 
 <div class="grid-cols-1 items-center">
@@ -72,13 +82,17 @@
 			<ChartGroup>
 				<div class="flex flex-col">
 					{#each parameters as [key, parameter]}
-						<Chart.Container config={ctx.chartConfig}>
+						<Chart.Container {config}>
 							{@const catic = parameter.isCategorical}
 							<LineChart
 								id={key}
 								{data}
-								{x}
+								x={['Section', 'Trajectory'].includes(coverage.domainType!) ? 't' : x}
 								{series}
+								y1={(d) => {
+									console.log({ d });
+									return undefined;
+								}}
 								brush
 								c={catic ? `${key}:category` : undefined}
 								cScale={catic ? scaleOrdinal() : undefined}
@@ -97,7 +111,6 @@
 								padding={defaultChartPadding({ top: 40 })}
 								legend={{ placement: 'top-right', variant: 'swatches' }}
 								yDomain={[parameter.min, isNull(parameter.max) ? null : parameter.max * 1.2]}
-								yNice
 							>
 								{#snippet tooltip({ context })}
 									{@const data = context.tooltip.data?.[`${key}:category`]}

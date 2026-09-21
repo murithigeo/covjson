@@ -181,7 +181,7 @@ export class NdArray<T extends string | number = string | number> {
       .map((shape) => [...Array(shape).keys()]); // Generate an array of all possible indices for axis
     return cartesianProduct<number>(...uniqueCombos).map((combo) =>
       this.axisNames.map((_, i) => combo[i])
-    ); //
+    );
   }
   toPlain(nonTiled = false): ValuesNdArray<T> | TiledNdArray {
     if (this.type === 'NdArray' || nonTiled) {

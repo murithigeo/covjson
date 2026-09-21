@@ -15,4 +15,13 @@ export class MultiDate extends Date {
 	getMatching(values: string[]): string | undefined {
 		return values.find((v) => new Date(v).getTime() === this.getTime());
 	}
+	getResolution(): string {
+		return '';
+	}
+	/**
+	 * Possibly a string formatted according to the common resolution of all values
+	 */
+	preview(): string {
+		return '';
+	}
 }

@@ -2,15 +2,14 @@ import { getRandomColor } from '$lib/utils.js';
 import {
 	Parameter,
 	Category,
-	ObservedProperty,
-	Unit,
 	NdArray,
 	minMax,
-	isNull
+	isNull,
+	type DataRow
 } from '@murithigeo/covjson-core';
+import { MultiDate } from './date.ts';
 import { SvelteMap } from 'svelte/reactivity';
 
-type ColorStop = [number, string];
 export class ReactiveParameter extends Parameter implements Statistics {
 	isCategorical = !!this.categoryEncoding;
 	/**
@@ -19,12 +18,13 @@ export class ReactiveParameter extends Parameter implements Statistics {
 	color = $state(getRandomColor());
 	ranges = $state(new SvelteMap<string, NdArray>());
 	categories = $state(new SvelteMap<string, CategoryState>());
-
 	dataType = $state<'string' | 'float' | 'integer'>('integer');
 	median = $state<number | null | string>(null);
 	max = $state<number | null>(null);
 	min = $state<number | null>(null);
 	mean = $state<number | null>(null);
+	tAvgs = $state(new SvelteMap<MultiDate, number | null>());
+	zAvgs = $state(new SvelteMap<number, number | null>());
 	constructor(param: Parameter) {
 		super(param.toPlain(), param.key);
 		this.observedProperty.categories?.forEach((cat) => {
@@ -120,6 +120,10 @@ export class ReactiveParameter extends Parameter implements Statistics {
 
 	computeMedian(ranges: readonly NdArray[]): void {
 		this.median = calculateMedian(ranges.flatMap((range) => range.ndarr.data));
+	}
+
+	updateAvgs(data: DataRow[]) {
+		// uuid:{[date|z]:data}
 	}
 }
 

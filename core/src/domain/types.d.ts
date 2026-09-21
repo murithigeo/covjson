@@ -21,7 +21,7 @@ import type {
   VerticalProfile as VertProfile
 } from 'coveragejson';
 
-export type InferDomainClass<D extends Domain> = D extends Gd
+export type InferDomainClass<D extends Domain=Domain> = D extends Gd
   ? Grid
   : D extends Traj
     ? Trajectory

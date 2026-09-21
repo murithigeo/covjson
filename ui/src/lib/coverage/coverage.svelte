@@ -30,6 +30,9 @@
 	const covCtx = setCoverageCtx(coverage);
 
 	let tvalues = $derived(coverage.t);
+	/**
+	 * Transition to brush
+	 */
 	let index = $derived<SliderIndex>([0, 0, Math.abs(tvalues.length - 1)]);
 
 	function updateLocalTemporalIndices(now?: StringSliderValue): void {
@@ -90,43 +93,35 @@
 				.toArray()
 				.join('-')}
 		/> -->
-		<TemporalSlider
-			bind:index
-			values={coverage.t}
-			{buttonProps}
-			onIndexChange={({ index: [, index] }) => covCtx.updateTemporalIndex(index)}
-		>
-			{#snippet children()}
-				<ButtonGroup.Root>
-					<Button
-						{...buttonProps}
-						onclick={() => covCtx.crementIdx('-', 'horizontal')}
-						disabled={(covCtx.limits.get('horizontal')?.value || 0) < 2}
-						><ArrowLeftIcon />
-					</Button>
-					<Button
-						{...buttonProps}
-						onclick={() => covCtx.crementIdx('+', 'horizontal')}
-						disabled={(covCtx.limits.get('horizontal')?.value || 0) < 2}
-					>
-						<ArrowRightIcon />
-					</Button>
-					<Button
-						{...buttonProps}
-						onclick={() => covCtx.crementIdx('+', 'vertical')}
-						disabled={(covCtx.limits.get('vertical')?.value || 0) < 2}
-					>
-						<ArrowUpIcon />
-					</Button>
-					<Button
-						{...buttonProps}
-						onclick={() => covCtx.crementIdx('-', 'vertical')}
-						disabled={(covCtx.limits.get('vertical')?.value || 0) < 2}
-					>
-						<ArrowDownIcon />
-					</Button>
-				</ButtonGroup.Root>
-			{/snippet}
-		</TemporalSlider>
+
+		<ButtonGroup.Root>
+			<Button
+				{...buttonProps}
+				onclick={() => covCtx.crementIdx('-', 'horizontal')}
+				disabled={(covCtx.limits.get('horizontal')?.value || 0) < 2}
+				><ArrowLeftIcon />
+			</Button>
+			<Button
+				{...buttonProps}
+				onclick={() => covCtx.crementIdx('+', 'horizontal')}
+				disabled={(covCtx.limits.get('horizontal')?.value || 0) < 2}
+			>
+				<ArrowRightIcon />
+			</Button>
+			<Button
+				{...buttonProps}
+				onclick={() => covCtx.crementIdx('+', 'vertical')}
+				disabled={(covCtx.limits.get('vertical')?.value || 0) < 2}
+			>
+				<ArrowUpIcon />
+			</Button>
+			<Button
+				{...buttonProps}
+				onclick={() => covCtx.crementIdx('-', 'vertical')}
+				disabled={(covCtx.limits.get('vertical')?.value || 0) < 2}
+			>
+				<ArrowDownIcon />
+			</Button>
+		</ButtonGroup.Root>
 	</Card.Footer>
 </Card.Root>

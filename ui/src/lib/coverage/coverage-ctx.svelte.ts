@@ -1,11 +1,29 @@
-import { Coverage } from '@murithigeo/covjson-core';
+import { Coverage, CustomDate } from '@murithigeo/covjson-core';
 import { getContext, onDestroy, setContext } from 'svelte';
 import { SvelteMap } from 'svelte/reactivity';
 import { getDashCtx } from '../dashboards/utils/ctx.svelte.ts';
+
+type ChartAxis = 'composite' | 't' | 'z';
+export interface CustomRow {
+	t?: CustomDate;
+	[x: `${ChartAxis}:${number}`]: number | string | null;
+}
 export class CoverageCtx {
-	dashCtx = getDashCtx();
+	ctx = getDashCtx();
 	coverage: Coverage;
 	indices = $state(new SvelteMap<string, number>());
+
+	/**
+	 * The primary axis of the chart
+	 * Will be preloaded
+	 */
+	x = $state<ChartAxis>('t');
+	/**
+	 * The secondary axis of the chart
+	 * Preloaded
+	 */
+	y1 = $state<ChartAxis>();
+
 	limits = $derived.by(() => {
 		const limits = new SvelteMap<'horizontal' | 'vertical', { value: number; axis: string }>();
 		if (!this.coverage) return limits;
@@ -37,7 +55,8 @@ export class CoverageCtx {
 	});
 	constructor(coverage: Coverage) {
 		this.coverage = coverage;
-		$effect(() => this.dashCtx.onIndicesChange?.(this.coverage, new Map(this.indices)));
+		this.computeInitialChartAxis();
+		$effect(() => this.ctx.onIndicesChange?.(this.coverage, new Map(this.indices)));
 		onDestroy(() => {
 			this.indices.clear();
 		});
@@ -58,25 +77,25 @@ export class CoverageCtx {
 		if (!['Trajectory', 'Section'].includes(this.coverage.domainType)) axisName = 't';
 		if (this.indices.get(axisName) !== index) this.indices.set(axisName, index);
 	}
-
-	xAxis = $derived.by<'composite' | 'z' | 't'>(() => {
-		if (!this.coverage) return 't';
-		const {
-			domainType,
-			t: { length: tLen },
-			z: { length: zLen }
-		} = this.coverage;
-		if (domainType === 'Section') return 'z';
-		if (domainType === 'Trajectory') return 'composite';
-		if (domainType === 'Grid') {
-			if (!zLen && !tLen) return 'z';
-			if (zLen < 2) return 't';
-			if (tLen < 2) return 'z';
-			return 'z';
+	computeInitialChartAxis(): void {
+		switch (this.coverage.domain.domainType) {
+			case 'Section':
+			case 'VerticalProfile':
+				this.x = 'z';
+				break;
+			default:
+				this.x = 't';
 		}
+		if (this.coverage.domain.domainType !== 'Grid') return;
+		// t as x is most intuitive
+		const [zlen, tlen] = [this.coverage.z.length, this.coverage.t.length];
+		if (tlen) this.x = 't';
+		else if (zlen) this.x = 'z';
 
-		return 't';
-	});
+		// Make the y1 inverse of x
+		if (this.x === 't') this.y1 = 'z';
+		if (this.x === 'z') this.y1 = 't';
+	}
 }
 
 const CtxKey = Symbol('CovKey');

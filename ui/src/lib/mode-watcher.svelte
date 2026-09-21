@@ -5,14 +5,12 @@
 	import { toggleMode } from 'mode-watcher';
 	import { Button, type ButtonProps } from '$lib/components/ui/button/index.js';
 
-	interface Props {
-		buttonProps?: ButtonProps;
-	}
-	let { buttonProps = { variant: 'outline', size: 'icon-sm' } }: Props = $props();
+	interface Props extends ButtonProps {}
+	let { variant = 'outline', size = 'icon-sm', ...props }: Props = $props();
 </script>
 
 <ModeWatcher />
-<Button onclick={toggleMode} {...buttonProps}>
+<Button onclick={toggleMode} {variant} {size} {...props}>
 	<SunIcon
 		class="h-[1.2rem] w-[1.2rem] scale-100 rotate-0 transition-all! dark:scale-0 dark:-rotate-90"
 	/>
