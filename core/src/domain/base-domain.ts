@@ -36,7 +36,7 @@ export abstract class BaseDomain<D extends Domain = Domain> extends Base<D> {
   /**
    * An unsorted list of t values in the domain's axes
    */
-  abstract get t(): CustomDate[];
+  abstract get t(): string[];
   /**
    * An unsorted list of z values in the domain's axes.
    * For some domains, it is cheaper to find the value's index here instead of looping through tuples

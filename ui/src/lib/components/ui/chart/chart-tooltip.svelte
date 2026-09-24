@@ -23,6 +23,7 @@
 		formatter,
 		nameKey,
 		color,
+		facetAll,
 		...restProps
 	}: WithoutChildren<WithElementRef<HTMLAttributes<HTMLDivElement>>> & {
 		hideLabel?: boolean;
@@ -46,6 +47,7 @@
 				}
 			]
 		>;
+		facetAll?: boolean;
 	} = $props();
 
 	const chart = useChart();
@@ -103,7 +105,7 @@
 	{/if}
 {/snippet}
 
-<TooltipPrimitive.Root variant="none">
+<TooltipPrimitive.Root variant="none" {facetAll}>
 	<div
 		bind:this={ref}
 		class={cn(

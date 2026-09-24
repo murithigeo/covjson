@@ -46,7 +46,7 @@ abstract class Base<T extends PolygonDomain | PolySeriesD | MP | MPs> extends Ba
   }
   get t() {
     if (!this.axes.t) return [];
-    return this.axes.t.values.map((v) => new CustomDate(v));
+    return this.axes.t.values.map((v) => v);
   }
   queryIndices(ref: Position | number | string): Map<'composite' | 't', number> {
     const indices = new Map().set('composite', 0).set('t', 0).set('z', 0);

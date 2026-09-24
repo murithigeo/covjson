@@ -54,6 +54,7 @@
 		"eslint-plugin-svelte": "^3.23.0",
 		"globals": "^17.11.0",
 		"mode-watcher": "^1.1.0",
+		"paneforge": "^1.0.2",
 		"playwright": "^1.62.1",
 		"prettier": "^3.9.6",
 		"prettier-plugin-svelte": "^3.5.1",

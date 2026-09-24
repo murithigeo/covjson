@@ -48,7 +48,7 @@ abstract class Base<T extends MpD | MpsD> extends BaseDomain<T> {
   }
   get t() {
     if (!this.axes.t) return [];
-    return this.axes.t.values.map((v) => new CustomDate(v));
+    return this.axes.t.values.map((v) => v);
   }
   get axesSize(): Map<keyof T['axes'], number> {
     return new Map().set('composite', this.axes.composite.values.length).set('t', this.t.length);
@@ -111,7 +111,7 @@ export class MultiPointSeries extends Base<MpsD> {
 
 export class Section extends BaseDomain<SectionDomain> {
   get t() {
-    return this.axes.composite.values.map(([t]) => new CustomDate(t));
+    return this.axes.composite.values.map(([t]) => t);
   }
 
   calculateAxesBounds(timeZone?: string): this {

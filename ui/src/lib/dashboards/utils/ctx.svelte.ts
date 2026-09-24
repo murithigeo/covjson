@@ -129,16 +129,19 @@ class DashboardContext {
 		if (this.parameters.has(key)) return;
 		this.parameters.set(key, new ReactiveParameter(parameter));
 	}
-	updateTemporalList(...values: CustomDate[]) {
+	updateTemporalList(...values: string[]) {
 		for (const date of values) {
 			const idx = this.tvalues.findIndex((obj) => obj.getTime() === new Date(date).getTime());
 			if (idx < 0) {
-				this.tvalues.push(new MultiDate(date.value));
+				this.tvalues.push(new MultiDate(date));
 				continue;
 			}
-			this.tvalues[idx] = this.tvalues[idx].addItems(date.value);
+			this.tvalues[idx] = this.tvalues[idx].addItems(date);
 		}
 		this.tvalues.sort((a, b) => a.getTime() - b.getTime());
+	}
+	setProperty<K extends keyof typeof this, V extends this[K]>(key: K, value: V) {
+		this[key] = value;
 	}
 }
 

@@ -8,12 +8,18 @@
 	import { buttonVariants } from '$lib/components/ui/button/index.js';
 	import ParameterGroupComponent from '$lib/metadata/parameter-group.svelte';
 	import ParameterComponent from '$lib/metadata/parameter.svelte';
-	import CoverageComponent from '$lib/coverage/coverage.svelte';
+	// import CoverageComponent from '$lib/coverage/coverage.svelte';
+	import CoverageComponent from '$lib/coverage/index.svelte';
 	import { setDashCtx } from '../utils/ctx.svelte.ts';
 	import DashControlCenter from '../utils/control-center.svelte';
 	import EmptyParameters from '$lib/empty/parameter.svelte';
 	import EmptyCoverages from '$lib/empty/coverage.svelte';
-	let { onIndicesChange, data = $bindable(), detail = 'full', children }: DashboardProps = $props();
+	let {
+		onIndicesChange = $bindable(),
+		data = $bindable(),
+		detail = 'full',
+		children
+	}: DashboardProps = $props();
 	const ctx = setDashCtx();
 
 	const setProperty = <K extends keyof typeof ctx, V extends (typeof ctx)[K]>(key: K, value: V) => {
@@ -28,8 +34,9 @@
 <div class="flex flex-col gap-2 lg:grid lg:grid-cols-3">
 	<div class="h-100 w-full space-y-2 opacity-[1] md:sticky md:top-0 md:h-screen">
 		{@render children?.()}
+		<DashControlCenter />
 	</div>
-	<div class="mr-2 flex w-full flex-col overflow-y-auto" id="parameter-preview">
+	<!-- <div class="mr-2 flex w-full flex-col overflow-y-auto" id="parameter-preview">
 		<div class="sticky top-0 w-full"><DashControlCenter /></div>
 
 		<Collapsible.Root
@@ -76,13 +83,13 @@
 				{/if}
 			</Collapsible.Content>
 		</Collapsible.Root>
-	</div>
-	<div class=" h-screen gap-2 overflow-y-auto" id="charts">
+	</div> -->
+	<div class="col-span-2 h-full h-screen gap-2 overflow-y-scroll" id="charts">
 		{#if !ctx.coverages.size}
 			<EmptyCoverages />
 		{:else}
 			{#each ctx.coverages as [, coverage], i (i)}
-				<CoverageComponent {coverage} checked={!i} />
+				<CoverageComponent {coverage} checked={!i} bind:onIndicesChange />
 			{/each}
 		{/if}
 	</div>

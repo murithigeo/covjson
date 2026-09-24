@@ -42,7 +42,7 @@ export abstract class Base<T> {
   /**
    * Get temporal (t) values within the object
    */
-  abstract get t(): CustomDate[];
+  abstract get t(): string[];
   /**
    * Get elevation (z) values within the object
    */

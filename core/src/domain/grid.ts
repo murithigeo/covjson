@@ -81,7 +81,7 @@ export class Grid extends BaseDomain<GridDomain> {
 
   get t() {
     if (!this.axes.t) return [];
-    return this.axes.t?.values.map((v) => new CustomDate(v));
+    return this.axes.t?.values.map((v) => v);
   }
   get z(): number[] {
     if (!this.axes.z) return [];

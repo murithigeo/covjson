@@ -43,7 +43,7 @@ abstract class Base<T extends PointD | PSeriesD | VertProfDomain> extends BaseDo
   }
   get t() {
     if (!this.axes.t) return [];
-    return this.axes.t.values.map((v) => new CustomDate(v));
+    return this.axes.t.values.map((v) => v);
   }
   calculateAxesBounds(timeZone?: string): this {
     this.axes.x.bounds = calcNumAxisBounds(this.axes.x.values) as Position2D;

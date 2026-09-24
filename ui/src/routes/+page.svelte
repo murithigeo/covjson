@@ -4,6 +4,7 @@
 	import { MaplibrePlugin } from '@murithigeo/covjson-maplibre';
 	import { Coverage, type OnIndicesChange } from '@murithigeo/covjson-core';
 	import TresDashboard from '$lib/dashboards/templates/tres.svelte';
+	// import FacetfuKCl from '$lib/dashboards/templates/facet-ful.svelte';
 	const { addSourceType } = maplibregl;
 
 	//@ts-expect-error incompatibility with inbuilt maplibre type

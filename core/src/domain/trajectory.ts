@@ -69,6 +69,6 @@ export class Trajectory extends BaseDomain<TrajDomain> {
   }
 
   get t() {
-    return this.axes.composite.values.map(([t]) => new CustomDate(t));
+    return this.axes.composite.values.map(([t]) => t);
   }
 }
