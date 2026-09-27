@@ -2,6 +2,7 @@
 
 <script lang="ts">
 	import type { DashboardProps } from '../utils/types.d.ts';
+	import * as Resizable from '$lib/components/ui/resizable/index.js';
 	import * as Collapsible from '$lib/components/ui/collapsible/index.js';
 	import * as Item from '$lib/components/ui/item/index.js';
 	import { ChevronsUpDown, GroupIcon } from '@lucide/svelte';
@@ -30,67 +31,75 @@
 	$effect(() => setProperty('detail', detail));
 </script>
 
-<!-- May be instead of color, use a number to indicate which slot is set to -->
-<div class="flex flex-col gap-2 lg:grid lg:grid-cols-3">
-	<div class="h-100 w-full space-y-2 opacity-[1] md:sticky md:top-0 md:h-screen">
-		{@render children?.()}
-		<DashControlCenter />
-	</div>
-	<!-- <div class="mr-2 flex w-full flex-col overflow-y-auto" id="parameter-preview">
-		<div class="sticky top-0 w-full"><DashControlCenter /></div>
-
-		<Collapsible.Root
-			id="parameter-group-list"
-			open={!!ctx.parameterGroups.size}
-			disabled={!ctx.parameterGroups.size}
-		>
-			<Item.Root size="sm" variant="outline">
-				<Item.Media><GroupIcon class="size-5" /></Item.Media>
-				<Item.Content>
-					<Item.Title lang="en">Parameter Groups</Item.Title>
-				</Item.Content>
-				<Item.Actions>
-					<Collapsible.Trigger class={buttonVariants({ variant: 'ghost' })}
-						><ChevronsUpDown /></Collapsible.Trigger
-					>
-				</Item.Actions>
-			</Item.Root>
-			<Collapsible.Content class="ml-2">
-				{#each ctx.parameterGroups as group, i (i)}
-					<ParameterGroupComponent data={group} open={!i} />
+<!-- Sidebar(parameters,pGroups),map, coverages -->
+<Resizable.PaneGroup direction="horizontal" class="h-screen w-full">
+	<Resizable.Pane defaultSize={40}>
+		<Resizable.PaneGroup direction="vertical">
+			<Resizable.Pane defaultSize={50}>
+				{@render children?.()}
+				<DashControlCenter />
+			</Resizable.Pane>
+			<Resizable.Handle />
+			<Resizable.Pane>
+				<Collapsible.Root
+					id="parameter-group-list"
+					open={!!ctx.parameterGroups.size}
+					disabled={!ctx.parameterGroups.size}
+				>
+					<Item.Root size="sm" variant="outline">
+						<Item.Media><GroupIcon class="size-5" /></Item.Media>
+						<Item.Content>
+							<Item.Title lang="en">Parameter Groups</Item.Title>
+						</Item.Content>
+						<Item.Actions>
+							<Collapsible.Trigger class={buttonVariants({ variant: 'ghost' })}
+								><ChevronsUpDown /></Collapsible.Trigger
+							>
+						</Item.Actions>
+					</Item.Root>
+					<Collapsible.Content class="ml-2">
+						{#each ctx.parameterGroups as group, i (i)}
+							<ParameterGroupComponent data={group} open={!i} />
+						{/each}
+					</Collapsible.Content>
+				</Collapsible.Root>
+				<Collapsible.Root id="parameter-list" open>
+					<Item.Root size="sm" variant="outline">
+						<Item.Media><GroupIcon class="size-5" /></Item.Media>
+						<Item.Content>
+							<Item.Title lang="en">Parameters</Item.Title>
+						</Item.Content>
+						<Item.Actions>
+							<Collapsible.Trigger class={buttonVariants({ variant: 'ghost' })}
+								><ChevronsUpDown /></Collapsible.Trigger
+							>
+						</Item.Actions>
+					</Item.Root>
+					<Collapsible.Content class="ml-2 ">
+						<div class="overflow-auto">
+							{#if !ctx.parameters.size}
+								<EmptyParameters />
+							{:else}
+								{#each ctx.parameters as [key, data], index (key)}
+									<ParameterComponent {data} open={!index} {key} />
+								{/each}
+							{/if}
+						</div>
+					</Collapsible.Content>
+				</Collapsible.Root>
+			</Resizable.Pane>
+		</Resizable.PaneGroup>
+	</Resizable.Pane>
+	<Resizable.Handle withHandle />
+	<Resizable.Pane>
+		<div class="h-screen overflow-auto" id="charts">
+			{#if !ctx.coverages.size}
+				<EmptyCoverages />
+			{:else}
+				{#each ctx.coverages as [, coverage], i (i)}
+					<CoverageComponent {coverage} checked={!i} bind:onIndicesChange />
 				{/each}
-			</Collapsible.Content>
-		</Collapsible.Root>
-		<Collapsible.Root id="parameter-list" open>
-			<Item.Root size="sm" variant="outline">
-				<Item.Media><GroupIcon class="size-5" /></Item.Media>
-				<Item.Content>
-					<Item.Title lang="en">Parameters</Item.Title>
-				</Item.Content>
-				<Item.Actions>
-					<Collapsible.Trigger class={buttonVariants({ variant: 'ghost' })}
-						><ChevronsUpDown /></Collapsible.Trigger
-					>
-				</Item.Actions>
-			</Item.Root>
-			<Collapsible.Content class="ml-2">
-				{#if !ctx.parameters.size}
-					<EmptyParameters />
-				{:else}
-					{#each ctx.parameters as [key, data], index (key)}
-						<ParameterComponent {data} open={!index} {key} />
-					{/each}
-				{/if}
-			</Collapsible.Content>
-		</Collapsible.Root>
-	</div> -->
-	<div class="col-span-2 h-full h-screen gap-2 overflow-y-scroll" id="charts">
-		{#if !ctx.coverages.size}
-			<EmptyCoverages />
-		{:else}
-			{#each ctx.coverages as [, coverage], i (i)}
-				<CoverageComponent {coverage} checked={!i} bind:onIndicesChange />
-			{/each}
-		{/if}
-	</div>
-</div>
+			{/if}
+		</div>
+	</Resizable.Pane>
+</Resizable.PaneGroup>

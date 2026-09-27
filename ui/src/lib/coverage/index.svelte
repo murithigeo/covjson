@@ -16,10 +16,10 @@
 		Spline,
 		ChartGroup,
 		defaultChartPadding,
-		ChartGroupState,
 		type ChartState
 	} from 'layerchart';
 	import { getDashCtx } from '$lib/dashboards/utils/ctx.svelte.js';
+	import * as Carousel from '$lib/components/ui/carousel/index.js';
 	import { Label } from '$lib/components/ui/label/index.js';
 	import { Badge } from '$lib/components/ui/badge/index.js';
 	import type { DomainTypes, MultiPolygon, Section, Trajectory } from 'coveragejson';
@@ -32,12 +32,32 @@
 <script lang="ts">
 	interface Props {
 		coverage: Coverage;
-		onIndicesChange: OnIndicesChange;
+		onIndicesChange?: OnIndicesChange;
+		/**
+		 * Initial value to set whether coverage is highlighted
+		 */
+		checked?: boolean;
 	}
 
 	let { coverage = $bindable(), onIndicesChange = $bindable() }: Props = $props();
-
 	const ctx = getDashCtx();
+
+	for (const [key, range] of coverage.ranges) {
+		if (!ctx.parameters.has(key) && coverage.parameters.has(key)) {
+			ctx.setParameter(key, coverage.parameters.get(key)!);
+		}
+		if (range.type === 'NdArray') {
+			ctx.updateRangeData(key, coverage.uuid, range);
+		}
+		range.options = {
+			...range.options,
+			onNonCacheFetch(value) {
+				range.options.onNonCacheFetch?.(value);
+				ctx.updateRangeData(key, coverage.uuid, range);
+			}
+		};
+		coverage.ranges.set(key, range);
+	}
 	type Axis = 't' | 'composite' | 'z' | 'x' | 'y';
 
 	let xFacet = $state<boolean>(false);
@@ -88,11 +108,11 @@
 
 	let y1 = $derived.by<Exclude<Axis, 'composite' | 'x' | 'y'> | undefined>(() => {
 		return undefined;
-		switch (coverage.domain.domainType) {
-			case 'Grid':
-				if (x === 't') return 'z';
-				if (x === 'z') return 't';
-		}
+		// switch (coverage.domain.domainType) {
+		// 	case 'Grid':
+		// 		if (x === 't') return 'z';
+		// 		if (x === 'z') return 't';
+		// }
 	});
 
 	let parameters = $derived.by<[string, ReactiveParameter][]>(() =>
@@ -110,9 +130,7 @@
 		const preloadAxis = [...new Set([fx, fy, x, y1])].filter((v) => !isUndefined(v));
 		const rangeIds = parameters.map(([key]) => key);
 		const rows = await coverage.query(coverage.indices, rangeIds, preloadAxis);
-		for (let i = 0; i < rows.length; i++) {
-			const row = rows[i];
-		}
+
 		const data: Record<string, DataRow[]> = {};
 		for (const [key, parameter] of parameters) {
 			data[key] = rows.map((d) => {
@@ -165,92 +183,100 @@
 			<EmptyChart status="loading" />
 		{:then data}
 			<ChartGroup>
-				<div class="grid items-center gap-2">
-					{#each parameters as [key, parameter] (key)}
-						{@const catic = parameter.isCategorical}
-						<Chart.Container config={ctx.chartConfig}>
-							<LineChart
-								id={key}
-								data={data[key]}
-								x={(d) => {
-									if (x === 'z') return d.z;
-									if (x === 'composite') return new CustomDate(coverage.t[d.composite]);
-									return new CustomDate(coverage.t[d.t]);
-								}}
-								{fx}
-								{fy}
-								y={key}
-								grid
-								bind:context
-								facet={{
-									// Also resolve values manually
-									tooltip: (d: DataRow) => {}
-								}}
-								highlight={{ lines: true, points: true, facetAll: true }}
-								padding={defaultChartPadding()}
-								transform={{ mode: 'domain', axis: 'both' }}
-								c={catic ? 'category' : undefined}
-								cScale={catic ? scaleOrdinal() : undefined}
-								cDomain={catic
-									? [...parameter.categories.entries().map(([id]) => id), 'NULL']
-									: undefined}
-								cRange={catic
-									? [
-											...parameter.categories.values().map(({ color = parameter.color }) => color),
-											parameter.color
-										]
-									: undefined}
-								brush
-								props={{ tooltip: { root: { facetAll: true } } }}
-								onTooltipClick={(e, { data }) => console.log({ e, data })}
-							>
-								<!-- {#snippet tooltip({ context })}
-									<Chart.Tooltip
-										labelFormatter={(d, payload) => {
-											return d instanceof CustomDate ? d.value : d;
+				<Carousel.Root>
+					<Carousel.Content>
+						{#each parameters as [key, parameter] (key)}
+							{@const catic = parameter.isCategorical}
+							<Carousel.Item>
+								<Chart.Container config={ctx.chartConfig}>
+									<LineChart
+										id={key}
+										data={data[key]}
+										x={(d) => {
+											if (x === 'z') return d.z;
+											if (x === 'composite') return new CustomDate(coverage.t[d.composite]);
+											return new CustomDate(coverage.t[d.t]);
 										}}
-										facetAll
-									/>
-								{/snippet} -->
+										{fx}
+										{fy}
+										y={key}
+										grid
+										bind:context
+										facet={{
+											// Also resolve values manually
+											// tooltip: (d: DataRow) => {
+											// 	console.log({ d });
+											// 	return coverage.domain.x[d.x];
+											// },
+											axis: { facetAll: true }
+										}}
+										highlight={{ lines: true, points: true, facetAll: true }}
+										padding={defaultChartPadding()}
+										transform={{ mode: 'domain', axis: 'both' }}
+										c={catic ? 'category' : undefined}
+										cScale={catic ? scaleOrdinal() : undefined}
+										cDomain={catic
+											? [...parameter.categories.entries().map(([id]) => id), 'NULL']
+											: undefined}
+										cRange={catic
+											? [
+													...parameter.categories
+														.values()
+														.map(({ color = parameter.color }) => color),
+													parameter.color
+												]
+											: undefined}
+										brush
+										props={{ tooltip: { root: { facetAll: true } } }}
+										onTooltipClick={(e, { data }) => console.log({ e, data })}
+									>
+										{#snippet tooltip({ context })}
+											<Chart.Tooltip
+												labelFormatter={(d) => (d instanceof CustomDate ? d.value : d)}
+												facetAll
+											/>
+										{/snippet}
 
-								{#snippet marks({
-									context: {
-										height,
-										padding: { top, bottom },
-										yScale
-									}
-								})}
-									{#if catic}
-										{@const getOffset = (v: number) => yScale(v) / (height + top + bottom)}
-										<LinearGradient
-											vertical
-											units="userSpaceOnUse"
-											stops={parameter.categories
-												.values()
-												.flatMap(({ color = parameter.color, values }) =>
-													values.map((int): [number, string] => [int, color])
-												)
-												.toArray()
-												.sort(([a], [b]) => b - a)
-												.map(([int, color]): [number, string] => [getOffset(int), color])}
-											>{#snippet children({ gradient })}
-												<Spline
-													stroke={gradient}
-													class={(d) =>
-														isNull(d) ? 'stroke-2 [stroke-dasharray:4_4]' : 'stroke-2'}
-												/>
-												<Points fill={gradient} r={4} />
-											{/snippet}
-										</LinearGradient>
-									{:else}
-										<Spline stroke={parameter.color} />
-										<Points fill={parameter.color} r={4} />
-									{/if}
-								{/snippet}
-							</LineChart>
-						</Chart.Container>
-					{/each}
-				</div>
+										{#snippet marks({
+											context: {
+												height,
+												padding: { top, bottom },
+												yScale
+											}
+										})}
+											{#if catic}
+												{@const getOffset = (v: number) => yScale(v) / (height + top + bottom)}
+												<LinearGradient
+													vertical
+													units="userSpaceOnUse"
+													stops={parameter.categories
+														.values()
+														.flatMap(({ color = parameter.color, values }) =>
+															values.map((int): [number, string] => [int, color])
+														)
+														.toArray()
+														.sort(([a], [b]) => b - a)
+														.map(([int, color]): [number, string] => [getOffset(int), color])}
+													>{#snippet children({ gradient })}
+														<Spline
+															stroke={gradient}
+															class={(d) =>
+																isNull(d) ? 'stroke-2 [stroke-dasharray:4_4]' : 'stroke-2'}
+														/>
+														<Points fill={gradient} r={4} />
+													{/snippet}
+												</LinearGradient>
+											{:else}
+												<Spline stroke={parameter.color} />
+												<Points fill={parameter.color} r={4} />
+											{/if}
+										{/snippet}
+									</LineChart>
+								</Chart.Container>
+							</Carousel.Item>
+						{/each}
+					</Carousel.Content>
+				</Carousel.Root>
 			</ChartGroup>
 		{:catch error}
 			<EmptyChart status="error" {error} />
