@@ -33,62 +33,58 @@
 
 <!-- Sidebar(parameters,pGroups),map, coverages -->
 <Resizable.PaneGroup direction="horizontal" class="h-screen w-full">
-	<Resizable.Pane defaultSize={40}>
-		<Resizable.PaneGroup direction="vertical">
-			<Resizable.Pane defaultSize={50}>
-				{@render children?.()}
-				<DashControlCenter />
-			</Resizable.Pane>
-			<Resizable.Handle />
-			<Resizable.Pane>
-				<Collapsible.Root
-					id="parameter-group-list"
-					open={!!ctx.parameterGroups.size}
-					disabled={!ctx.parameterGroups.size}
-				>
-					<Item.Root size="sm" variant="outline">
-						<Item.Media><GroupIcon class="size-5" /></Item.Media>
-						<Item.Content>
-							<Item.Title lang="en">Parameter Groups</Item.Title>
-						</Item.Content>
-						<Item.Actions>
-							<Collapsible.Trigger class={buttonVariants({ variant: 'ghost' })}
-								><ChevronsUpDown /></Collapsible.Trigger
-							>
-						</Item.Actions>
-					</Item.Root>
-					<Collapsible.Content class="ml-2">
-						{#each ctx.parameterGroups as group, i (i)}
-							<ParameterGroupComponent data={group} open={!i} />
+	<Resizable.Pane defaultSize={30} direction="vertical">
+		<DashControlCenter class="sticky md:top-0" />
+		<Collapsible.Root
+			id="parameter-group-list"
+			open={!!ctx.parameterGroups.size}
+			disabled={!ctx.parameterGroups.size}
+		>
+			<Item.Root size="sm" variant="outline">
+				<Item.Media><GroupIcon class="size-5" /></Item.Media>
+				<Item.Content>
+					<Item.Title lang="en">Parameter Groups</Item.Title>
+				</Item.Content>
+				<Item.Actions>
+					<Collapsible.Trigger class={buttonVariants({ variant: 'ghost' })}
+						><ChevronsUpDown /></Collapsible.Trigger
+					>
+				</Item.Actions>
+			</Item.Root>
+			<Collapsible.Content class="ml-2">
+				{#each ctx.parameterGroups as group, i (i)}
+					<ParameterGroupComponent data={group} open={!i} />
+				{/each}
+			</Collapsible.Content>
+		</Collapsible.Root>
+		<Collapsible.Root id="parameter-list" open>
+			<Item.Root size="sm" variant="outline">
+				<Item.Media><GroupIcon class="size-5" /></Item.Media>
+				<Item.Content>
+					<Item.Title lang="en">Parameters</Item.Title>
+				</Item.Content>
+				<Item.Actions>
+					<Collapsible.Trigger class={buttonVariants({ variant: 'ghost' })}
+						><ChevronsUpDown /></Collapsible.Trigger
+					>
+				</Item.Actions>
+			</Item.Root>
+			<Collapsible.Content class="ml-2 ">
+				<div class="overflow-auto">
+					{#if !ctx.parameters.size}
+						<EmptyParameters />
+					{:else}
+						{#each ctx.parameters as [key, data], index (key)}
+							<ParameterComponent {data} open={!index} {key} />
 						{/each}
-					</Collapsible.Content>
-				</Collapsible.Root>
-				<Collapsible.Root id="parameter-list" open>
-					<Item.Root size="sm" variant="outline">
-						<Item.Media><GroupIcon class="size-5" /></Item.Media>
-						<Item.Content>
-							<Item.Title lang="en">Parameters</Item.Title>
-						</Item.Content>
-						<Item.Actions>
-							<Collapsible.Trigger class={buttonVariants({ variant: 'ghost' })}
-								><ChevronsUpDown /></Collapsible.Trigger
-							>
-						</Item.Actions>
-					</Item.Root>
-					<Collapsible.Content class="ml-2 ">
-						<div class="overflow-auto">
-							{#if !ctx.parameters.size}
-								<EmptyParameters />
-							{:else}
-								{#each ctx.parameters as [key, data], index (key)}
-									<ParameterComponent {data} open={!index} {key} />
-								{/each}
-							{/if}
-						</div>
-					</Collapsible.Content>
-				</Collapsible.Root>
-			</Resizable.Pane>
-		</Resizable.PaneGroup>
+					{/if}
+				</div>
+			</Collapsible.Content>
+		</Collapsible.Root>
+	</Resizable.Pane>
+	<Resizable.Handle withHandle />
+	<Resizable.Pane defaultSize={30}>
+		{@render children?.()}
 	</Resizable.Pane>
 	<Resizable.Handle withHandle />
 	<Resizable.Pane>

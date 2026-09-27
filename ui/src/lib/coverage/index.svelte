@@ -164,30 +164,22 @@
 	});
 </script>
 
-<Card.Root class="w-full">
-	<Card.Header>
-		<Card.Title><Badge variant="outline">{coverage.domainType}</Badge></Card.Title>
-		<Card.Description class="flex flex-row gap-2">
-			<div class="flex items-center space-x-2">
-				<Switch id="facet-x" checked={xFacet} onCheckedChange={() => (xFacet = !xFacet)} />
-				<Label for="facet-x">Facet X</Label>
-			</div>
-			<div class="flex items-center space-x-2">
+<!-- <div class="flex items-center space-x-2">
 				<Switch id="facet-y" checked={yFacet} onCheckedChange={() => (yFacet = !yFacet)} />
 				<Label for="facet-y">Facet Y</Label>
-			</div>
-		</Card.Description>
-	</Card.Header>
-	<Card.Content>
-		{#await data}
-			<EmptyChart status="loading" />
-		{:then data}
-			<ChartGroup>
-				<Carousel.Root>
-					<Carousel.Content>
-						{#each parameters as [key, parameter] (key)}
-							{@const catic = parameter.isCategorical}
-							<Carousel.Item>
+			</div> -->
+
+{#await data}
+	<EmptyChart status="loading" />
+{:then data}
+	<Carousel.Root>
+		<ChartGroup>
+			<Carousel.Content>
+				{#each parameters as [key, parameter] (key)}
+					{@const catic = parameter.isCategorical}
+					<Carousel.Item>
+						<Card.Root>
+							<Card.Content>
 								<Chart.Container config={ctx.chartConfig}>
 									<LineChart
 										id={key}
@@ -273,13 +265,32 @@
 										{/snippet}
 									</LineChart>
 								</Chart.Container>
-							</Carousel.Item>
-						{/each}
-					</Carousel.Content>
-				</Carousel.Root>
-			</ChartGroup>
-		{:catch error}
-			<EmptyChart status="error" {error} />
-		{/await}
-	</Card.Content>
-</Card.Root>
+							</Card.Content>
+							<Card.Footer class="flex w-full flex-row items-center">
+								<div class="flex items-center space-x-2">
+									<Switch
+										id="facet-y"
+										checked={yFacet}
+										onCheckedChange={() => (xFacet = !xFacet)}
+									/>
+									<Label for="facet-y">Facet X</Label>
+								</div>
+
+								<div class="flex items-center space-x-2">
+									<Switch
+										id="facet-y"
+										checked={yFacet}
+										onCheckedChange={() => (yFacet = !yFacet)}
+									/>
+									<Label for="facet-y">Facet Y</Label>
+								</div>
+							</Card.Footer>
+						</Card.Root>
+					</Carousel.Item>
+				{/each}
+			</Carousel.Content>
+		</ChartGroup>
+	</Carousel.Root>
+{:catch error}
+	<EmptyChart status="error" {error} />
+{/await}
