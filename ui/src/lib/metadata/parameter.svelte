@@ -50,12 +50,11 @@
 			})
 			.join('/');
 	}
-	let covStats = $derived(ctx.currentCoverageSummary?.get(key));
 
-	let min = $derived(processStats(covStats?.min, parameter.min));
-	let max = $derived(processStats(covStats?.max, parameter.max));
-	let median = $derived(processStats(covStats?.median, parameter.median));
-	let mean = $derived(processStats(covStats?.mean, parameter.mean));
+	let min = $derived(processStats(parameter.min));
+	let max = $derived(processStats(parameter.max));
+	let median = $derived(processStats(parameter.median));
+	let mean = $derived(processStats(parameter.mean));
 </script>
 
 <Collapsible.Root bind:open>

@@ -4,13 +4,14 @@ import {
 	NdArray,
 	Parameter,
 	ParameterGroup,
-	type OnIndicesChange
+	type OnIndicesChange,
+	calculateMedian
 } from '@murithigeo/covjson-core';
 import type { ChartConfig } from '$lib/charts/types.js';
 import { getContext, onDestroy, setContext } from 'svelte';
 import { SvelteSet, SvelteMap } from 'svelte/reactivity';
 import type { SliderValue, StringSliderValue } from '$lib/sliders/sliders.js';
-import { ReactiveParameter, calculateMedian, type Statistics } from './parameter.svelte.js';
+import { ReactiveParameter } from './parameter.svelte.js';
 import { MultiDate } from './date.ts';
 // todo automatically call onIndicesChange on the active Coverage
 class DashboardContext {
@@ -28,34 +29,6 @@ class DashboardContext {
 	now = $state<SliderValue<string>>();
 	tvalues = $state<MultiDate[]>([]);
 
-	currentCoverage = $state<Coverage | undefined>();
-	currentCoverageSummary = $derived.by(() => {
-		if (!this.currentCoverage) return undefined;
-		const coverage = this.currentCoverage;
-		const stats = this.parameters
-			.entries()
-			.filter(([, param]) => param.ranges.has(coverage.uuid))
-			.map(([key, param]): [string, Statistics] => {
-				const range = param.ranges.get(coverage.uuid)!;
-				const [min, max] = range.minMax;
-
-				return [
-					key,
-					{
-						min,
-						max,
-						median: calculateMedian(range.ndarr.data),
-						mean:
-							range.dataType === 'string'
-								? null
-								: range.values.filter((v) => typeof v === 'number').reduce((l, r) => l + r, 0) /
-									range.totalSize
-					}
-				];
-			});
-
-		return new Map(stats);
-	});
 	constructor() {
 		$effect(() => this.coverages.values().forEach((cov) => this.updateTemporalList(...cov.t)));
 		$effect(() => {
@@ -104,12 +77,6 @@ class DashboardContext {
 			for (let i = 0; i < 3; i++) {
 				if (bounds[i] !== this.now[i]) this.now[i] = bounds[i];
 			}
-	}
-	setCurrentCoverage(coverage: Coverage) {
-		return (checked: boolean) => {
-			if (checked) this.currentCoverage = coverage;
-			else this.currentCoverage = undefined;
-		};
 	}
 
 	setParameterColor(paramId: string, color: string | null, categoryId?: string) {

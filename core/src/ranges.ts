@@ -11,7 +11,7 @@ import { load } from './load.ts';
 import ops from 'ndarray-ops';
 import { cartesianProduct, minMax, type MinMax } from './utils.ts';
 import { TilesetNotFound } from './error.ts';
-import { isUndefined } from './domain/utils.ts';
+import { calculateMedian, isUndefined } from './domain/utils.ts';
 import type { MapIndices } from './base.ts';
 
 export interface NdArrayOptions<T extends string | number = string | number> {
@@ -34,7 +34,8 @@ export interface NdArrayOptions<T extends string | number = string | number> {
 }
 
 type NdArrX<T extends string | number> = NumberNdArray | StringNdArray | ValuesNdArray<T>;
-export class NdArray<T extends string | number = string | number> {
+
+export class NdArray<T extends string | number = string | number> implements RangeStatistics {
   type: 'TiledNdArray' | 'NdArray';
   ndarr: NdArr<[T | null, ...(T | null)[]]>;
   #tileSets: TileSet[];
@@ -42,7 +43,10 @@ export class NdArray<T extends string | number = string | number> {
   axisNames: string[];
   dataType: ValuesNdArray<T>['dataType'];
   options: NdArrayOptions;
-  minMax: MinMax;
+  min: number | null = null;
+  max: number | null = null;
+  median: string | number | null = null;
+  mean: number | null = null;
   constructor(ndarr: NdArrX<T> | TiledNdArray, options?: NdArrayOptions) {
     this.type = ndarr.type;
     this.axisNames = ndarr.axisNames || [];
@@ -51,7 +55,6 @@ export class NdArray<T extends string | number = string | number> {
     this.#tileSets = 'tileSets' in ndarr ? ndarr.tileSets : [];
     this.dataType = ndarr.dataType as ValuesNdArray<T>['dataType'];
     this.options = options || {};
-    this.minMax = [null, null];
     if ('values' in ndarr) this.appendRange(this.shape, Array(this.totalSize).fill(0), ndarr);
   }
   get totalSize() {
@@ -140,7 +143,9 @@ export class NdArray<T extends string | number = string | number> {
     } = range;
     values.forEach((v, i, arr) => (arr[i] = this.options.transform?.(v, this.dataType) || v));
     ops.assign(this.ndarr.lo(...offsets).hi(...shape), ndarray(values, shape));
-    this.updateMinMax();
+    this.computeMinMax(range);
+    this.computeMean();
+    this.computeMedian();
   }
   /**
    * Gets the indices of the tile that contains the indices provided
@@ -201,8 +206,39 @@ export class NdArray<T extends string | number = string | number> {
       axisNames: this.axisNames
     };
   }
-  updateMinMax(): void {
+  /**
+   * Use a new range to reduce going through all values again
+   */
+  computeMinMax(range: NdArrX<T>): void {
     if (this.dataType === 'string') return;
-    this.minMax = minMax([...(this.ndarr.data as number[]), ...this.minMax]);
+    [this.min, this.max] = minMax([...(range.values as number[]), this.min, this.max]);
   }
+
+  computeMean() {
+    if (this.dataType === 'string') return;
+    this.mean = this.values.filter((v) => typeof v === 'number').reduce((l, r) => l + r, 0);
+    this.mean /= this.totalSize;
+  }
+  computeMedian() {
+    this.median = calculateMedian(this.values);
+  }
+}
+
+interface RangeStatistics {
+  /**
+   * Defaults to null for string NdArrays
+   */
+  min: number | null;
+  /**
+   * Defaults to null for string NdArrays
+   */
+  max: number | null;
+  /**
+   * The middle value of the values
+   */
+  median: string | number | null;
+  /**
+   * The average of the NdArray
+   */
+  mean: number | null;
 }

@@ -382,3 +382,32 @@ export class CustomDate extends Date {
   }
   // Implement the parse string
 }
+
+export function calculateMedian(data: (number | string | null)[]): string | number | null {
+  if (data.length < 1) return null;
+
+  let isNumber = typeof data[0] === 'number';
+
+  if (!data.length) return null;
+
+  const compareFn = !isNumber
+    ? (a: any, b: any) => String(a).localeCompare(b)
+    : (a: any, b: any) => Number(a) - Number(b);
+
+  data.sort(compareFn);
+  let index: number[] | number = Math.floor(data.length / 2);
+
+  if (data.length % 2 === 0) {
+    index = [index, index - 1];
+  }
+  if (!isNumber) {
+    if (Array.isArray(index)) return null;
+    return data[index];
+  }
+  if (typeof index === 'number') return data[index];
+  const total = index
+    .map((i) => data[i])
+    .filter((v) => typeof v === 'number')
+    .reduce((l, r) => l + r, 0);
+  return total / 2;
+}
