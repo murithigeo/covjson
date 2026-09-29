@@ -10,13 +10,19 @@
 	} from '@murithigeo/covjson-core';
 	import { Switch } from '$lib/components/ui/switch/index.js';
 	import { Separator } from '$lib/components/ui/separator/index.js';
+	import { Button } from '$lib/components/ui/button/index.js';
+	import * as ButtonGroup from '$lib/components/ui/button-group/index.js';
+	import { TrashIcon, PinIcon, HardDriveDownloadIcon, PinOffIcon } from '@lucide/svelte';
+
 	import {
 		LineChart,
 		LinearGradient,
 		Points,
 		Spline,
 		defaultChartPadding,
-		type ChartState
+		type ChartState,
+		downloadImage,
+		getChartImageBlob
 	} from 'layerchart';
 	import dimensions, { type Axis } from './dimensions.ts';
 	import { getDashCtx } from '$lib/dashboards/utils/ctx.svelte.js';
@@ -112,9 +118,40 @@
 	$effect(() => {
 		dataPromise;
 	});
+	async function onDownloadClick() {
+		for (const [key] of parameters) {
+			const ref = document.get(`${coverage.uuid}-${key}`);
+			const blob = awa;
+		}
+	}
+	// Probably have a decoupled legend in each tab that syncs overall data
 </script>
 
 <Card.Root>
+	<Card.Header>
+		<Card.Title><Badge variant="outline">{coverage.domain.domainType}</Badge></Card.Title>
+		<Card.Action>
+			<ButtonGroup.Root>
+				<Button size="icon-sm" variant="outline" onclick={onDownloadClick}
+					><HardDriveDownloadIcon /></Button
+				>
+				<Button
+					size="icon-sm"
+					variant="outline"
+					onclick={() => ctx.updateCoveragePinStatus(coverage)}
+					>{#if ctx.pinned.has(coverage.uuid)}
+						<PinOffIcon />{:else}<PinIcon />
+					{/if}</Button
+				>
+				<Button
+					size="icon-sm"
+					variant="outline"
+					onclick={() => ctx.trashCoverage(coverage)}
+					disabled={ctx.pinned.has(coverage.uuid)}><TrashIcon /></Button
+				>
+			</ButtonGroup.Root>
+		</Card.Action>
+	</Card.Header>
 	<Card.Content>
 		<Tabs.Root value={parameters[0][0]}>
 			<Tabs.List>
@@ -129,7 +166,7 @@
 							{@const catic = parameter.isCategorical}
 							<Chart.Container config={ctx.chartConfig}>
 								<LineChart
-									id={key}
+									id="{coverage.uuid}-{key}"
 									data={data[key] || []}
 									x={(d) => {
 										if (x === 'z') return d.z;
@@ -138,19 +175,21 @@
 									}}
 									{fx}
 									{fy}
-									y={key}
+									series={[
+										{
+											key,
+											label: parameter.simpleLabel,
+											color: catic ? undefined : parameter.color
+										}
+									]}
+									legend
 									grid
 									bind:context
 									facet={{
-										// Also resolve values manually
-										// tooltip: (d: DataRow) => {
-										// 	console.log({ d });
-										// 	return coverage.domain.x[d.x];
-										// },
 										axis: { facetAll: true }
 									}}
 									highlight={{ lines: true, points: true, facetAll }}
-									padding={defaultChartPadding()}
+									padding={defaultChartPadding({ legend: true, right: 10 })}
 									transform={{ mode: 'domain', axis: 'both' }}
 									c={catic ? 'category' : undefined}
 									cScale={catic ? scaleOrdinal() : undefined}
@@ -213,30 +252,27 @@
 								</LineChart>
 							</Chart.Container>
 						</Card.Content>
-						<Card.Footer>
-							<!-- center justify -->
-							<div class="flex w-full flex-row flex-wrap justify-center gap-2">
-								<Label
-									><Badge variant="outline">min</Badge>{parameter.ranges
-										.get(coverage.uuid)
-										?.min?.toFixed(2)}</Label
-								>
-								<Label
-									><Badge variant="outline">max</Badge>{parameter.ranges
-										.get(coverage.uuid)
-										?.max?.toFixed(2)}</Label
-								>
-								<Label
-									><Badge variant="outline">mean</Badge>{parameter.ranges
-										.get(coverage.uuid)
-										?.mean?.toFixed(2)}</Label
-								>
-								<Label
-									><Badge variant="outline">median</Badge>{parameter.ranges
-										.get(coverage.uuid)
-										?.median?.toFixed(2)}</Label
-								>
-							</div>
+						<Card.Footer class="flex w-full flex-row flex-wrap justify-center gap-2">
+							<Label
+								><Badge variant="outline">min</Badge>{parameter.ranges
+									.get(coverage.uuid)
+									?.min?.toFixed(2)}</Label
+							>
+							<Label
+								><Badge variant="outline">max</Badge>{parameter.ranges
+									.get(coverage.uuid)
+									?.max?.toFixed(2)}</Label
+							>
+							<Label
+								><Badge variant="outline">mean</Badge>{parameter.ranges
+									.get(coverage.uuid)
+									?.mean?.toFixed(2)}</Label
+							>
+							<Label
+								><Badge variant="outline">median</Badge>{parameter.ranges
+									.get(coverage.uuid)
+									?.median?.toFixed(2)}</Label
+							>
 						</Card.Footer>
 					</Card.Root>
 				</Tabs.Content>
@@ -289,10 +325,5 @@
 				<Label>facetAll</Label>
 			</div>
 		</div>
-
-		<div class="flex items-center space-x-2">
-			<Badge variant="outline">{coverage.domain.domainType}</Badge>
-		</div>
-		<!-- download chart -->
 	</Card.Footer>
 </Card.Root>

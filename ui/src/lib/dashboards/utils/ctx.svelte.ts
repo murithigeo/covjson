@@ -7,7 +7,6 @@ import {
 	type OnIndicesChange,
 	calculateMedian
 } from '@murithigeo/covjson-core';
-import type { ChartConfig } from '$lib/charts/types.js';
 import { getContext, onDestroy, setContext } from 'svelte';
 import { SvelteSet, SvelteMap } from 'svelte/reactivity';
 import type { SliderValue, StringSliderValue } from '$lib/sliders/sliders.js';
@@ -52,15 +51,13 @@ class DashboardContext {
 		};
 	}
 
-	trashCoverage(uuid: string) {
-		this.coverages.delete(uuid);
-		this.input = this.input?.filter(({ uuid: id }) => id !== uuid);
+	trashCoverage(cov: Coverage) {
+		this.input = this.input?.filter(({ uuid: id }) => id !== cov.uuid);
+		this.pinned.delete(cov.uuid);
 	}
 	updateCoveragePinStatus(coverage: Coverage) {
-		return (checked: boolean) => {
-			if (checked) this.pinned.set(coverage.uuid, coverage);
-			else this.pinned.delete(coverage.uuid);
-		};
+		if (this.pinned.has(coverage.uuid)) this.pinned.delete(coverage.uuid);
+		else this.pinned.set(coverage.uuid, coverage);
 	}
 
 	updateRangeData(paramId: string, covUuid: string, range: NdArray) {
@@ -86,7 +83,7 @@ class DashboardContext {
 
 		this.parameters = this.parameters.set(paramId, param);
 	}
-	chartConfig = $derived.by<ChartConfig>(() => {
+	chartConfig = $derived.by<Record<string, { color?: string; key: string; label: string }>>(() => {
 		const entries = this.parameters
 			.entries()
 			.map(([key, param]) => [key, { key, color: param.color, label: param.simpleLabel }]);
