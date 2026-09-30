@@ -36,6 +36,11 @@ export default function (domain: InferDomainClass): AxisConfig {
 	return conf;
 }
 
-export type AxisConfig = WithRequiredProperty<Partial<Record<'x' | 'y1' | 'fx' | 'fy', Axis>>, 'x'>;
+interface AxisConfig {
+	x: Axis;
+	y1?: Extract<Axis, 'z' | 't'>;
+	fx?: Extract<Axis, 'composite' | 'x' | 'y'>;
+	fy?: Extract<Axis, 'composite' | 'x' | 'y'>;
+}
 
 export type Axis = 'x' | 'y' | 'composite' | 'z' | 't';

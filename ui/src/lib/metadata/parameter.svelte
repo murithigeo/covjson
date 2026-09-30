@@ -73,7 +73,6 @@
 						{parameter.dataType || 'Unknown'}
 					</p></Badge
 				>
-				<Badge {variant}>{parameter.ranges.size || 0} Covs</Badge>
 				{#if parameter.unit?.symbol?.value}
 					<Badge {variant}>{parameter.unit.symbol.value}</Badge>
 				{/if}
