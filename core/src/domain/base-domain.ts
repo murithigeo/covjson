@@ -68,12 +68,16 @@ export abstract class BaseDomain<D extends Domain = Domain> extends Base<D> {
    * If applicable, converts any "primitive" axis to @see {RegularlySpacedAxis}
    * Returns a new copy of the class
    */
-  abstract normalize?(): this;
+  normalize(): this {
+    return this;
+  }
   /**
    * If applicable,converts any @see {RegularlySpacedAxis} to a primitive axis
    * Returns a new copy of the class
    */
-  abstract denormalize?(): WithoutRegularlySpacedAxis<BaseDomain<D>>;
+  denormalize(): WithoutRegularlySpacedAxis<D, BaseDomain<D>> {
+    return this;
+  }
   /**
    * Get the geojson representation of the domain's "horizontal" values
    */

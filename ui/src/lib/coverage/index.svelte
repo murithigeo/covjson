@@ -32,7 +32,9 @@
 	import EmptyChart from '$lib/empty/chart.svelte';
 	import * as Card from '$lib/components/ui/card/index.js';
 	import * as Tabs from '$lib/components/ui/tabs/index.js';
+	import * as Table from '$lib/components/ui/table/index.js';
 	import { scaleOrdinal } from 'd3-scale';
+	import type { Position } from 'coveragejson';
 </script>
 
 <script lang="ts">
@@ -64,7 +66,8 @@
 		};
 		coverage.ranges.set(key, range);
 	}
-	const ds = dimensions(coverage.domain);
+	let domain = $derived(coverage.domain.clone()?.denormalize());
+	const ds = dimensions(domain);
 	let x = $state(ds.x);
 	let fx = $state<(typeof ds)['fx']>();
 	let fy = $state<Axis>();
@@ -79,13 +82,15 @@
 			.toArray()
 	);
 
-	let data = $derived.by(async () => {
-		const preloadAxis = [...new Set([fx, fy, x, y1])].filter((v) => !isUndefined(v));
-		const rangeIds = parameters.map(([key]) => key);
-		const rows = await coverage.query(coverage.indices, rangeIds, preloadAxis);
-		const data: Record<string, DataRow[]> = {};
+	let rows = $state<Record<string, DataRow[]>>({});
+	/**
+	 * View data as chart. By default, if parameter is string/float, then it will be first rendered as a chart
+	 * Else It will be a table
+	 */
+	let viewAsChart = $state<Record<string, boolean>>({});
+	function promiseToData(data: DataRow[]): void {
 		for (const [key, parameter] of parameters) {
-			data[key] = rows.map((d) => {
+			rows[key] = data.map((d) => {
 				const row = { ...d };
 				const value = row[key];
 				parameters.forEach(([k]) => {
@@ -100,7 +105,11 @@
 				return row;
 			});
 		}
-		return data;
+	}
+	let dataPromise = $derived.by(() => {
+		const preloadAxis = [...new Set([fx, fy, x, y1])].filter((v) => !isUndefined(v));
+		const rangeIds = parameters.map(([key]) => key);
+		coverage.query(coverage.indices, rangeIds, preloadAxis).then((rows) => promiseToData(rows));
 	});
 	let context = $state<ChartState>();
 
@@ -114,12 +123,43 @@
 		onIndicesChange?.(coverage, new Map(indices));
 	});
 
+	$effect(() => {
+		dataPromise;
+	});
 	function onDownloadClick() {
 		for (const [key] of parameters) {
 			const id = `${coverage.uuid}-${key}`;
 			const ref = document.getElementById(id);
 			if (!ref) continue;
+			// ref.legend = true;
 			downloadImage(ref, { filename: id });
+		}
+	}
+
+	const getAxes = (): [Axis, number][] => {
+		return [
+			[x, coverage.axesSize.get(x)!],
+			...coverage.axesSize
+				.entries()
+				.toArray()
+				.filter(([an]) => an !== x)
+				.map(([an, size]) => [an as Axis, size])
+		];
+	};
+
+	function resolveAxisIdx(axis: Axis, idx: number) {
+		let value:number|string|Position|Position[]|Position[][][];
+		if (axis === 'z' || axis === 't') value= coverage[axis][idx];
+		switch (domain.domainType) {
+			case 'Grid':
+			case 'VerticalProfile':
+			case 'Point':
+			case 'PointSeries':
+				if (axis === 'x' || axis === 'y') 
+					value coverage.domain.axes[axis].values[idx];
+				
+				break
+			case "Trajectory":
 		}
 	}
 </script>
@@ -194,160 +234,190 @@
 		</Card.Action>
 	</Card.Header>
 	<Card.Content>
-		{#await data}
-			<EmptyChart status="loading" />
-		{:then rows}
-			<Tabs.Root value={parameters[0][0]}>
-				<Tabs.List>
-					{#each parameters as [value], i (i)}
-						<Tabs.Trigger {value}>{value}</Tabs.Trigger>
-					{/each}
-				</Tabs.List>
-				{#each parameters as [key, parameter], i (i)}
-					{@const data = rows[key] || []}
-					<Tabs.Content value={key}>
-						<Card.Root>
-							<Card.Content>
-								{#if !data.length}
-									<EmptyChart status="loaded" />
-								{:else}
-									{@const catic = parameter.isCategorical}
-									<Chart.Container config={ctx.chartConfig}>
-										<LineChart
-											id="{coverage.uuid}-{key}"
-											{data}
-											series={[
-												{
-													key,
-													label: parameter.simpleLabel,
-													color: catic ? undefined : parameter.color
-												}
-											]}
-											x={(d) => {
-												if (x === 'z') return d.z;
-												if (x === 'composite') return new CustomDate(coverage.t[d.composite]);
-												return new CustomDate(coverage.t[d.t]);
-											}}
-											fx={(d) => {
-												if (isUndefined(fx)) return undefined;
-												if (coverage.domain.domainType === 'Grid') {
-													if (fx === 'x' || fx === 'y') return coverage.domain[fx][d[fx]];
-												}
-												if (fx === 'composite') return coverage.t[d[fx]];
-											}}
-											fy={(d) => {
-												if (isUndefined(fy)) return undefined;
-												if (coverage.domain.domainType === 'Grid') {
-													if (fy === 'x' || fy === 'y') return coverage.domain[fy][d[fy]];
-												}
-												if (fy === 'composite') return coverage.t[d[fy]];
-											}}
-											legend
-											// bind:context
-											facet={{
-												axis: { facetAll: true }
-											}}
-											highlight={{ lines: true, points: true, facetAll }}
-											padding={defaultChartPadding({ legend: true, right: 10 })}
-											transform={{ mode: 'domain', axis: 'both' }}
-											c={catic ? 'category' : undefined}
-											cScale={catic ? scaleOrdinal() : undefined}
-											cDomain={catic
-												? [...parameter.categories.entries().map(([id]) => id), 'NULL']
-												: undefined}
-											cRange={catic
-												? [
-														...parameter.categories
-															.values()
-															.map(({ color = parameter.color }) => color),
-														parameter.color
-													]
-												: undefined}
-											brush
-											props={{ tooltip: { root: { facetAll: true } } }}
-											onTooltipClick={(e, { data }) => console.log({ e, data })}
-										>
-											{#snippet tooltip()}
-												<Chart.Tooltip
-													labelFormatter={(d) => (d instanceof CustomDate ? d.value : d)}
-													{facetAll}
-												/>
-											{/snippet}
-
-											{#snippet marks({
-												context: {
-													height,
-													padding: { top, bottom },
-													yScale,
-													series
-												}
-											})}
-												{#if catic}
-													{@const getOffset = (v: number) => yScale(v) / (height + top + bottom)}
-													<LinearGradient
-														vertical
-														units="userSpaceOnUse"
-														stops={parameter.categories
-															.values()
-															.flatMap(({ color = parameter.color, values }) =>
-																values.map((int): [number, string] => [int, color])
-															)
-															.toArray()
-															.sort(([a], [b]) => b - a)
-															.map(([int, color]): [number, string] => [getOffset(int), color])}
-														>{#snippet children({ gradient })}
-															{#each series.visibleSeries as serie (serie.key)}
-																<Spline
-																	{...serie}
-																	stroke={gradient}
-																	class={(d) =>
-																		isNull(d) ? 'stroke-2 [stroke-dasharray:4_4]' : 'stroke-2'}
-																/>
-																<Points fill={gradient} r={4} />
-															{/each}
-														{/snippet}
-													</LinearGradient>
-												{:else}
-													{#each series.visibleSeries as serie (serie.key)}
-														<Spline {...serie} stroke={parameter.color} />
-														<Points fill={parameter.color} r={4} />
-													{/each}
-												{/if}
-											{/snippet}
-										</LineChart>
-									</Chart.Container>
-								{/if}
-							</Card.Content>
-							<Card.Footer class="flex w-full flex-row flex-wrap justify-center gap-2">
-								<Label
-									><Badge variant="outline">min</Badge>{parameter.ranges
-										.get(coverage.uuid)
-										?.min?.toFixed(2)}</Label
-								>
-								<Label
-									><Badge variant="outline">max</Badge>{parameter.ranges
-										.get(coverage.uuid)
-										?.max?.toFixed(2)}</Label
-								>
-								<Label
-									><Badge variant="outline">mean</Badge>{parameter.ranges
-										.get(coverage.uuid)
-										?.mean?.toFixed(2)}</Label
-								>
-								<Label
-									><Badge variant="outline">median</Badge>{parameter.ranges
-										.get(coverage.uuid)
-										?.median?.toFixed(2)}</Label
-								>
-							</Card.Footer>
-						</Card.Root>
-					</Tabs.Content>
+		<Tabs.Root value={'STRINGBS'}>
+			<Tabs.List>
+				{#each parameters as [value], i (i)}
+					<Tabs.Trigger {value}>{value}</Tabs.Trigger>
 				{/each}
-			</Tabs.Root>
-		{:catch error}
-			<EmptyChart status="loaded" {error} />
-		{/await}
-	</Card.Content>
+			</Tabs.List>
+			{#each parameters as [key, parameter], i (i)}
+				{@const data = rows[key] || []}
+				<Tabs.Content value={key}>
+					<Card.Root>
+						<Card.Content>
+							{#if parameter.dataType !== 'string'}
+								{@const catic = parameter.isCategorical}
+								<Chart.Container config={ctx.chartConfig}>
+									<LineChart
+										id="{coverage.uuid}-{key}"
+										{data}
+										series={[
+											{
+												key,
+												label: parameter.simpleLabel,
+												color: catic ? undefined : parameter.color
+											}
+										]}
+										y1={(d) => {
+											if (isUndefined(y1)) return undefined;
+											return coverage[y1][d[y1]];
+										}}
+										x={(d) => {
+											if (x === 'z') return d.z;
+											if (x === 'composite') return new CustomDate(coverage.t[d.composite]);
+											return new CustomDate(coverage.t[d.t]);
+										}}
+										fx={(d) => {
+											if (isUndefined(fx)) return undefined;
+											if (coverage.domain.domainType === 'Grid') {
+												if (fx === 'x' || fx === 'y') return coverage.domain[fx][d[fx]];
+											}
+											if (fx === 'composite') return coverage.t[d[fx]];
+										}}
+										fy={(d) => {
+											if (isUndefined(fy)) return undefined;
+											if (coverage.domain.domainType === 'Grid') {
+												if (fy === 'x' || fy === 'y') return coverage.domain[fy][d[fy]];
+											}
+											if (fy === 'composite') return coverage.t[d[fy]];
+										}}
+										// legend
+										// bind:context
+										facet={{
+											axis: { facetAll: true }
+										}}
+										highlight={{ lines: true, points: true, facetAll }}
+										padding={defaultChartPadding({ legend: true, right: 10 })}
+										transform={{ mode: 'domain', axis: 'both' }}
+										c={catic ? 'category' : undefined}
+										cScale={catic ? scaleOrdinal() : undefined}
+										cDomain={catic
+											? [...parameter.categories.entries().map(([id]) => id), 'NULL']
+											: undefined}
+										cRange={catic
+											? [
+													...parameter.categories
+														.values()
+														.map(({ color = parameter.color }) => color),
+													parameter.color
+												]
+											: undefined}
+										brush
+										props={{ tooltip: { root: { facetAll: true } } }}
+										onTooltipClick={(e, { data }) => console.log({ e, data })}
+									>
+										{#snippet tooltip()}
+											<Chart.Tooltip
+												labelFormatter={(d) => (d instanceof CustomDate ? d.value : d)}
+												{facetAll}
+											/>
+										{/snippet}
 
-	<Card.Footer></Card.Footer>
+										{#snippet marks({
+											context: {
+												height,
+												padding: { top, bottom },
+												yScale,
+												series
+											}
+										})}
+											{#if catic}
+												{@const getOffset = (v: number) => yScale(v) / (height + top + bottom)}
+												<LinearGradient
+													vertical
+													units="userSpaceOnUse"
+													stops={parameter.categories
+														.values()
+														.flatMap(({ color = parameter.color, values }) =>
+															values.map((int): [number, string] => [int, color])
+														)
+														.toArray()
+														.sort(([a], [b]) => b - a)
+														.map(([int, color]): [number, string] => [getOffset(int), color])}
+													>{#snippet children({ gradient })}
+														{#each series.visibleSeries as serie (serie.key)}
+															<Spline
+																{...serie}
+																stroke={gradient}
+																class={(d) =>
+																	isNull(d) ? 'stroke-2 [stroke-dasharray:4_4]' : 'stroke-2'}
+															/>
+															<Points fill={gradient} r={4} />
+														{/each}
+													{/snippet}
+												</LinearGradient>
+											{:else}
+												{#each series.visibleSeries as serie (serie.key)}
+													<Spline {...serie} stroke={parameter.color} />
+													<Points fill={parameter.color} r={4} />
+												{/each}
+											{/if}
+										{/snippet}
+									</LineChart>
+								</Chart.Container>
+							{:else}
+								{@render table({ data, parameter })}
+							{/if}
+						</Card.Content>
+						<Card.Footer class="flex w-full flex-row flex-wrap justify-center gap-2">
+							<Label
+								><Badge variant="outline">min</Badge>{parameter.ranges
+									.get(coverage.uuid)
+									?.min?.toFixed(2)}</Label
+							>
+							<Label
+								><Badge variant="outline">max</Badge>{parameter.ranges
+									.get(coverage.uuid)
+									?.max?.toFixed(2)}</Label
+							>
+							<Label
+								><Badge variant="outline">mean</Badge>{parameter.ranges
+									.get(coverage.uuid)
+									?.mean?.toFixed(2)}</Label
+							>
+							<Label
+								><Badge variant="outline">median</Badge>{parameter.ranges
+									.get(coverage.uuid)
+									?.median?.toString()}</Label
+							>
+							<div class="flex items-center space-x-2">
+								<Switch
+									checked={viewAsChart[key] === true}
+									disabled={parameter.dataType === 'string'}
+									onCheckedChange={(checked) => {
+										viewAsChart[key] = !viewAsChart[key];
+									}}
+								/><Label>Chart</Label>
+							</div>
+						</Card.Footer>
+					</Card.Root>
+				</Tabs.Content>
+			{/each}
+		</Tabs.Root>
+	</Card.Content>
 </Card.Root>
+
+{#snippet table({ data, parameter }: { data: DataRow[]; parameter: ReactiveParameter })}
+	{@const axes = getAxes()}
+	<Table.Root class="table-auto">
+		<Table.Caption>Data for {parameter.key}</Table.Caption>
+		<Table.Header>
+			<Table.Row>
+				{#each axes as [axisName], i}
+					<Table.Head>{axisName}</Table.Head>
+				{/each}
+				<Table.Head>value</Table.Head>
+				{#if parameter.isCategorical}
+					<Table.Head>category</Table.Head>
+				{/if}
+			</Table.Row>
+		</Table.Header>
+		<Table.Body>
+			{#each data as row, idx (idx)}
+				<Table.Row>
+					{#each axes as [an], i}{/each}
+				</Table.Row>
+			{/each}
+		</Table.Body>
+	</Table.Root>
+{/snippet}

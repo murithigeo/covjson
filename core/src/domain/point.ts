@@ -77,13 +77,9 @@ export class Point extends Base<PointD> {
       coordinates: [this.axes.x.values[0], this.axes.y.values[0]]
     };
   }
-  normalize = undefined;
-  denormalize = undefined;
 }
 
 export class PointSeries extends Base<PSeriesD> {
-  normalize = undefined;
-  denormalize = undefined;
   get geometry(): PointGeometry {
     return {
       type: 'Point',

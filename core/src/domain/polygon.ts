@@ -60,8 +60,7 @@ abstract class Base<T extends PolygonDomain | PolySeriesD | MP | MPs> extends Ba
     if (typeof ref === 'string') indices.set('t', this.tIndex(ref));
     return indices;
   }
-  normalize = undefined;
-  denormalize = undefined;
+
   calculateAxesBounds(): this {
     if (this.axes.z) this.axes.z.bounds = calcNumAxisBounds(this.axes.z.values);
 

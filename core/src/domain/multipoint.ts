@@ -22,8 +22,7 @@ abstract class Base<T extends MpD | MpsD> extends BaseDomain<T> {
   constructor(domain: T) {
     super(domain);
   }
-  normalize = undefined;
-  denormalize = undefined;
+
   calculateAxesBounds(timeZone?: string): this {
     if (this.axes.t) this.axes.t.bounds = calcStrAxisBounds(this.axes.t.values, timeZone);
     const xyBounds = calc2dTupleAxisBounds(this.axes.composite.values);
@@ -117,10 +116,8 @@ export class Section extends BaseDomain<SectionDomain> {
   calculateAxesBounds(timeZone?: string): this {
     throw new Error('Method not implemented.');
   }
-  normalize?(): this {
-    throw new Error('Method not implemented.');
-  }
-  denormalize?(): WithoutRegularlySpacedAxis<BaseDomain<SectionDomain>> {
+
+  override denormalize(): WithoutRegularlySpacedAxis<Section> {
     this.axes.z = denormalizeNumAxis(this.axes.z);
     return this;
   }

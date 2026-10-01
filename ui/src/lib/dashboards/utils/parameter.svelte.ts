@@ -64,7 +64,7 @@ export class ReactiveParameter extends Parameter implements Statistics {
 	updateRangeData(covId: string, data: NdArray) {
 		this.ranges.set(covId, data);
 		const ranges = this.ranges.values().toArray();
-		if (ranges.length && ranges[0].dataType !== this.dataType) this.dataType = this.dataType;
+		if (ranges.length && ranges[0].dataType !== this.dataType) this.dataType = ranges[0].dataType;
 		this.computeMinMax(ranges);
 		this.computeCategoryBins(ranges);
 		this.computeMedian(ranges);

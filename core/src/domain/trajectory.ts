@@ -13,8 +13,7 @@ export class Trajectory extends BaseDomain<TrajDomain> {
   constructor(domain: TrajDomain) {
     super(domain);
   }
-  normalize = undefined;
-  denormalize = undefined;
+
   get axesSize(): Map<'z' | 'composite', number> {
     return new Map()
       .set('composite', this.axes.composite.values.length)

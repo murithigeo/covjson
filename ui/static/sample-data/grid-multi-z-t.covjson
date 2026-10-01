@@ -87,6 +87,16 @@
 		]
 	},
 	"parameters": {
+		"stringBs": {
+			"type": "Parameter",
+			"description": {
+				"en": "A string Param"
+			},
+			"observedProperty": {
+				"id": "nun",
+				"label": {}
+			}
+		},
 		"temperature": {
 			"type": "Parameter",
 			"description": {
@@ -201,6 +211,48 @@
 				73.6,
 				29.4,
 				61.7
+			]
+		},
+		"stringBs": {
+			"type": "NdArray",
+			"axisNames": [
+				"t",
+				"z",
+				"y",
+				"x"
+			],
+			"dataType": "string",
+			"shape": [
+				2,
+				2,
+				2,
+				3
+			],
+			"values": [
+				"one",
+				"two",
+				"three",
+				"four",
+				"five",
+				"six",
+				"seven",
+				"eight",
+				"nine",
+				"ten",
+				"eleven",
+				"twelve",
+				"thirteen",
+				"fourteen",
+				"fifteen",
+				"sixteen",
+				"seventeen",
+				"eighteen",
+				"ninteen",
+				"twenty",
+				"twenty-one",
+				"twenty-two",
+				"twenty-three",
+				"twenty-four"
 			]
 		}
 	}
