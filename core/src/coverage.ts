@@ -12,7 +12,7 @@ import { Base, type ReferenceArgument } from './base.ts';
 import { Parameter, ParameterGroup } from './parameters.ts';
 import { BaseDomain, CustomDate, getDomain, type GridType } from './domain/index.ts';
 import { load } from './load.ts';
-import type { InferDomainClass, WithoutRegularlySpacedAxis } from './domain/types.d.ts';
+import type { InferDomainClass } from './domain/types.d.ts';
 import { Referencing } from './referencing.ts';
 import { NdArray, type NdArrayOptions } from './ranges.ts';
 import { nanoid } from 'nanoid';
@@ -134,18 +134,16 @@ export class Coverage<
   /**
    * Assumes that the domain contained has implemented the method
    */
-  denormalize(): Omit<this, 'domain'> & {
-    domain: WithoutRegularlySpacedAxis<ID>;
-  } {
-    this.domain.denormalize?.();
-    //@ts-expect-error some bs
-    return this;
-  }
+  // denormalize(){
 
-  normalize(): this {
-    this.domain.normalize?.();
-    return this;
-  }
+  //   this.domain
+  //   return this;
+  // }
+
+  // normalize(): this {
+  //   this.domain.normalize?.();
+  //   return this;
+  // }
 
   get feature(): Feature<
     ID['geometry'],
@@ -231,8 +229,15 @@ export class Coverage<
     return { ...row, ...Object.fromEntries(ref) };
   }
 
+  /**
+   * Sorted in row-major order
+   */
   get axesSize(): Map<string, number> {
-    return this.domain.axesSize;
+    const sorted = this.domain.axesSize
+      .entries()
+      .toArray()
+      .sort(([, a], [, b]) => b - a);
+    return new Map(sorted);
   }
 
   /**

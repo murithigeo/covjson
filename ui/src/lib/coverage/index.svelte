@@ -20,21 +20,18 @@
 		Spline,
 		defaultChartPadding,
 		type ChartState,
-		downloadImage,
-		type LineChartProps,
-		Tooltip
+		downloadImage
 	} from 'layerchart';
 	import dimensions, { type Axis } from './dimensions.ts';
 	import { getDashCtx } from '$lib/dashboards/utils/ctx.svelte.js';
 	import { Label } from '$lib/components/ui/label/index.js';
 	import { Badge } from '$lib/components/ui/badge/index.js';
 	import { ReactiveParameter } from '$lib/dashboards/utils/parameter.svelte.js';
-	import EmptyChart from '$lib/empty/chart.svelte';
 	import * as Card from '$lib/components/ui/card/index.js';
 	import * as Tabs from '$lib/components/ui/tabs/index.js';
 	import * as Table from '$lib/components/ui/table/index.js';
 	import { scaleOrdinal } from 'd3-scale';
-	import type { Position } from 'coveragejson';
+	import { SvelteMap } from 'svelte/reactivity';
 </script>
 
 <script lang="ts">
@@ -49,7 +46,11 @@
 
 	let { coverage = $bindable(), onIndicesChange = $bindable() }: Props = $props();
 	const ctx = getDashCtx();
-
+	/**
+	 * View data as chart. By default, if parameter is string/float, then it will be first rendered as a chart
+	 * Else It will be a table
+	 */
+	let viewAsChart = new SvelteMap<string, boolean>();
 	for (const [key, range] of coverage.ranges) {
 		if (!ctx.parameters.has(key) && coverage.parameters.has(key)) {
 			ctx.setParameter(key, coverage.parameters.get(key)!);
@@ -66,8 +67,16 @@
 		};
 		coverage.ranges.set(key, range);
 	}
-	let domain = $derived(coverage.domain.clone()?.denormalize());
+
+	const setParameterViewMode = (parameter: ReactiveParameter, checked: boolean) => {
+		const { key } = parameter;
+		if (parameter.dataType === 'string') return viewAsChart.set(key, false);
+		viewAsChart.set(key, checked);
+	};
+	let domain = coverage.domain.clone()?.denormalize();
+
 	const ds = dimensions(domain);
+
 	let x = $state(ds.x);
 	let fx = $state<(typeof ds)['fx']>();
 	let fy = $state<Axis>();
@@ -83,20 +92,14 @@
 	);
 
 	let rows = $state<Record<string, DataRow[]>>({});
-	/**
-	 * View data as chart. By default, if parameter is string/float, then it will be first rendered as a chart
-	 * Else It will be a table
-	 */
-	let viewAsChart = $state<Record<string, boolean>>({});
+	const axesSize = coverage.axesSize as Map<Axis, number>;
 	function promiseToData(data: DataRow[]): void {
 		for (const [key, parameter] of parameters) {
 			rows[key] = data.map((d) => {
 				const row = { ...d };
 				const value = row[key];
-				parameters.forEach(([k]) => {
-					if (key === k) return;
-					delete row[k];
-				});
+				parameters.forEach(([k]) => delete row[k]);
+				row.value = value;
 
 				if (parameter.isCategorical) {
 					row.category = parameter.getCategory(value as number)?.id || 'NULL';
@@ -106,6 +109,7 @@
 			});
 		}
 	}
+
 	let dataPromise = $derived.by(() => {
 		const preloadAxis = [...new Set([fx, fy, x, y1])].filter((v) => !isUndefined(v));
 		const rangeIds = parameters.map(([key]) => key);
@@ -126,7 +130,8 @@
 	$effect(() => {
 		dataPromise;
 	});
-	function onDownloadClick() {
+	type DownloadFormat = 'csv' | 'png';
+	function onDownloadClick(parameterkey: string, format: DownloadFormat) {
 		for (const [key] of parameters) {
 			const id = `${coverage.uuid}-${key}`;
 			const ref = document.getElementById(id);
@@ -136,32 +141,44 @@
 		}
 	}
 
-	const getAxes = (): [Axis, number][] => {
-		return [
-			[x, coverage.axesSize.get(x)!],
-			...coverage.axesSize
-				.entries()
-				.toArray()
-				.filter(([an]) => an !== x)
-				.map(([an, size]) => [an as Axis, size])
-		];
-	};
-
 	function resolveAxisIdx(axis: Axis, idx: number) {
-		let value:number|string|Position|Position[]|Position[][][];
-		if (axis === 'z' || axis === 't') value= coverage[axis][idx];
-		switch (domain.domainType) {
-			case 'Grid':
-			case 'VerticalProfile':
-			case 'Point':
-			case 'PointSeries':
-				if (axis === 'x' || axis === 'y') 
-					value coverage.domain.axes[axis].values[idx];
-				
-				break
-			case "Trajectory":
-		}
+		if (axis === 'z' || axis === 't') return coverage[axis][idx];
+		// @ts-expect-error domain is denormalized
+		if (axis in domain.axes) return domain.axes[axis]?.values[idx];
 	}
+
+	/**
+	 * AI-generated  by Google Gemini
+	 */
+	interface Cell {
+		/**
+		 * Current axis index
+		 */
+		index: number;
+		/**
+		 * The rowspan of the axis name index
+		 */
+		rowspan: number;
+		axisName: Axis;
+	}
+	/**
+	 * https://stackoverflow.com/a/31536517
+	 */
+	const rowsToCsv = (rows: DataRow[]) => {
+		const axisNames = [...axesSize.keys()];
+		const header = [...axisNames, 'value', 'category'];
+		return [
+			header.join(','),
+			...rows.map((row) =>
+				header.map((fieldName) => {
+					let value: unknown = row[fieldName];
+					//@ts-expect-error fieldName should Axis
+					if (axisNames.includes(fieldName)) value = resolveAxisIdx(fieldName, value);
+					return JSON.stringify(value, (k, v) => (isUndefined(v) || isNull(v) ? '' : value));
+				})
+			)
+		].join('\r\n');
+	};
 </script>
 
 <Card.Root>
@@ -213,8 +230,9 @@
 		</Card.Description>
 		<Card.Action>
 			<ButtonGroup.Root>
-				<Button size="icon-sm" variant="outline" onclick={onDownloadClick}
-					><HardDriveDownloadIcon /></Button
+				<Button size="icon-sm" variant="outline">
+					<!-- Download as CSV, add a new line between parameters -->
+					<HardDriveDownloadIcon /></Button
 				>
 				<Button
 					size="icon-sm"
@@ -245,7 +263,7 @@
 				<Tabs.Content value={key}>
 					<Card.Root>
 						<Card.Content>
-							{#if parameter.dataType !== 'string'}
+							{#if viewAsChart.get(key)}
 								{@const catic = parameter.isCategorical}
 								<Chart.Container config={ctx.chartConfig}>
 									<LineChart
@@ -253,7 +271,7 @@
 										{data}
 										series={[
 											{
-												key,
+												key: 'value',
 												label: parameter.simpleLabel,
 												color: catic ? undefined : parameter.color
 											}
@@ -382,13 +400,12 @@
 							>
 							<div class="flex items-center space-x-2">
 								<Switch
-									checked={viewAsChart[key] === true}
 									disabled={parameter.dataType === 'string'}
-									onCheckedChange={(checked) => {
-										viewAsChart[key] = !viewAsChart[key];
-									}}
+									onCheckedChange={(checked) => setParameterViewMode(parameter, checked)}
 								/><Label>Chart</Label>
 							</div>
+							<!-- Download buttons -->
+							<ButtonGroup.Root></ButtonGroup.Root>
 						</Card.Footer>
 					</Card.Root>
 				</Tabs.Content>
@@ -398,26 +415,110 @@
 </Card.Root>
 
 {#snippet table({ data, parameter }: { data: DataRow[]; parameter: ReactiveParameter })}
-	{@const axes = getAxes()}
 	<Table.Root class="table-auto">
-		<Table.Caption>Data for {parameter.key}</Table.Caption>
+		<Table.Caption>Tabulated {parameter.key} data</Table.Caption>
+
 		<Table.Header>
 			<Table.Row>
-				{#each axes as [axisName], i}
-					<Table.Head>{axisName}</Table.Head>
+				{#each coverage.axesSize as [axisName]}
+					<Table.Head class="border">{axisName}</Table.Head>
 				{/each}
-				<Table.Head>value</Table.Head>
+				<Table.Head class="border">value</Table.Head>
 				{#if parameter.isCategorical}
-					<Table.Head>category</Table.Head>
+					<Table.Head class="border">category</Table.Head>
 				{/if}
 			</Table.Row>
 		</Table.Header>
+
 		<Table.Body>
-			{#each data as row, idx (idx)}
+			<!-- 
+          Recursive snippet that drills down through coverage.axesSize 
+          depth: Current axis index
+          currentRows: The filtered subset of data up to this point
+          inheritedCells: Parent grouping cells waiting to be rendered on the first row
+        -->
+
+			{@render renderAxis({
+				depth: 0,
+				currentRows: data,
+				inheritedCells: [],
+				isCategorical: parameter.isCategorical
+			})}
+		</Table.Body>
+		<Table.Footer>
+			{#if data.length}
 				<Table.Row>
-					{#each axes as [an], i}{/each}
+					{#each coverage.axesSize as [axisName] (axisName)}
+						<Table.Head class="border">{axisName}</Table.Head>
+					{/each}
+					<Table.Head class="border">value</Table.Head>
+					{#if parameter.isCategorical}
+						<Table.Head class="border">category</Table.Head>
+					{/if}
+				</Table.Row>
+			{/if}
+		</Table.Footer>
+	</Table.Root>
+{/snippet}
+
+{#snippet renderAxis({
+	depth,
+	currentRows,
+	inheritedCells,
+	isCategorical
+}: {
+	isCategorical?: boolean;
+	depth: number;
+	currentRows: DataRow[];
+	inheritedCells: Cell[];
+})}
+	{@const [axisName, max] = axesSize.entries().toArray()[depth]}
+	{@const isLastAxis = depth === coverage.axesSize.size - 1}
+
+	<!-- Only iterate over indices ('ani') that actually exist in the remaining data -->
+	{@const validIndices = [...Array(max).keys()].filter((ani) =>
+		currentRows.some((r) => r[axisName] === ani)
+	)}
+
+	{#each validIndices as ani, index}
+		<!-- Filter data for this specific axis value -->
+		{@const matchedRows = currentRows.filter((r) => r[axisName] === ani)}
+
+		<!-- Create the cell for the current level -->
+		{@const currentCell:Cell = { axisName, index: ani, rowspan: matchedRows.length }}
+
+		<!-- CRITICAL: Only pass the inherited rowspans down to the VERY FIRST child group (index === 0).
+		 	Subsequent groups in this loop just render their own cell. -->
+		{@const cellsToRender = index === 0 ? [...inheritedCells, currentCell] : [currentCell]}
+
+		{#if isLastAxis}
+			<!-- We hit the innermost axis. Now we actually render the Table.Rows -->
+			{#each matchedRows as row, rowIndex}
+				<Table.Row>
+					<!-- Render the accumulated rowspans ONLY on the first row of this deepest group -->
+					{#if rowIndex === 0}
+						{#each cellsToRender as cell}
+							<Table.Cell rowspan={cell.rowspan} class="border align-middle">
+								{resolveAxisIdx(cell.axisName, cell.index)}
+							</Table.Cell>
+						{/each}
+					{/if}
+
+					<!-- Render the leaf row values -->
+					<Table.Cell class="border">{row.value}</Table.Cell>
+					{#if isCategorical}
+						<Table.Cell class="border">{row.category}</Table.Cell>
+					{/if}
 				</Table.Row>
 			{/each}
-		</Table.Body>
-	</Table.Root>
+		{:else}
+			<!-- Not the last axis yet. Recurse deeper! -->
+			{@render renderAxis({
+				depth: depth + 1,
+				currentRows: matchedRows,
+				inheritedCells: cellsToRender,
+				isCategorical
+			})}
+		{/if}
+	{/each}
 {/snippet}

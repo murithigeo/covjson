@@ -18,12 +18,9 @@ export type * from './types.d.ts';
 
 export function getDomain<D extends Domain = Domain>(
   domain: D,
-  options?: Pick<CoverageOptions, 'gridType'>
+  options?: Options
 ): InferDomainClass<D>;
-export function getDomain<D extends Domain = Domain>(
-  domain: D,
-  options?: Pick<CoverageOptions, 'gridType'>
-) {
+export function getDomain<D extends Domain = Domain>(domain: D, options?: Options) {
   domain.domainType = domain.domainType || inferDomainType(domain);
   switch (domain.domainType) {
     case 'Grid':
@@ -54,3 +51,5 @@ export function getDomain<D extends Domain = Domain>(
       throw Error(`Does not custom domain:${domain}`);
   }
 }
+
+type Options = Pick<CoverageOptions, 'gridType'>;

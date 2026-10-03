@@ -18,7 +18,6 @@ import type {
   Section as Sect,
   Trajectory as Traj,
   Grid as Gd,
-  RegularlySpacedAxis,
   VerticalProfile as VertProfile
 } from 'coveragejson';
 
@@ -44,19 +43,8 @@ export type InferDomainClass<D extends Domain = Domain> = D extends Gd
                     ? MultiPolygonSeries
                     : D extends Sect
                       ? Section
-                      : D extends VertProfile
-                        ? VerticalProfile
-                        : BaseDomain;
+                      : VerticalProfile;
 
 export type MakeDomainTypeRequired<D extends Domain> = D & {
   domainType: NonNullable<D['domainType']>;
-};
-
-export type WithoutRegularlySpacedAxis<
-  D extends Domain,
-  I extends InferDomainClass<D> = InferDomainClass<D>
-> = Omit<I, 'axes'> & {
-  axes: {
-    [axisName in keyof I['axes']]: Exclude<I['axes'][axisName], RegularlySpacedAxis>;
-  };
 };

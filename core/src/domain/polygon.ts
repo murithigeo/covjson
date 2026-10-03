@@ -4,7 +4,9 @@ import type {
   PolygonSeries as PolySeriesD,
   MultiPolygon as MP,
   MultiPolygonSeries as MPs,
-  Position
+  Position,
+  LinearRing,
+  WithBounds
 } from 'coveragejson';
 import type { Referencing } from '../referencing.ts';
 import inside from 'point-in-polygon-hao';
@@ -15,6 +17,7 @@ abstract class Base<T extends PolygonDomain | PolySeriesD | MP | MPs> extends Ba
   constructor(domain: T) {
     super(domain);
   }
+
   get axesSize(): Map<keyof T['axes'], number> {
     return new Map()
       .set('composite', this.axes.composite.values.length)
@@ -69,9 +72,13 @@ abstract class Base<T extends PolygonDomain | PolySeriesD | MP | MPs> extends Ba
 }
 
 export class Polygon extends Base<PolygonDomain> {
+  denormalize(): this {
+    return this;
+  }
   calculateAxesBounds(): this {
     return this;
   }
+
   get geometry(): PolygonGeometry {
     return {
       type: 'Polygon',
@@ -84,6 +91,9 @@ export class Polygon extends Base<PolygonDomain> {
 }
 
 export class PolygonSeries extends Base<PolySeriesD> {
+  denormalize(): this {
+    return this;
+  }
   calculateAxesBounds(): this {
     if (this.axes.z) {
       this.axes.z.bounds = calcNumAxisBounds(this.axes.z.values) as [number, number];
@@ -102,6 +112,9 @@ export class PolygonSeries extends Base<PolySeriesD> {
 }
 
 export class MultiPolygon extends Base<MP> {
+  denormalize(): this {
+    return this;
+  }
   constructor(domain: MP) {
     super(domain);
   }
@@ -115,6 +128,9 @@ export class MultiPolygon extends Base<MP> {
 }
 
 export class MultiPolygonSeries extends Base<MPs> {
+  denormalize(): this {
+    return this;
+  }
   constructor(domain: MPs) {
     super(domain);
   }

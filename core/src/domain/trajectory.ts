@@ -1,5 +1,11 @@
 import { BaseDomain } from './base-domain.ts';
-import type { Trajectory as TrajDomain, Position } from 'coveragejson';
+import type {
+  Trajectory as TrajDomain,
+  Position,
+  Position2D,
+  Position3D,
+  WithBounds
+} from 'coveragejson';
 import type { Referencing } from '../referencing.ts';
 import type { LineString } from 'geojson';
 import { CustomDate, isUndefined } from './utils.ts';
@@ -10,6 +16,9 @@ import nearestPointOnLine from '@turf/nearest-point-on-line';
  * Rework since we need to display both a line and points. Rename to trajectory since it only applies to it
  */
 export class Trajectory extends BaseDomain<TrajDomain> {
+  denormalize(): this {
+    return this;
+  }
   constructor(domain: TrajDomain) {
     super(domain);
   }
@@ -34,6 +43,7 @@ export class Trajectory extends BaseDomain<TrajDomain> {
         properties: { segmentIndex: composite }
       } = nearestPointOnLine(this.geometry, ref));
     }
+    indices.set('composite', composite);
     return indices;
   }
   get z(): number[] {

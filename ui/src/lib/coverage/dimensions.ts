@@ -1,6 +1,8 @@
 import type { WithRequiredProperty, InferDomainClass } from '@murithigeo/covjson-core';
 
-export default function (domain: InferDomainClass): AxisConfig {
+export default function (
+	domain: ReturnType<InferDomainClass['denormalize']> | InferDomainClass
+): AxisConfig {
 	const conf: AxisConfig = { x: 't' };
 	switch (domain.domainType) {
 		case 'Grid':

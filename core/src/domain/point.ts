@@ -4,26 +4,25 @@ import type {
   PointSeries as PSeriesD,
   Position2D,
   Position,
-  VerticalProfile as VertProfDomain
+  VerticalProfile as VertProfDomain,
+  WithBounds
 } from 'coveragejson';
 import type { Referencing } from '../referencing.ts';
 import { BaseDomain } from './base-domain.ts';
 import {
   calcNumAxisBounds,
   calcStrAxisBounds,
-  CustomDate,
   denormalizeNumAxis,
   isUndefined,
   normalizeNumAxis,
   numAxisIsNormalized
 } from './utils.ts';
-import type { WithoutRegularlySpacedAxis } from './types.d.ts';
-import { indexOfNearest } from '../utils.ts';
 
-abstract class Base<T extends PointD | PSeriesD | VertProfDomain> extends BaseDomain<T> {
-  constructor(domain: T) {
+abstract class Base<D extends PointD | PSeriesD | VertProfDomain> extends BaseDomain<D> {
+  constructor(domain: D) {
     super(domain);
   }
+
   _reproject(referencing: Referencing): this {
     super._reproject(referencing);
     [this.axes.x.values[0], this.axes.y.values[0]] = referencing.crs([
@@ -54,19 +53,22 @@ abstract class Base<T extends PointD | PSeriesD | VertProfDomain> extends BaseDo
     if (this.axes.t) this.axes.t.bounds = calcStrAxisBounds(this.axes.t.values, timeZone);
     return this;
   }
-  queryIndices(ref: Position | string | number): Map<keyof T['axes'], number> {
+  queryIndices(ref: Position | string | number): Map<keyof D['axes'], number> {
     const indices = new Map().set('x', 0).set('y', 0).set('z', 0).set('t', 0);
     let zRef = typeof ref === 'number' ? ref : Array.isArray(ref) ? ref[2] : undefined;
     if (!isUndefined(zRef)) indices.set('z', this.zIndex(zRef));
     if (typeof ref === 'string') indices.set('t', this.tIndex(ref));
     return indices;
   }
-  get axesSize(): Map<keyof T['axes'], number> {
+  get axesSize(): Map<keyof D['axes'], number> {
     return new Map().set('x', 0).set('y', 0).set('t', this.t.length).set('z', this.z.length);
   }
 }
 
 export class Point extends Base<PointD> {
+  denormalize(): this {
+    return this;
+  }
   constructor(domain: PointD) {
     super(domain);
   }
@@ -80,6 +82,9 @@ export class Point extends Base<PointD> {
 }
 
 export class PointSeries extends Base<PSeriesD> {
+  denormalize(): this {
+    return this;
+  }
   get geometry(): PointGeometry {
     return {
       type: 'Point',
@@ -108,9 +113,6 @@ export class VerticalProfile extends Base<VertProfDomain> {
       coordinates: [this.axes.x.values[0], this.axes.y.values[0]]
     };
   }
-  get z(): number[] {
-    return denormalizeNumAxis(this.axes.z).values;
-  }
 
   _reproject(referencing: Referencing): this {
     super._reproject(referencing);
@@ -130,15 +132,22 @@ export class VerticalProfile extends Base<VertProfDomain> {
     return this;
   }
 
-  denormalize(): WithoutRegularlySpacedAxis<this> {
-    this.axes.z = denormalizeNumAxis(this.axes.z);
-    //@ts-expect-error WithoutRegularlySpacedAxis is not correctly extended
-    return this;
+  denormalize(): Omit<this, 'axes'> & {
+    axes: {
+      x: { values: [number] } & WithBounds<[number, number]>;
+      y: { values: [number] } & WithBounds<[number, number]>;
+      z: { values: number[] } & WithBounds<number[]>;
+      t?: ({ values: [string] } & WithBounds<[string, string]>) | undefined;
+    };
+  } {
+    {
+      this.axes.z = denormalizeNumAxis(this.axes.z);
+      return this;
+    }
   }
 
   normalize() {
     this.axes.z = normalizeNumAxis(this.axes.z);
     return this;
   }
-  // todo split into point/multipoint
 }

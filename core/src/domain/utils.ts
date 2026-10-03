@@ -43,7 +43,14 @@ export function inferDomainType(domain: Domain): NonNullable<DomainTypes> {
   return 'MultiPoint';
 }
 
-export function denormalizeNumAxis(axis: RegularlySpacedAxis | { values: number[] }) {
+/**
+ * @param [bounds=false] Whether to calculate bounds. Enabled by default for select domains
+ * @todo implement bounds calc
+ */
+export function denormalizeNumAxis(
+  axis: RegularlySpacedAxis | { values: number[] },
+  bounds = false
+) {
   if ('values' in axis) return axis;
   return regularNumToValuesAxis(axis);
 }

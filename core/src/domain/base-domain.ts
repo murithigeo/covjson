@@ -6,17 +6,16 @@ import type {
   PointSeries,
   Polygon,
   PolygonSeries,
-  Section,
   VerticalProfile,
   Trajectory,
   ReferenceSystemConnection,
-  Position
+  Position,
+  RegularlySpacedAxis,
+  Section
 } from 'coveragejson';
 import { Base } from '../base.ts';
 import type { Referencing } from '../referencing.ts';
-import type { WithoutRegularlySpacedAxis } from './types.d.ts';
 import { indexOfNearest } from '../utils.ts';
-import type { CustomDate } from './utils.ts';
 
 export abstract class BaseDomain<D extends Domain = Domain> extends Base<D> {
   type: D['type'];
@@ -66,18 +65,14 @@ export abstract class BaseDomain<D extends Domain = Domain> extends Base<D> {
   }
   /**
    * If applicable, converts any "primitive" axis to @see {RegularlySpacedAxis}
-   * Returns a new copy of the class
    */
   normalize(): this {
     return this;
   }
-  /**
-   * If applicable,converts any @see {RegularlySpacedAxis} to a primitive axis
-   * Returns a new copy of the class
-   */
-  denormalize(): WithoutRegularlySpacedAxis<D, BaseDomain<D>> {
-    return this;
-  }
+
+  abstract denormalize(): Omit<this, 'axes'> & {
+    axes: { [axisName in keyof D['axes']]: Exclude<D['axes'][axisName], RegularlySpacedAxis> };
+  };
   /**
    * Get the geojson representation of the domain's "horizontal" values
    */
@@ -112,5 +107,4 @@ export abstract class BaseDomain<D extends Domain = Domain> extends Base<D> {
    * We can have a method that returns boolean for boolean intersects
    * Another for determining which composite values intersect ie. for polygons,multipoints which are computationally expensive
    */
-  // intersects()
 }

@@ -3,7 +3,9 @@ import type {
   MultiPointSeries as MpsD,
   MultiPoint as MpD,
   Position,
-  Section as SectionDomain
+  Section as SectionDomain,
+  Position2D,
+  WithBounds
 } from 'coveragejson';
 import { Referencing } from '../referencing.ts';
 import type { MultiPoint as MultiPointGeometry } from 'geojson';
@@ -12,11 +14,9 @@ import {
   calc2dTupleAxisBounds,
   calcNumAxisBounds,
   isUndefined,
-  denormalizeNumAxis,
-  CustomDate
+  denormalizeNumAxis
 } from './utils.ts';
 import nearestPointOnLine from '@turf/nearest-point-on-line';
-import type { WithoutRegularlySpacedAxis } from './types.d.ts';
 
 abstract class Base<T extends MpD | MpsD> extends BaseDomain<T> {
   constructor(domain: T) {
@@ -87,6 +87,9 @@ abstract class Base<T extends MpD | MpsD> extends BaseDomain<T> {
 }
 
 export class MultiPoint extends Base<MpD> {
+  denormalize(): this {
+    return this;
+  }
   get geometry(): MultiPointGeometry {
     return {
       type: 'MultiPoint',
@@ -96,6 +99,9 @@ export class MultiPoint extends Base<MpD> {
 }
 
 export class MultiPointSeries extends Base<MpsD> {
+  denormalize(): this {
+    return this;
+  }
   get geometry(): MultiPointGeometry {
     return {
       type: 'MultiPoint',
@@ -117,7 +123,17 @@ export class Section extends BaseDomain<SectionDomain> {
     throw new Error('Method not implemented.');
   }
 
-  override denormalize(): WithoutRegularlySpacedAxis<Section> {
+  denormalize(): Omit<this, 'axes'> & {
+    axes: {
+      composite: {
+        dataType: 'tuple';
+        coordinates: ['t', 'x', 'y'];
+        values: [string, ...Position2D][];
+        bounds?: [string, ...Position2D][];
+      };
+      z: { values: number[] } & WithBounds<number[]>;
+    };
+  } {
     this.axes.z = denormalizeNumAxis(this.axes.z);
     return this;
   }

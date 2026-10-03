@@ -1,5 +1,5 @@
 import type { BBox, Feature, MultiPolygon, Polygon } from 'geojson';
-import type { Grid as GridDomain, Position } from 'coveragejson';
+import type { Grid as GridDomain, Position, RegularlySpacedAxis, WithBounds } from 'coveragejson';
 import type { Referencing } from '../referencing.ts';
 import { BaseDomain } from './base-domain.ts';
 import combine from '@turf/combine';
@@ -13,7 +13,6 @@ import {
   CustomDate
 } from './utils.ts';
 import bboxPolygon from '@turf/bbox-polygon';
-import type { WithoutRegularlySpacedAxis } from './types.d.ts';
 import { indexOfNearest } from '../utils.ts';
 
 /**
@@ -102,11 +101,17 @@ export class Grid extends BaseDomain<GridDomain> {
     this.#normalize('z');
     return this;
   }
-  denormalize(): WithoutRegularlySpacedAxis<this> {
+  denormalize(): Omit<this, 'axes'> & {
+    axes: {
+      x: { values: number[] } & WithBounds<number[]>;
+      y: { values: number[] } & WithBounds<number[]>;
+      z?: ({ values: number[] } & WithBounds<number[]>) | undefined;
+      t?: ({ values: string[] } & WithBounds<string[]>) | undefined;
+    };
+  } {
     this.axes.x = denormalizeNumAxis(this.axes.x);
     this.axes.y = denormalizeNumAxis(this.axes.y);
     if (this.axes.z) this.axes.z = denormalizeNumAxis(this.axes.z);
-    //@ts-expect-error WithoutRegularlySpacedAxis is not correctly extended
     return this;
   }
   get geometry(): MultiPolygon {
@@ -174,14 +179,4 @@ export class Grid extends BaseDomain<GridDomain> {
     if ('z' in this.axes) counts.set('z', this.z.length);
     return counts;
   }
-  // bottomLeft() {
-  //   //We already have xmin,ymin
-  //   let bboxes: BBox[] = [];
-  //   for (let i = 0; i < this.x.length; i++) {
-  //     for (let j = 0; j < this.y.length; j++) {
-  //       //xmax=i+1,ymax=j+1 (Only need the bounds for last elements)
-  //     }
-  //   }
-  // }
-  bottomRight() {}
 }
