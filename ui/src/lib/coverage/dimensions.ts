@@ -38,7 +38,7 @@ export default function (
 	return conf;
 }
 
-interface AxisConfig {
+export interface AxisConfig {
 	x: Axis;
 	y1?: Extract<Axis, 'z' | 't'>;
 	fx?: Extract<Axis, 'composite' | 'x' | 'y'>;

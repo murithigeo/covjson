@@ -25,6 +25,8 @@ export class ReactiveParameter extends Parameter implements Statistics {
 	mean = $state<number | null>(null);
 	tAvgs = $state(new SvelteMap<MultiDate, number | null>());
 	zAvgs = $state(new SvelteMap<number, number | null>());
+	isString = $derived(this.dataType === 'string');
+
 	constructor(param: Parameter) {
 		super(param.toPlain(), param.key);
 		this.observedProperty.categories?.forEach((cat) => {
