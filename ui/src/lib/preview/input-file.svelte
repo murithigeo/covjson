@@ -11,7 +11,7 @@
 	let invalid = $state(false);
 </script>
 
-<Field.Field data-invalid={invalid} orientation="vertical">
+<Field.Field data-invalid={invalid}>
 	<Input
 		type="file"
 		accept="application/json, application/prs.coverage+json, .json, .covjson, application/vnd.cov+json"
