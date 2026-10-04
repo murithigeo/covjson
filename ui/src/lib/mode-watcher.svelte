@@ -1,21 +1,15 @@
 <script lang="ts">
-	import { ModeWatcher } from 'mode-watcher';
-	import MoonIcon from '@lucide/svelte/icons/moon';
-	import SunIcon from '@lucide/svelte/icons/sun';
-	import { toggleMode } from 'mode-watcher';
-	import { Button, type ButtonProps } from '$lib/components/ui/button/index.js';
+	import { ModeWatcher, setMode, systemPrefersMode } from 'mode-watcher';
+	import * as ButtonGroup from '#lib/components/ui/button-group/index.js';
+	import { Button, type ButtonProps } from '#lib/components/ui/button/index.js';
 
-	interface Props extends ButtonProps {}
-	let { variant = 'outline', size = 'icon-sm', ...props }: Props = $props();
+	let { variant = 'outline', size = 'sm', ...props }: ButtonProps = $props();
 </script>
 
 <ModeWatcher />
-<Button onclick={toggleMode} {variant} {size} {...props}>
-	<SunIcon
-		class="h-[1.2rem] w-[1.2rem] scale-100 rotate-0 transition-all! dark:scale-0 dark:-rotate-90"
-	/>
-	<MoonIcon
-		class="absolute h-[1.2rem] w-[1.2rem] scale-0 rotate-90 transition-all! dark:scale-100 dark:rotate-0"
-	/>
-	<span class="sr-only">Toggle theme</span>
-</Button>
+
+<ButtonGroup.Root>
+	<Button {variant} {size} {...props} onclick={() => setMode('light')}>Light</Button>
+	<Button {variant} {size} {...props} onclick={() => setMode('dark')}>Dark</Button>
+	<Button {variant} {size} {...props} onclick={() => setMode('system')}>System</Button>
+</ButtonGroup.Root>

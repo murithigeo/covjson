@@ -1,13 +1,13 @@
 <script lang="ts">
-	import * as Table from '$lib/components/ui/table/index.js';
-	import * as Collapsible from '$lib/components/ui/collapsible/index.js';
-	import * as Item from '$lib/components/ui/item/index.js';
-	import { buttonVariants } from '$lib/components/ui/button/index.js';
-	import { getDashCtx } from '$lib/dashboards/utils/ctx.svelte.js';
-	import * as Card from '$lib/components/ui/card/index.js';
+	import * as Table from '#lib/components/ui/table/index.js';
+	import * as Collapsible from '#lib/components/ui/collapsible/index.js';
+	import * as Item from '#lib/components/ui/item/index.js';
+	import { buttonVariants } from '#lib/components/ui/button/index.js';
+	import { getDashCtx } from '#lib/dashboards/utils/ctx.svelte.js';
+	import * as Card from '#lib/components/ui/card/index.js';
 	import type { MetadataRenderProps } from './types.d.ts';
-	import { ReactiveParameter } from '$lib/dashboards/utils/parameter.svelte.js';
-	import { cn } from '$lib/utils.js';
+	import { ReactiveParameter } from '#lib/dashboards/utils/parameter.svelte.js';
+	import { cn } from '#lib/utils.js';
 	import ColorPicker from './parameter/color-picker.svelte';
 	import { ChevronsUpDownIcon, ChartColumnStacked } from '@lucide/svelte';
 
@@ -47,60 +47,41 @@
 					<Table.Body>
 						{#if categories}
 							{#each categories as [, { id, label, description, color: hex, size }] (id)}
-								{#if ctx.detail === 'full'}
-									{@const rowspan = label.size + description.size}
-									{#each label as [lang, value], i (lang)}
-										<Table.Row>
-											{#if i === 0}
-												<Table.Cell {rowspan} class={cn(cellStyle, 'rounded-full')}
-													><ColorPicker
-														{hex}
-														onInput={({ hex }) => ctx.setParameterColor(parameterKey, hex, id)}
-														label=""
-													/></Table.Cell
-												>
-												<Table.Cell {rowspan} class={cn(cellStyle, '')}>{id}</Table.Cell>
-												<Table.Cell {rowspan} class={cn(cellStyle)}>{size || 0}</Table.Cell>
-												<Table.Cell rowspan={label.size} class={cn(cellStyle, 'whitespace-nowrap')}
-													>Label</Table.Cell
-												>
-											{/if}
-											<Table.Cell class={cn(cellStyle, '')}>{label.getTagName(lang)}</Table.Cell>
-											<Table.Cell class={cn(cellStyle, '')} {lang}>{value}</Table.Cell>
-										</Table.Row>
-									{/each}
-
-									{#each description as [lang, value], i (lang)}
-										<Table.Row>
-											{#if i === 0}
-												<Table.Cell
-													rowspan={description.size}
-													class={cn(cellStyle, 'whitespace-normal')}>Description</Table.Cell
-												>
-											{/if}
-											<Table.Cell class={cn(cellStyle, '')}
-												>{description.getTagName(lang)}</Table.Cell
+								{@const rowspan = label.size + description.size}
+								{#each label as [lang, value], i (lang)}
+									<Table.Row>
+										{#if i === 0}
+											<Table.Cell {rowspan} class={cn(cellStyle, 'rounded-full')}
+												><ColorPicker
+													{hex}
+													onInput={({ hex }) => ctx.setParameterColor(parameterKey, hex, id)}
+													label=""
+												/></Table.Cell
 											>
-											<Table.Cell class={cn(cellStyle, '')} {lang}>{value}</Table.Cell>
-										</Table.Row>
-									{/each}
-								{:else}
-									{@const label_value = label.query()}
-									{@const desc_value = description.query()}
-									<Table.Row>
-										<Table.Cell rowspan={2}>
-											{id}
-										</Table.Cell>
-										<Table.Cell class={cn(cellStyle)}>Label</Table.Cell>
-										<Table.Cell>{label.getTagName(label_value?.tag || 'en')}</Table.Cell>
-										<Table.Cell lang={label_value?.tag}>{label_value?.value || '--'}</Table.Cell>
+											<Table.Cell {rowspan} class={cn(cellStyle, '')}>{id}</Table.Cell>
+											<Table.Cell {rowspan} class={cn(cellStyle)}>{size || 0}</Table.Cell>
+											<Table.Cell rowspan={label.size} class={cn(cellStyle, 'whitespace-nowrap')}
+												>Label</Table.Cell
+											>
+										{/if}
+										<Table.Cell class={cn(cellStyle, '')}>{label.getTagName(lang)}</Table.Cell>
+										<Table.Cell class={cn(cellStyle, '')} {lang}>{value}</Table.Cell>
 									</Table.Row>
+								{/each}
+
+								{#each description as [lang, value], i (lang)}
 									<Table.Row>
-										<Table.Cell>Description</Table.Cell>
-										<Table.Cell>{description.getTagName(label_value?.tag || 'en')}</Table.Cell>
-										<Table.Cell lang={desc_value?.tag}>{desc_value?.value || '--'}</Table.Cell>
+										{#if i === 0}
+											<Table.Cell
+												rowspan={description.size}
+												class={cn(cellStyle, 'whitespace-normal')}>Description</Table.Cell
+											>
+										{/if}
+										<Table.Cell class={cn(cellStyle, '')}>{description.getTagName(lang)}</Table.Cell
+										>
+										<Table.Cell class={cn(cellStyle, '')} {lang}>{value}</Table.Cell>
 									</Table.Row>
-								{/if}
+								{/each}
 							{/each}
 						{/if}
 					</Table.Body>

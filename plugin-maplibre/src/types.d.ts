@@ -4,13 +4,16 @@ import type {
 	CoverageCollection as CovCollection
 } from 'coveragejson';
 import { Coverage, CoverageCollection, getDomain } from '@murithigeo/covjson-core';
-import type maplibregl from 'maplibre-gl';
+import {
+	GeoJSONSource,
+	type FillLayerSpecification,
+	type LineLayerSpecification,
+	type MapLayerEventType,
+	type SymbolLayerSpecification
+} from 'maplibre-gl';
 
 type Domain = Awaited<ReturnType<typeof getDomain>>;
-type GeoJSONSourceOptions = Omit<
-	ConstructorParameters<typeof maplibregl.GeoJSONSource>[1],
-	'data' | 'type'
->;
+type GeoJSONSourceOptions = Omit<ConstructorParameters<typeof GeoJSONSource>[1], 'data' | 'type'>;
 
 interface BasicPluginOptions {
 	data: string | Coverage | CovCollection | CovDomain | CoverageCollection | Domain | CovCoverage;
@@ -27,7 +30,7 @@ interface BasicPluginOptions {
 	/**
 	 * Events to listen to automatically and determine matching features
 	 */
-	listenTo?: Array<keyof maplibregl.MapLayerEventType>;
+	listenTo?: Array<keyof MapLayerEventType>;
 	/**
 	 * Whether to reproject from the CoverageJSON's native CRS to OGC:CRS84
 	 * If you know that data is OGC:CRS84, then pass false
@@ -37,9 +40,9 @@ interface BasicPluginOptions {
 	 * The paint properties of the temporary layer that highlights the clicked domain values
 	 */
 	tempLayerPaint?: {
-		symbol?: maplibregl.SymbolLayerSpecification['paint'];
-		line?: maplibregl.LineLayerSpecification['paint'];
-		fill?: maplibregl.FillLayerSpecification['paint'];
+		symbol?: SymbolLayerSpecification['paint'];
+		line?: LineLayerSpecification['paint'];
+		fill?: FillLayerSpecification['paint'];
 	};
 }
 export type PluginOptions = BasicPluginOptions & GeoJSONSourceOptions;

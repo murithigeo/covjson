@@ -1,4 +1,10 @@
-import maplibregl from 'maplibre-gl';
+import {
+	type Dispatcher,
+	type Evented,
+	Map as MapInstance,
+	GeoJSONSource,
+	type MapGeoJSONFeature
+} from 'maplibre-gl';
 import {
 	Coverage,
 	CoverageCollection,
@@ -11,18 +17,13 @@ import { loadCovJson } from './util.ts';
 import type { Point, Polygon } from 'geojson';
 
 //todo add hmr discerner. If URL already exists and tries to load again, invalid existing data
-export class MaplibrePlugin extends maplibregl.GeoJSONSource {
+export class MaplibrePlugin extends GeoJSONSource {
 	_coverages: Map<string, Coverage>;
 	covOptions: WithRequiredProperty<BasicPluginOptions, 'layers' | 'listenTo'>;
 	// Implement functionality to remove geometries from temp layer if non-layer clicked
 	indices: Map<string, number> | undefined;
 	tempSourceId: string;
-	constructor(
-		id: string,
-		options: PluginOptions,
-		dispatcher: maplibregl.Dispatcher,
-		eventedParent: maplibregl.Evented
-	) {
+	constructor(id: string, options: PluginOptions, dispatcher: Dispatcher, eventedParent: Evented) {
 		super(
 			id,
 			{
@@ -70,7 +71,7 @@ export class MaplibrePlugin extends maplibregl.GeoJSONSource {
 	 */
 	getCovData = () => this.covMapToCollection();
 
-	onAdd(map: maplibregl.Map): void {
+	onAdd(map: MapInstance): void {
 		super.onAdd(map);
 		const events = new Set(this.covOptions.listenTo);
 		for (const event of events) {
@@ -91,7 +92,7 @@ export class MaplibrePlugin extends maplibregl.GeoJSONSource {
 			});
 		}
 	}
-	getCoveragesFromFeatureList(features: maplibregl.MapGeoJSONFeature[], point: Position) {
+	getCoveragesFromFeatureList(features: MapGeoJSONFeature[], point: Position) {
 		return features
 			.map(({ properties }) => properties.uuid as string)
 			.map((id) => this._coverages.get(id.toString()))
@@ -109,7 +110,7 @@ export class MaplibrePlugin extends maplibregl.GeoJSONSource {
 
 		this.indices = indices;
 		if (!this.map.isStyleLoaded()) return;
-		let mapSource = this.map.getSource<maplibregl.GeoJSONSource>?.(this.tempSourceId);
+		let mapSource = this.map.getSource<GeoJSONSource>?.(this.tempSourceId);
 		if (!mapSource) {
 			this.map.addSource(this.tempSourceId, {
 				type: 'geojson',
@@ -121,7 +122,7 @@ export class MaplibrePlugin extends maplibregl.GeoJSONSource {
 		const id = `${this.tempSourceId}:::temp-layer`;
 		const ltype = geometry.type === 'Point' ? 'symbol' : 'fill';
 		// Overwrite the data
-		mapSource?.setData(geometry, true).then(() => {
+		mapSource?.setData(geometry).then(() => {
 			const layer = this.map.getLayer(id);
 			if (layer && layer.type === ltype) return;
 			if (layer) this.map.removeLayer(id);

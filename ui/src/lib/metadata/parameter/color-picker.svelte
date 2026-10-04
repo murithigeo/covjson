@@ -1,8 +1,8 @@
 <script lang="ts">
-	import * as Dialog from '$lib/components/ui/dialog/index.js';
+	import * as Dialog from '#lib/components/ui/dialog/index.js';
 	import ColorPicker from 'svelte-awesome-color-picker';
-	import { badgeVariants, Badge } from '$lib/components/ui/badge/index.js';
-	import { buttonVariants, Button } from '$lib/components/ui/button/index.js';
+	import { badgeVariants, Badge } from '#lib/components/ui/badge/index.js';
+	import { buttonVariants, Button } from '#lib/components/ui/button/index.js';
 	import type { ComponentProps } from 'svelte';
 
 	let { hex = $bindable(), ...props }: ComponentProps<typeof ColorPicker> = $props();

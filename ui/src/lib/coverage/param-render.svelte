@@ -7,11 +7,10 @@
 		isUndefined,
 		type InferDomainClass
 	} from '@murithigeo/covjson-core';
-	import type { ReactiveParameter } from '$lib/dashboards/utils/parameter.svelte.js';
-	import EmptyChart from '$lib/empty/chart.svelte';
-	import * as Card from '$lib/components/ui/card/index.js';
-	import { Badge } from '$lib/components/ui/badge/index.js';
-	import * as Tabs from '$lib/components/ui/tabs/index.js';
+	import type { ReactiveParameter } from '#lib/dashboards/utils/parameter.svelte.js';
+	import * as Card from '#lib/components/ui/card/index.js';
+	import { Badge } from '#lib/components/ui/badge/index.js';
+	import * as Tabs from '#lib/components/ui/tabs/index.js';
 	import type { AxisConfig, Axis } from './dimensions.ts';
 	import {
 		LineChart,
@@ -24,13 +23,13 @@
 		type ChartImageOptions,
 		downloadImage
 	} from 'layerchart';
-	import * as Chart from '$lib/components/ui/chart/index.js';
-	import * as ButtonGroup from '$lib/components/ui/button-group/index.js';
-	import { Button } from '$lib/components/ui/button/index.js';
-	import * as DropDownMenu from '$lib/components/ui/dropdown-menu/index.js';
+	import * as Chart from '#lib/components/ui/chart/index.js';
+	import * as ButtonGroup from '#lib/components/ui/button-group/index.js';
+	import { Button } from '#lib/components/ui/button/index.js';
+	import * as DropDownMenu from '#lib/components/ui/dropdown-menu/index.js';
 	import { scaleOrdinal } from 'd3-scale';
-	import * as Table from '$lib/components/ui/table/index.js';
-	import { Label } from '$lib/components/ui/label/index.js';
+	import * as Table from '#lib/components/ui/table/index.js';
+	import { Label } from '#lib/components/ui/label/index.js';
 	import { DownloadIcon, ChevronDownIcon } from '@lucide/svelte';
 </script>
 
@@ -114,6 +113,13 @@
 
 		setTimeout(() => URL.revokeObjectURL(container.href), 0);
 	}
+	let chartConfig = $derived<Record<string, Record<'key' | 'label', string> & { color?: string }>>({
+		[parameter.key]: {
+			key: 'value',
+			label: parameter.simpleLabel,
+			color: categoric ? undefined : parameter.color
+		}
+	});
 </script>
 
 <Card.Root>
@@ -128,116 +134,106 @@
 			</Tabs.Content>
 			<Tabs.Content value="chart">
 				{#if !stringy}
-					{#if data.length}
-						<Chart.Container config={{}}>
-							<LineChart
-								ref={chartRef}
-								{data}
-								series={[
-									{
-										key: 'value',
-										label: parameter.simpleLabel,
-										color: categoric ? undefined : parameter.color
-									}
-								]}
-								y1={(d) => {
-									if (isUndefined(y1)) return undefined;
-									return coverage[y1][d[y1]];
-								}}
-								x={(d) => {
-									if (x === 'z') return d.z;
-									if (x === 'composite') return new CustomDate(coverage.t[d.composite]);
-									return new CustomDate(coverage.t[d.t]);
-								}}
-								fx={(d) => {
-									if (isUndefined(fx)) return undefined;
-									if (coverage.domain.domainType === 'Grid') {
-										if (fx === 'x' || fx === 'y') return coverage.domain[fx][d[fx]];
-									}
-									if (fx === 'composite') return coverage.t[d[fx]];
-								}}
-								fy={(d) => {
-									if (isUndefined(fy)) return undefined;
-									if (coverage.domain.domainType === 'Grid') {
-										if (fy === 'x' || fy === 'y') return coverage.domain[fy][d[fy]];
-									}
-									if (fy === 'composite') return coverage.t[d[fy]];
-								}}
-								// legend
-								// bind:context
-								facet={{
-									axis: { facetAll: true }
-								}}
-								highlight={{ lines: true, points: true, facetAll }}
-								padding={defaultChartPadding({ legend: true, right: 10 })}
-								transform={{ mode: 'domain', axis: 'both' }}
-								c={categoric ? 'category' : undefined}
-								cScale={categoric ? scaleOrdinal() : undefined}
-								cDomain={categoric
-									? [...parameter.categories.entries().map(([id]) => id), '']
-									: undefined}
-								cRange={categoric
-									? [
-											...parameter.categories.values().map(({ color = parameter.color }) => color),
-											parameter.color
-										]
-									: undefined}
-								brush
-								props={{ tooltip: { root: { facetAll: true } } }}
-								onTooltipClick={(e, { data }) => console.log({ e, data })}
-							>
-								{#snippet tooltip()}
-									<Chart.Tooltip
-										labelFormatter={(d) => (d instanceof CustomDate ? d.value : d)}
-										{facetAll}
-									/>
-								{/snippet}
+					<Chart.Container config={chartConfig}>
+						<LineChart
+							ref={chartRef}
+							{data}
+							series={Object.values(chartConfig)}
+							y1={(d) => {
+								if (isUndefined(y1)) return undefined;
+								return coverage[y1][d[y1]];
+							}}
+							x={(d) => {
+								if (x === 'z') return d.z;
+								if (x === 'composite') return new CustomDate(coverage.t[d.composite]);
+								return new CustomDate(coverage.t[d.t]);
+							}}
+							fx={(d) => {
+								if (isUndefined(fx)) return undefined;
+								if (coverage.domain.domainType === 'Grid') {
+									if (fx === 'x' || fx === 'y') return coverage.domain[fx][d[fx]];
+								}
+								if (fx === 'composite') return coverage.t[d[fx]];
+							}}
+							fy={(d) => {
+								if (isUndefined(fy)) return undefined;
+								if (coverage.domain.domainType === 'Grid') {
+									if (fy === 'x' || fy === 'y') return coverage.domain[fy][d[fy]];
+								}
+								if (fy === 'composite') return coverage.t[d[fy]];
+							}}
+							// legend
+							// bind:context
+							facet={{
+								axis: { facetAll: true }
+							}}
+							highlight={{ lines: true, points: true, facetAll }}
+							padding={defaultChartPadding({ legend: true, right: 10 })}
+							transform={{ mode: 'domain', axis: 'both' }}
+							c={categoric ? 'category' : undefined}
+							cScale={categoric ? scaleOrdinal() : undefined}
+							cDomain={categoric
+								? [...parameter.categories.entries().map(([id]) => id), '']
+								: undefined}
+							cRange={categoric
+								? [
+										...parameter.categories.values().map(({ color = parameter.color }) => color),
+										parameter.color
+									]
+								: undefined}
+							brush
+							props={{ tooltip: { root: { facetAll: true } } }}
+							onTooltipClick={(e, { data }) => console.log({ e, data })}
+						>
+							{#snippet tooltip()}
+								<Chart.Tooltip
+									labelFormatter={(d) => (d instanceof CustomDate ? d.value : d)}
+									{facetAll}
+								/>
+							{/snippet}
 
-								{#snippet marks({
-									context: {
-										height,
-										padding: { top, bottom },
-										yScale,
-										series
-									}
-								})}
-									{#if categoric}
-										{@const getOffset = (v: number) => yScale(v) / (height + top + bottom)}
-										<LinearGradient
-											vertical
-											units="userSpaceOnUse"
-											stops={parameter.categories
-												.values()
-												.flatMap(({ color = parameter.color, values }) =>
-													values.map((int): [number, string] => [int, color])
-												)
-												.toArray()
-												.sort(([a], [b]) => b - a)
-												.map(([int, color]): [number, string] => [getOffset(int), color])}
-											>{#snippet children({ gradient })}
-												{#each series.visibleSeries as serie (serie.key)}
-													<Spline
-														{...serie}
-														stroke={gradient}
-														class={(d) =>
-															isNull(d) ? 'stroke-2 [stroke-dasharray:4_4]' : 'stroke-2'}
-													/>
-													<Points fill={gradient} r={4} />
-												{/each}
-											{/snippet}
-										</LinearGradient>
-									{:else}
-										{#each series.visibleSeries as serie (serie.key)}
-											<Spline {...serie} stroke={parameter.color} />
-											<Points fill={parameter.color} r={4} />
-										{/each}
-									{/if}
-								{/snippet}
-							</LineChart>
-						</Chart.Container>
-					{:else}
-						<EmptyChart status="loaded" />
-					{/if}
+							{#snippet marks({
+								context: {
+									height,
+									padding: { top, bottom },
+									yScale,
+									series
+								}
+							})}
+								{#if categoric}
+									{@const getOffset = (v: number) => yScale(v) / (height + top + bottom)}
+									<LinearGradient
+										vertical
+										units="userSpaceOnUse"
+										stops={parameter.categories
+											.values()
+											.flatMap(({ color = parameter.color, values }) =>
+												values.map((int): [number, string] => [int, color])
+											)
+											.toArray()
+											.sort(([a], [b]) => b - a)
+											.map(([int, color]): [number, string] => [getOffset(int), color])}
+										>{#snippet children({ gradient })}
+											{#each series.visibleSeries as serie (serie.key)}
+												<Spline
+													{...serie}
+													stroke={gradient}
+													class={(d) =>
+														isNull(d) ? 'stroke-2 [stroke-dasharray:4_4]' : 'stroke-2'}
+												/>
+												<Points fill={gradient} r={4} />
+											{/each}
+										{/snippet}
+									</LinearGradient>
+								{:else}
+									{#each series.visibleSeries as serie (serie.key)}
+										<Spline {...serie} stroke={parameter.color} />
+										<Points fill={parameter.color} r={4} />
+									{/each}
+								{/if}
+							{/snippet}
+						</LineChart>
+					</Chart.Container>
 				{/if}
 			</Tabs.Content>
 		</Tabs.Root>
@@ -352,8 +348,11 @@
 						{/each}
 					{/if}
 
+					{@const { value } = row}
 					<!-- Render the leaf row values -->
-					<Table.Cell class="border">{row.value}</Table.Cell>
+					<Table.Cell class="border"
+						>{isNull(value) ? 'null' : isUndefined(value) ? 'undefined' : value}</Table.Cell
+					>
 					{#if isCategorical}
 						<Table.Cell class="border">{row.category}</Table.Cell>
 					{/if}

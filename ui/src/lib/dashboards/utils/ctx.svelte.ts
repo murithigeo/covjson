@@ -1,26 +1,22 @@
 import {
 	Coverage,
-	CustomDate,
 	NdArray,
 	Parameter,
 	ParameterGroup,
-	type OnIndicesChange,
-	calculateMedian
+	type OnIndicesChange
 } from '@murithigeo/covjson-core';
+
 import { getContext, onDestroy, setContext } from 'svelte';
 import { SvelteSet, SvelteMap } from 'svelte/reactivity';
-import type { SliderValue, StringSliderValue } from '$lib/sliders/sliders.js';
+import type { SliderValue, StringSliderValue } from '#lib/sliders/sliders.js';
 import { ReactiveParameter } from './parameter.svelte.js';
 import { MultiDate } from './date.ts';
 // todo automatically call onIndicesChange on the active Coverage
 class DashboardContext {
 	onIndicesChange = $state<OnIndicesChange>();
-	detail = $state<'simple' | 'full'>('full');
-	pinned = $state(new SvelteMap<string, Coverage>());
-	input = $state<Coverage[]>([]);
-	coverages = $derived(
-		new SvelteMap([...this.pinned, ...this.input.map((cov) => [cov.uuid, cov] as const)])
-	);
+	pinned = new SvelteMap<string, Coverage>();
+	input = new SvelteMap<string, Coverage>();
+	coverages = $derived(new SvelteMap([...this.pinned, ...this.input]));
 	parameters = $state(new SvelteMap<string, ReactiveParameter>());
 	parameterGroups = $state(new SvelteSet<ParameterGroup>());
 
@@ -29,15 +25,9 @@ class DashboardContext {
 	tvalues = $state<MultiDate[]>([]);
 
 	constructor() {
-		$effect(() => this.coverages.values().forEach((cov) => this.updateTemporalList(...cov.t)));
-		$effect(() => {
-			this.input
-				.flatMap(({ parameters }) => [...parameters])
-				.forEach(([key, param]) => this.setParameter(key, param));
-		});
 		onDestroy(() => {
 			this.onIndicesChange = undefined;
-			this.input = [];
+			this.input.clear();
 			this.pinned.clear();
 			this.selected.clear();
 			this.tvalues = [];
@@ -52,7 +42,7 @@ class DashboardContext {
 	}
 
 	trashCoverage(cov: Coverage) {
-		this.input = this.input?.filter(({ uuid: id }) => id !== cov.uuid);
+		this.input.delete(cov.uuid);
 		this.pinned.delete(cov.uuid);
 	}
 	updateCoveragePinStatus(coverage: Coverage) {
@@ -93,6 +83,9 @@ class DashboardContext {
 		if (this.parameters.has(key)) return;
 		this.parameters.set(key, new ReactiveParameter(parameter));
 	}
+	setPGroup(group: ParameterGroup) {
+		this.parameterGroups.add(group);
+	}
 	updateTemporalList(...values: string[]) {
 		for (const date of values) {
 			const idx = this.tvalues.findIndex((obj) => obj.getTime() === new Date(date).getTime());
@@ -104,8 +97,20 @@ class DashboardContext {
 		}
 		this.tvalues.sort((a, b) => a.getTime() - b.getTime());
 	}
-	setProperty<K extends keyof typeof this, V extends this[K]>(key: K, value: V) {
-		this[key] = value;
+	setInput(coverages: Coverage[]) {
+		coverages.forEach((cov) => {
+			this.input.delete(cov.uuid);
+			this.input.set(cov.uuid, cov);
+			cov.parameters.forEach((param, key) => {
+				if (!this.parameters.has(key)) this.setParameter(key, param);
+			});
+			cov.parameterGroups.forEach((group) => this.setPGroup(group));
+			this.updateTemporalList(...cov.t);
+		});
+	}
+	setIndicesCallback(cb?: OnIndicesChange) {
+		if (!cb) return;
+		this.onIndicesChange = cb;
 	}
 }
 

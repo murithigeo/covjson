@@ -1,9 +1,9 @@
 <script lang="ts">
-	import * as Table from '$lib/components/ui/table/index.js';
+	import * as Table from '#lib/components/ui/table/index.js';
 	import { I18N } from '@murithigeo/covjson-core';
-	import { cn } from '$lib/utils.js';
+	import { cn } from '#lib/utils.js';
 	import type { MetadataRenderProps } from './types.d.ts';
-	import { getDashCtx } from '$lib/dashboards/utils/ctx.svelte.js';
+	import { getDashCtx } from '#lib/dashboards/utils/ctx.svelte.js';
 	const ctx = getDashCtx();
 
 	type Props = MetadataRenderProps<Record<string, I18N>, {}>;
@@ -24,33 +24,17 @@
 	<Table.Body>
 		{#if numOfRows}
 			{#each Object.entries(data) as [field, i18n] (field)}
-				{#if ctx.detail === 'full'}
-					{#each i18n as [lang, value], index (lang)}
-						<Table.Row>
-							{#if !index}
-								<Table.Cell
-									class={cn(cellStyle, 'whitespace-nowrap capitalize')}
-									rowspan={i18n.size}>{field}</Table.Cell
-								>
-							{/if}
-							<Table.Cell class={cn(cellStyle, '')}>{i18n.getTagName(lang)}</Table.Cell>
-							<Table.Cell {lang} class={cn(cellStyle, '')}>{value}</Table.Cell>
-						</Table.Row>
-					{/each}
-				{:else}
-					{@const value = i18n.query()}
-					<Table.Row class="">
-						<Table.Cell class={cn(cellStyle, 'capitalize')}>{field}</Table.Cell>
-						{#if !value}
-							<Table.Cell colspan={2} class={cn(cellStyle, 'flex flex-col items-center')}
-								>No Match Found</Table.Cell
+				{#each i18n as [lang, value], index (lang)}
+					<Table.Row>
+						{#if !index}
+							<Table.Cell class={cn(cellStyle, 'whitespace-nowrap capitalize')} rowspan={i18n.size}
+								>{field}</Table.Cell
 							>
-						{:else}
-							<Table.Cell class={cn(cellStyle, '')}>{i18n.getTagName(value.tag)}</Table.Cell>
-							<Table.Cell class={cn(cellStyle, '')}>{value.value}</Table.Cell>
 						{/if}
+						<Table.Cell class={cn(cellStyle, '')}>{i18n.getTagName(lang)}</Table.Cell>
+						<Table.Cell {lang} class={cn(cellStyle, '')}>{value}</Table.Cell>
 					</Table.Row>
-				{/if}
+				{/each}
 			{/each}
 		{:else}
 			<Table.Row>

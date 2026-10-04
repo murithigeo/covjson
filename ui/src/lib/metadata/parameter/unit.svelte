@@ -1,13 +1,13 @@
 <script lang="ts">
-	import * as Collapsible from '$lib/components/ui/collapsible/index.js';
-	import * as Item from '$lib/components/ui/item/index.js';
-	import { Label } from '$lib/components/ui/label/index.js';
+	import * as Collapsible from '#lib/components/ui/collapsible/index.js';
+	import * as Item from '#lib/components/ui/item/index.js';
+	import { Label } from '#lib/components/ui/label/index.js';
 
 	import LocaleTable from '../locale-table.svelte';
 	import { Unit } from '@murithigeo/covjson-core';
 	import type { Optional, MetadataRenderProps } from '../types.d.ts';
 	import { RulerDimensionLineIcon, ChevronsUpDownIcon } from '@lucide/svelte';
-	import { buttonVariants, Button } from '$lib/components/ui/button/index.js';
+	import { buttonVariants, Button } from '#lib/components/ui/button/index.js';
 
 	let { data: unit = $bindable() }: Optional<MetadataRenderProps<Unit>, 'data'> = $props();
 </script>

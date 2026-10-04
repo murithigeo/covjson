@@ -1,9 +1,9 @@
 <script lang="ts">
 	import { getDashCtx } from './ctx.svelte.ts';
-	import ModeWatcher from '$lib/mode-watcher.svelte';
-	import * as Chart from '$lib/components/ui/chart/index.js';
-	import * as Card from '$lib/components/ui/card/index.js';
-	import { Label } from '$lib/components/ui/label/index.js';
+	import ModeWatcher from '#lib/mode-watcher.svelte';
+	import * as Chart from '#lib/components/ui/chart/index.js';
+	import * as Card from '#lib/components/ui/card/index.js';
+	import { Label } from '#lib/components/ui/label/index.js';
 
 	import { AreaChart } from 'layerchart';
 	const ctx = getDashCtx();

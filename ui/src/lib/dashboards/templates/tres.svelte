@@ -2,34 +2,23 @@
 
 <script lang="ts">
 	import type { DashboardProps } from '../utils/types.d.ts';
-	import * as Resizable from '$lib/components/ui/resizable/index.js';
-	import * as Collapsible from '$lib/components/ui/collapsible/index.js';
-	import * as Item from '$lib/components/ui/item/index.js';
+	import * as Resizable from '#lib/components/ui/resizable/index.js';
+	import * as Collapsible from '#lib/components/ui/collapsible/index.js';
+	import * as Item from '#lib/components/ui/item/index.js';
 	import { ChevronsUpDown, GroupIcon } from '@lucide/svelte';
-	import { buttonVariants } from '$lib/components/ui/button/index.js';
-	import ParameterGroupComponent from '$lib/metadata/parameter-group.svelte';
-	import ParameterComponent from '$lib/metadata/parameter.svelte';
-	// import CoverageComponent from '$lib/coverage/coverage.svelte';
-	import CoverageComponent from '$lib/coverage/index.svelte';
+	import { buttonVariants } from '#lib/components/ui/button/index.js';
+	import ParameterGroupComponent from '#lib/metadata/parameter-group.svelte';
+	import ParameterComponent from '#lib/metadata/parameter.svelte';
+	import CoverageComponent from '#lib/coverage/index.svelte';
 	import { setDashCtx } from '../utils/ctx.svelte.ts';
-	import DashControlCenter from '../utils/control-center.svelte';
-	import EmptyParameters from '$lib/empty/parameter.svelte';
-	import EmptyCoverages from '$lib/empty/coverage.svelte';
+	// Repurpose to chart brush
+	// import DashControlCenter from '../utils/control-center.svelte';
 	import { MediaQuery } from 'svelte/reactivity';
-	let {
-		onIndicesChange = $bindable(),
-		data = $bindable(),
-		detail = 'full',
-		children
-	}: DashboardProps = $props();
+	let { onIndicesChange = $bindable(), data = $bindable(), children }: DashboardProps = $props();
 	const ctx = setDashCtx();
 
-	const setProperty = <K extends keyof typeof ctx, V extends (typeof ctx)[K]>(key: K, value: V) => {
-		ctx[key] = value;
-	};
-	$effect(() => setProperty('onIndicesChange', onIndicesChange));
-	$effect(() => setProperty('input', data));
-	$effect(() => setProperty('detail', detail));
+	$effect(() => ctx.setIndicesCallback(onIndicesChange));
+	$effect(() => ctx.setInput(data));
 
 	let direction = $state<'vertical' | 'horizontal'>('vertical');
 	const gteMd = new MediaQuery('min-width: 768px');
@@ -52,8 +41,6 @@
 
 		<Resizable.Pane defaultSize={32}>
 			<div class="h-full overflow-auto">
-				<DashControlCenter />
-
 				<Collapsible.Root
 					id="parameter-group-list"
 					open={!!ctx.parameterGroups.size}
@@ -90,13 +77,9 @@
 					</Item.Root>
 					<Collapsible.Content class="ml-2 ">
 						<div class="overflow-auto">
-							{#if !ctx.parameters.size}
-								<EmptyParameters />
-							{:else}
-								{#each ctx.parameters as [key, data], index (key)}
-									<ParameterComponent {data} open={!index} {key} />
-								{/each}
-							{/if}
+							{#each ctx.parameters as [key, data], index (key)}
+								<ParameterComponent {data} open={!index} {key} />
+							{/each}
 						</div>
 					</Collapsible.Content>
 				</Collapsible.Root>
@@ -106,13 +89,9 @@
 		<Resizable.Handle withHandle />
 		<Resizable.Pane>
 			<div class="h-full overflow-auto" id="charts">
-				{#if !ctx.coverages.size}
-					<EmptyCoverages />
-				{:else}
-					{#each ctx.coverages as [, coverage], i (i)}
-						<CoverageComponent {coverage} checked={!i} bind:onIndicesChange />
-					{/each}
-				{/if}
+				{#each ctx.coverages as cov (cov[0])}
+					<CoverageComponent coverage={cov[1]} bind:onIndicesChange />
+				{/each}
 			</div>
 		</Resizable.Pane>
 	</Resizable.PaneGroup>

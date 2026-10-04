@@ -95,13 +95,14 @@ export class NdArray<T extends string | number = string | number> implements Ran
    * If the range is tiled and the value is undefined, then the matching tileset is loaded and the data fetched directly
    */
 
-  async get<T extends string | number | null>(indices: MapIndices | number[]) {
+  async get(indices: MapIndices | number[]): Promise<T | null> {
     if (!Array.isArray(indices)) indices = this.normalizeNamedIndices(indices);
-    const value = this.ndarr.get(...indices);
+    let value = this.ndarr.get(...indices);
     if (value !== undefined) return value;
     await this.loadTileset(indices);
-    this.options.onNonCacheFetch?.(this);
-    return this.ndarr.get(...indices) as T; // Dont recurse to avoid infinite loops
+    value = this.ndarr.get(...indices); // Dont recurse to avoid infinite loops
+    if (!isUndefined(value)) this.options.onNonCacheFetch?.(this);
+    return value;
   }
 
   /**

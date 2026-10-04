@@ -1,14 +1,14 @@
 <script lang="ts">
-	import { Checkbox } from '$lib/components/ui/checkbox/index.js';
+	import { Checkbox } from '#lib/components/ui/checkbox/index.js';
 	import ObservedProperty from './observed-property.svelte';
 	import LocaleTable from './locale-table.svelte';
-	import * as Item from '$lib/components/ui/item/index.js';
-	import * as Collapsible from '$lib/components/ui/collapsible/index.js';
+	import * as Item from '#lib/components/ui/item/index.js';
+	import * as Collapsible from '#lib/components/ui/collapsible/index.js';
 	import { ChevronsUpDown, LanguagesIcon, EyeIcon } from '@lucide/svelte';
 	import { ParameterGroup } from '@murithigeo/covjson-core';
-	import { buttonVariants, Button } from '$lib/components/ui/button/index.js';
-	import * as ButtonGroup from '$lib/components/ui/button-group/index.js';
-	import * as Card from '$lib/components/ui/card/index.js';
+	import { buttonVariants, Button } from '#lib/components/ui/button/index.js';
+	import * as ButtonGroup from '#lib/components/ui/button-group/index.js';
+	import * as Card from '#lib/components/ui/card/index.js';
 	import { getDashCtx } from '../dashboards/utils/ctx.svelte.ts';
 	import type { MetadataRenderProps } from './types.d.ts';
 	const ctx = getDashCtx();

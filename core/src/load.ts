@@ -4,8 +4,8 @@ import { Exception } from './error.ts';
  * Expects resolved documents to be JSON
  */
 export async function load<T>(url: string, abortController?: AbortController): Promise<T> {
-	const res = await fetch(url, { signal: abortController?.signal });
-	if (!res.ok) throw new Exception(res.status, res.url, res.statusText);
-	const data = await res.json();
-	return data;
+  const res = await fetch(url, { signal: abortController?.signal });
+  if (!res.ok) throw new Exception(res);
+  const data = await res.json();
+  return data;
 }

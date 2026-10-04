@@ -31,7 +31,6 @@
   "devDependencies": {
     "@types/ndarray": "^1.1.0",
     "@types/ndarray-ops": "^1.2.7",
-    "msw": "^2.15.0",
     "typescript": "^6.0.3"
   }
 }

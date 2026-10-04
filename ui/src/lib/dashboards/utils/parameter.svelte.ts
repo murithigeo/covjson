@@ -1,4 +1,4 @@
-import { getRandomColor } from '$lib/utils.js';
+import { getRandomColor } from '#lib/utils.js';
 import {
 	Parameter,
 	Category,

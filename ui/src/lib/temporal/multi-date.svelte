@@ -1,6 +1,6 @@
 <script lang="ts">
-	import { MultiDate } from '$lib/dashboards/utils/date.js';
-	import * as Select from '$lib/components/ui/select/index.js';
+	import { MultiDate } from '#lib/dashboards/utils/date.js';
+	import * as Select from '#lib/components/ui/select/index.js';
 	interface Props {
 		dates: MultiDate[];
 	}

@@ -2,15 +2,15 @@
 	import { isUndefined } from '@murithigeo/covjson-core';
 	import LocaleTable from './locale-table.svelte';
 	import ObservedProperty from './observed-property.svelte';
-	import * as Card from '$lib/components/ui/card/index.js';
-	import * as Collapsible from '$lib/components/ui/collapsible/index.js';
-	import * as Item from '$lib/components/ui/item/index.js';
-	import { Checkbox } from '$lib/components/ui/checkbox/index.js';
-	import { buttonVariants } from '$lib/components/ui/button/index.js';
-	import { Badge, type BadgeVariant } from '$lib/components/ui/badge/index.js';
-	import { Label } from '$lib/components/ui/label/index.js';
+	import * as Card from '#lib/components/ui/card/index.js';
+	import * as Collapsible from '#lib/components/ui/collapsible/index.js';
+	import * as Item from '#lib/components/ui/item/index.js';
+	import { Checkbox } from '#lib/components/ui/checkbox/index.js';
+	import { buttonVariants } from '#lib/components/ui/button/index.js';
+	import { Badge, type BadgeVariant } from '#lib/components/ui/badge/index.js';
+	import { Label } from '#lib/components/ui/label/index.js';
 	import UnitComponent from './parameter/unit.svelte';
-	import { ReactiveParameter } from '$lib/dashboards/utils/parameter.svelte.js';
+	import { ReactiveParameter } from '#lib/dashboards/utils/parameter.svelte.js';
 	import {
 		ChevronsUpDown,
 		SunSnowIcon,

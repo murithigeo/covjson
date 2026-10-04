@@ -1,37 +1,23 @@
 <script lang="ts" module>
-	import * as Chart from '$lib/components/ui/chart/index.js';
 	import {
 		Coverage,
 		type OnIndicesChange,
 		isUndefined,
-		isNull,
-		CustomDate,
 		type DataRow
 	} from '@murithigeo/covjson-core';
-	import { Switch } from '$lib/components/ui/switch/index.js';
+	import { Switch } from '#lib/components/ui/switch/index.js';
 	import ParameterRender from './param-render.svelte';
-	import * as ButtonGroup from '$lib/components/ui/button-group/index.js';
-	import { Separator } from '$lib/components/ui/separator/index.js';
-	import { Button } from '$lib/components/ui/button/index.js';
-
-	import * as Collapsible from '$lib/components/ui/collapsible/index.js';
-	import {
-		TrashIcon,
-		PinIcon,
-		HardDriveDownloadIcon,
-		PinOffIcon,
-		DownloadIcon,
-		ChevronDownIcon
-	} from '@lucide/svelte';
-
-	import dimensions, { type Axis, type AxisConfig } from './dimensions.ts';
-	import { getDashCtx } from '$lib/dashboards/utils/ctx.svelte.js';
-	import { Label } from '$lib/components/ui/label/index.js';
-	import { Badge } from '$lib/components/ui/badge/index.js';
-	import { ReactiveParameter } from '$lib/dashboards/utils/parameter.svelte.js';
-	import * as Card from '$lib/components/ui/card/index.js';
-	import * as Tabs from '$lib/components/ui/tabs/index.js';
-	import { SvelteMap } from 'svelte/reactivity';
+	import * as ButtonGroup from '#lib/components/ui/button-group/index.js';
+	import { Separator } from '#lib/components/ui/separator/index.js';
+	import { Button } from '#lib/components/ui/button/index.js';
+	import { TrashIcon, PinIcon, PinOffIcon } from '@lucide/svelte';
+	import dimensions, { type AxisConfig } from './dimensions.ts';
+	import { getDashCtx } from '#lib/dashboards/utils/ctx.svelte.js';
+	import { Label } from '#lib/components/ui/label/index.js';
+	import { Badge } from '#lib/components/ui/badge/index.js';
+	import { ReactiveParameter } from '#lib/dashboards/utils/parameter.svelte.js';
+	import * as Card from '#lib/components/ui/card/index.js';
+	import * as Tabs from '#lib/components/ui/tabs/index.js';
 </script>
 
 <script lang="ts">
@@ -50,10 +36,11 @@
 		if (range.type === 'NdArray') {
 			ctx.updateRangeData(key, coverage.uuid, range);
 		}
+		const oldCb = range.options.onNonCacheFetch;
 		range.options = {
 			...range.options,
 			onNonCacheFetch(value) {
-				range.options.onNonCacheFetch?.(value);
+				oldCb?.(value);
 				ctx.updateRangeData(key, coverage.uuid, range);
 			}
 		};
@@ -63,7 +50,7 @@
 	/**
 	 * @todo Allow incremental updates by not rerendering entire card. i.e if coverage here, only update coverage indices
 	 */
-	const domain = coverage.domain.clone()?.denormalize();
+	const domain = coverage.domain.denormalize();
 
 	const ds = dimensions(domain);
 	let x = $state(ds.x);
@@ -84,9 +71,10 @@
 	let data = $state<DataRow[]>([]);
 
 	const setData = (rows: DataRow[]) => (data = rows);
-	let dataPromise = $derived.by(() => {
+	let dataPromise = $derived.by(async () => {
 		const preloadAxis = [...new Set([fx, fy, x, y1])].filter((v) => !isUndefined(v));
-		coverage.query(coverage.indices, selected, preloadAxis).then((rows) => setData(rows));
+		const rows = await coverage.query(coverage.indices, selected, preloadAxis);
+		return setData(rows);
 	});
 
 	$effect(() => {
@@ -161,9 +149,9 @@
 		</Card.Action>
 	</Card.Header>
 	<Card.Content>
-		<Tabs.Root value={'STRINGBS'}>
+		<Tabs.Root value={selected[0]}>
 			<Tabs.List>
-				{#each parameters as [value], i (i)}
+				{#each new Set([...selected, ...parameters.map(([k]) => k)]) as value, i (i)}
 					<Tabs.Trigger {value}>{value}</Tabs.Trigger>
 				{/each}
 			</Tabs.List>

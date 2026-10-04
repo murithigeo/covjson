@@ -1,7 +1,8 @@
 <script lang="ts">
 	import { getChartContext, Tooltip as TooltipPrimitive } from 'layerchart';
-	import { cn, type WithElementRef, type WithoutChildren } from '$lib/utils.js';
+	import { cn, type WithElementRef, type WithoutChildren } from '#lib/utils.js';
 	import { getPayloadConfigFromPayload, useChart, type TooltipPayload } from './chart-utils.js';
+	import { isNull } from '@murithigeo/covjson-core';
 	import type { Snippet } from 'svelte';
 	import type { HTMLAttributes } from 'svelte/elements';
 
@@ -171,7 +172,7 @@
 							</div>
 							{#if item.value !== undefined}
 								<span class="font-mono font-medium text-foreground tabular-nums">
-									{item.value.toLocaleString()}
+									{isNull(item.value) ? 'null' : item.value.toLocaleString()}
 								</span>
 							{/if}
 						</div>

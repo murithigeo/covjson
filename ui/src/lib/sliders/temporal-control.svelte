@@ -1,9 +1,9 @@
 <script lang="ts">
 	import Slider from './slider.svelte';
 	import type { ComponentProps } from 'svelte';
-	import { cn } from '$lib/utils.js';
-	import * as ButtonGroup from '$lib/components/ui/button-group/index.js';
-	import { Button, type ButtonProps } from '$lib/components/ui/button/index.js';
+	import { cn } from '#lib/utils.js';
+	import * as ButtonGroup from '#lib/components/ui/button-group/index.js';
+	import { Button, type ButtonProps } from '#lib/components/ui/button/index.js';
 	import { TimerResetIcon, RepeatIcon, RepeatOffIcon, PlayIcon, PauseIcon } from '@lucide/svelte';
 	import type { Snippet } from 'svelte';
 	import type { CustomDate } from '@murithigeo/covjson-core';
