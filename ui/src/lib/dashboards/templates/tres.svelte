@@ -90,7 +90,9 @@
 		<Resizable.Pane>
 			<div class="h-full overflow-auto" id="charts">
 				{#each ctx.coverages as cov (cov[0])}
-					<CoverageComponent coverage={cov[1]} bind:onIndicesChange />
+					<div class="m-2">
+						<CoverageComponent coverage={cov[1]} bind:onIndicesChange />
+					</div>
 				{/each}
 			</div>
 		</Resizable.Pane>

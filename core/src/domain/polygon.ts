@@ -4,14 +4,12 @@ import type {
   PolygonSeries as PolySeriesD,
   MultiPolygon as MP,
   MultiPolygonSeries as MPs,
-  Position,
-  LinearRing,
-  WithBounds
+  Position
 } from 'coveragejson';
 import type { Referencing } from '../referencing.ts';
 import inside from 'point-in-polygon-hao';
 import type { Polygon as PolygonGeometry } from 'geojson';
-import { calcNumAxisBounds, CustomDate } from './utils.ts';
+import { calcNumAxisBounds } from './utils.ts';
 
 abstract class Base<T extends PolygonDomain | PolySeriesD | MP | MPs> extends BaseDomain<T> {
   constructor(domain: T) {

@@ -18,8 +18,6 @@
 		Points,
 		Spline,
 		defaultChartPadding,
-		type ChartState,
-		getChartImageBlob,
 		type ChartImageOptions,
 		downloadImage
 	} from 'layerchart';
@@ -31,6 +29,8 @@
 	import * as Table from '#lib/components/ui/table/index.js';
 	import { Label } from '#lib/components/ui/label/index.js';
 	import { DownloadIcon, ChevronDownIcon } from '@lucide/svelte';
+	import type { MultiPoint, Polygon, Position, Section } from 'coveragejson';
+	import type { SvelteMap } from 'svelte/reactivity';
 </script>
 
 <script lang="ts">
@@ -40,6 +40,7 @@
 		parameter: ReactiveParameter;
 		facetAll?: boolean;
 		domain: ReturnType<InferDomainClass['denormalize']>;
+		viewAsChart: SvelteMap<string, boolean>;
 	}
 
 	let {
@@ -51,12 +52,13 @@
 		fy = $bindable(),
 		y1 = $bindable(),
 		facetAll = $bindable(),
-		domain = $bindable()
+		domain = $bindable(),
+		viewAsChart = $bindable()
 	}: Props = $props();
 
 	let axesSize = $derived(coverage.axesSize as Map<Axis, number>);
 	let chartRef = $state<HTMLElement>();
-	let stringy = $derived(parameter.isString);
+	let stringy = parameter.isString;
 	let categoric = $derived(parameter.isCategorical);
 
 	let data = $derived(
@@ -70,13 +72,31 @@
 				return r;
 			})
 	);
-
-	function resolveAxisIdx(axis: Axis, idx: number) {
+	function resolveAxisIdx(
+		axis: Axis,
+		idx: number
+	): string | number | (Polygon | MultiPoint | Section)['axes']['composite']['values'][number] {
 		if (axis === 'z' || axis === 't') return coverage[axis][idx];
 		// @ts-expect-error domain is denormalized
-		if (axis in domain.axes) return domain.axes[axis]?.values[idx];
+		return domain.axes[axis]?.values[idx];
+	}
+	function resolveAxisIdxForChart(axis: Axis, idx: number): number | CustomDate {
+		let value = resolveAxisIdx(axis, idx);
+		if (Array.isArray(value)) {
+			if (typeof value[0] === 'string') value = value[0];
+			else value = idx;
+			/// Others resolve to an object with {axis,idx} so that we resolve in tooltip
+		}
+		if (typeof value === 'string') return new CustomDate(value);
+		return value;
 	}
 
+	let tabValue = $derived.by(() => {
+		if (stringy) return 'table';
+		const ischart = viewAsChart.get(parameter.key);
+		if (ischart) return 'chart';
+		return 'table';
+	});
 	/**
 	 * https://stackoverflow.com/a/31536517
 	 */
@@ -91,7 +111,7 @@
 					let value: unknown = row[fieldName];
 					//@ts-expect-error fieldName should Axis
 					if (axisNames.includes(fieldName)) value = resolveAxisIdx(fieldName, value);
-					return JSON.stringify(value, (k, v) => (isUndefined(v) || isNull(v) ? '' : value));
+					return JSON.stringify(value, (k, v) => (isUndefined(v) || isNull(v) ? '' : v));
 				})
 			)
 		].join('\r\n');
@@ -120,17 +140,18 @@
 			color: categoric ? undefined : parameter.color
 		}
 	});
+	$inspect(data);
 </script>
 
 <Card.Root>
 	<Card.Content>
-		<Tabs.Root value={stringy ? 'table' : 'chart'}>
-			<Tabs.List>
+		<Tabs.Root bind:value={tabValue}>
+			<!-- <Tabs.List>
 				<Tabs.Trigger value="chart" disabled={stringy}>Chart</Tabs.Trigger>
 				<Tabs.Trigger value="table">Table</Tabs.Trigger>
-			</Tabs.List>
+			</Tabs.List> -->
 			<Tabs.Content value="table">
-				{@render table({ data, parameter })}
+				{@render table()}
 			</Tabs.Content>
 			<Tabs.Content value="chart">
 				{#if !stringy}
@@ -139,28 +160,21 @@
 							ref={chartRef}
 							{data}
 							series={Object.values(chartConfig)}
-							y1={(d) => {
+							x1={(d) => {
 								if (isUndefined(y1)) return undefined;
-								return coverage[y1][d[y1]];
+
+								return resolveAxisIdxForChart(y1, d[y1]);
 							}}
 							x={(d) => {
-								if (x === 'z') return d.z;
-								if (x === 'composite') return new CustomDate(coverage.t[d.composite]);
-								return new CustomDate(coverage.t[d.t]);
+								return resolveAxisIdxForChart(x, d[x]);
 							}}
 							fx={(d) => {
 								if (isUndefined(fx)) return undefined;
-								if (coverage.domain.domainType === 'Grid') {
-									if (fx === 'x' || fx === 'y') return coverage.domain[fx][d[fx]];
-								}
-								if (fx === 'composite') return coverage.t[d[fx]];
+								return resolveAxisIdxForChart(fx, d[fx]);
 							}}
 							fy={(d) => {
 								if (isUndefined(fy)) return undefined;
-								if (coverage.domain.domainType === 'Grid') {
-									if (fy === 'x' || fy === 'y') return coverage.domain[fy][d[fy]];
-								}
-								if (fy === 'composite') return coverage.t[d[fy]];
+								return resolveAxisIdxForChart(fy, d[fy]);
 							}}
 							// legend
 							// bind:context
@@ -317,7 +331,7 @@
 	}[];
 })}
 	{@const [axisName, max] = axesSize.entries().toArray()[depth]}
-	{@const isLastAxis = depth === coverage.axesSize.size - 1}
+	{@const isLastAxis = depth === axesSize.size - 1}
 
 	<!-- Only iterate over indices ('ani') that actually exist in the remaining data -->
 	{@const validIndices = [...Array(max).keys()].filter((ani) =>
@@ -370,13 +384,13 @@
 	{/each}
 {/snippet}
 
-{#snippet table({ data, parameter }: { data: DataRow[]; parameter: ReactiveParameter })}
+{#snippet table()}
 	<Table.Root class="table-auto">
 		<Table.Caption>Tabulated {parameter.key} data</Table.Caption>
 
 		<Table.Header>
 			<Table.Row>
-				{#each coverage.axesSize as [axisName]}
+				{#each axesSize as [axisName]}
 					<Table.Head class="border">{axisName}</Table.Head>
 				{/each}
 				<Table.Head class="border">value</Table.Head>
@@ -388,7 +402,7 @@
 
 		<Table.Body>
 			<!-- 
-          Recursive snippet that drills down through coverage.axesSize 
+          Recursive snippet that drills down through axesSize 
           depth: Current axis index
           currentRows: The filtered subset of data up to this point
           inheritedCells: Parent grouping cells waiting to be rendered on the first row
@@ -404,7 +418,7 @@
 		<Table.Footer>
 			{#if data.length}
 				<Table.Row>
-					{#each coverage.axesSize as [axisName] (axisName)}
+					{#each axesSize as [axisName] (axisName)}
 						<Table.Head class="border">{axisName}</Table.Head>
 					{/each}
 					<Table.Head class="border">value</Table.Head>

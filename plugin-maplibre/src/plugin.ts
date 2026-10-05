@@ -8,8 +8,8 @@ import {
 import {
 	Coverage,
 	CoverageCollection,
-	type WithRequiredProperty,
-	type OnIndicesChange
+	type OnIndicesChange,
+	type WithRequiredProperty
 } from '@murithigeo/covjson-core';
 import type { BasicPluginOptions, PluginOptions } from './types.js';
 import type { Position } from 'coveragejson';
@@ -20,8 +20,6 @@ import type { Point, Polygon } from 'geojson';
 export class MaplibrePlugin extends GeoJSONSource {
 	_coverages: Map<string, Coverage>;
 	covOptions: WithRequiredProperty<BasicPluginOptions, 'layers' | 'listenTo'>;
-	// Implement functionality to remove geometries from temp layer if non-layer clicked
-	indices: Map<string, number> | undefined;
 	tempSourceId: string;
 	constructor(id: string, options: PluginOptions, dispatcher: Dispatcher, eventedParent: Evented) {
 		super(
@@ -42,7 +40,6 @@ export class MaplibrePlugin extends GeoJSONSource {
 			reproject: 'reproject' in options ? options.reproject : true
 		};
 		this.tempSourceId = `${this.id}::::scratchpad`;
-		this.indices = undefined;
 		this.setCovData(options.data).then(() => this.covOptions.onLoad?.(this.covMapToCollection()));
 	}
 
@@ -99,7 +96,8 @@ export class MaplibrePlugin extends GeoJSONSource {
 			.filter((v) => v !== undefined)
 			.map((v) => v.calculateIndices(point)); // todo check if indices get calculated correctly
 	}
-	onIndicesChange: OnIndicesChange = (coverage, indices) => {
+
+	onIndicesChange(coverage: Coverage | string | undefined, indices: Map<string, number>) {
 		if (typeof coverage === 'string') {
 			coverage = this._coverages.get(coverage);
 		}
@@ -108,7 +106,6 @@ export class MaplibrePlugin extends GeoJSONSource {
 
 		if (!geometry) return;
 
-		this.indices = indices;
 		if (!this.map.isStyleLoaded()) return;
 		let mapSource = this.map.getSource<GeoJSONSource>?.(this.tempSourceId);
 		if (!mapSource) {
@@ -144,34 +141,19 @@ export class MaplibrePlugin extends GeoJSONSource {
 				filter: ['==', ['geometry-type'], 'Polygon']
 			});
 		});
-	};
+	}
 	indicesToGeometry(coverage: Coverage, indices: Map<string, number>): Polygon | Point | undefined {
 		switch (coverage.domain.domainType) {
 			case 'Grid':
-				if (!indices.has('x')) indices.set('x', 0);
-				if (!indices.has('y')) indices.set('y', 0);
-
-				// Don't recompute
-				if (
-					this.indices?.get('x') === indices.get('x') &&
-					this.indices?.get('y') === indices.get('y')
-				) {
-					return;
-				}
-				return coverage.domain.getPolygonAtIndices(indices.get('x')!, indices.get('y'));
+				return coverage.domain.getPolygonAtIndices(indices.get('x') || 0, indices.get('y') || 0);
 			case 'MultiPoint':
 			case 'MultiPointSeries':
-				if (!indices.has('composite')) indices.set('composite', 0);
-				if (this.indices?.get('composite') === indices.get('composite')) return;
 				return {
 					type: 'Point',
 					coordinates: coverage.domain.axes.composite.values[indices.get('composite')!]
 				};
 			case 'Trajectory':
 			case 'Section':
-				// todo Highlight the string and the nodes
-				if (indices.has('composite')) indices.set('composite', 0);
-				if (this.indices?.get('composite') === indices.get('composite')) return;
 				return {
 					type: 'Point',
 					coordinates: coverage.domain.axes.composite.values[indices.get('composite')!].slice(
@@ -181,20 +163,19 @@ export class MaplibrePlugin extends GeoJSONSource {
 			case 'Point':
 			case 'VerticalProfile':
 			case 'PointSeries':
-				// if (indices) return;
 				return coverage.domain.geometry;
 			case 'MultiPolygon':
 			case 'MultiPolygonSeries':
 			case 'Polygon':
 			case 'PolygonSeries':
-				if (!indices.has('composite')) indices.set('composite', 0);
-				if (this.indices?.get('composite') === indices.get('composite')) return;
 				return {
 					type: 'Polygon',
-					coordinates: coverage.domain.axes.composite.values[indices.get('composite')!]
+					coordinates: coverage.domain.axes.composite.values[indices.get('composite') || 0]
 				};
 			default:
 				return; //throw error?
 		}
 	}
+
+	updateCoverageData() {}
 }

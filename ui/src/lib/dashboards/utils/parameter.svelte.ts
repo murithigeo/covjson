@@ -1,12 +1,5 @@
 import { getRandomColor } from '#lib/utils.js';
-import {
-	Parameter,
-	Category,
-	NdArray,
-	minMax,
-	isNull,
-	type DataRow
-} from '@murithigeo/covjson-core';
+import { Parameter, Category, Range, minMax, isNull, type DataRow } from '@murithigeo/covjson-core';
 import { MultiDate } from './date.ts';
 import { SvelteMap } from 'svelte/reactivity';
 
@@ -16,15 +9,15 @@ export class ReactiveParameter extends Parameter implements Statistics {
 	 * Doubles as the initial color for categories
 	 */
 	color = $state(getRandomColor());
-	ranges = $state(new SvelteMap<string, NdArray>());
+	ranges = $state(new SvelteMap<string, Range>());
 	categories = $state(new SvelteMap<string, CategoryState>());
 	dataType = $state<'string' | 'float' | 'integer'>('integer');
 	median = $state<number | null | string>(null);
 	max = $state<number | null>(null);
 	min = $state<number | null>(null);
 	mean = $state<number | null>(null);
-	tAvgs = $state(new SvelteMap<MultiDate, number | null>());
-	zAvgs = $state(new SvelteMap<number, number | null>());
+	// tAvgs = $state(new SvelteMap<MultiDate, number | null>());
+	// zAvgs = $state(new SvelteMap<number, number | null>());
 	isString = $derived(this.dataType === 'string');
 
 	constructor(param: Parameter) {
@@ -63,7 +56,7 @@ export class ReactiveParameter extends Parameter implements Statistics {
 		return undefined;
 	}
 
-	updateRangeData(covId: string, data: NdArray) {
+	updateRangeData(covId: string, data: Range) {
 		this.ranges.set(covId, data);
 		const ranges = this.ranges.values().toArray();
 		if (ranges.length && ranges[0].dataType !== this.dataType) this.dataType = ranges[0].dataType;
@@ -78,7 +71,7 @@ export class ReactiveParameter extends Parameter implements Statistics {
 	 * Computes [max|min]imum possible value for the parameter
 	 * Will not recalculate if parameter is categorical
 	 */
-	computeMinMax(ranges: NdArray[]): void {
+	computeMinMax(ranges: Range[]): void {
 		if (this.dataType === 'string') return;
 
 		if (this.categoryEncoding) {
@@ -87,15 +80,15 @@ export class ReactiveParameter extends Parameter implements Statistics {
 
 			return;
 		}
-		[this.min, this.max] = minMax(ranges.flatMap((range) => range.ndarr.data as number[]));
+		[this.min, this.max] = minMax(ranges.flatMap((range) => range._ndarr.data as number[]));
 	}
 
 	/**
 	 * Calculates the mode of each category in ranges loaded
 	 */
-	computeCategoryBins(ranges: NdArray[]): void {
+	computeCategoryBins(ranges: Range[]): void {
 		if (!this.categories.size) return;
-		const flatData = ranges.map((range) => range.ndarr.data).flat();
+		const flatData = ranges.map((range) => range._ndarr.data).flat();
 
 		for (const [id, category] of this.categories) {
 			category.size = flatData.filter((v) => category.values.includes(v as number)).length;
@@ -105,10 +98,10 @@ export class ReactiveParameter extends Parameter implements Statistics {
 	/**
 	 *
 	 */
-	computeMean(ranges: NdArray[]): void {
+	computeMean(ranges: Range[]): void {
 		if (this.dataType === 'string') return;
 		const total = ranges
-			.map((range) => range.ndarr.data as (number | null)[])
+			.map((range) => range._ndarr.data as (number | null)[])
 			.flat()
 			.filter((v) => typeof v === 'number')
 			.reduce((l, r) => l + r, 0);
@@ -120,8 +113,8 @@ export class ReactiveParameter extends Parameter implements Statistics {
 		this.categories.set(category.id, new CategoryState(category, this.color, values));
 	}
 
-	computeMedian(ranges: readonly NdArray[]): void {
-		this.median = calculateMedian(ranges.flatMap((range) => range.ndarr.data));
+	computeMedian(ranges: readonly Range[]): void {
+		this.median = calculateMedian(ranges.flatMap((range) => range._ndarr.data));
 	}
 
 	updateAvgs(data: DataRow[]) {

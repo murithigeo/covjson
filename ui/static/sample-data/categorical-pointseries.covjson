@@ -1,0 +1,104 @@
+{
+	"$schema": "https://covjson.org/schema/dev/coveragejson.json",
+	"type": "Coverage",
+	"parameters": {
+		"Temperature": {
+			"type": "Parameter",
+			"categoryEncoding": {
+				"Low": [
+					-1,
+					-2,
+					-3
+				],
+				"Freezing": [
+					0,
+					1
+				],
+				"Hot": [
+					2,
+					3,
+					4,
+					5,
+					6
+				]
+			},
+			"observedProperty": {
+				"label": {
+					"en": "Simple Categorical Parameter"
+				},
+				"categories": [
+					{
+						"id": "Low",
+						"label": {
+							"en": "Subzero"
+						}
+					},
+					{
+						"id": "Freezing",
+						"label": {
+							"en": "Melting Point"
+						}
+					},
+					{
+						"id": "Hot",
+						"label": {
+							"en": "Livable"
+						}
+					}
+				]
+			}
+		}
+	},
+	"domain": {
+		"type": "Domain",
+		"domainType": "PointSeries",
+		"axes": {
+			"x": {
+				"values": [
+					36
+				]
+			},
+			"y": {
+				"values": [
+					1
+				]
+			},
+			"t": {
+				"values": [
+					"2025",
+					"2026",
+					"2027"
+				]
+			}
+		},
+		"referencing": [
+			{
+				"system": {
+					"type": "GeographicCRS",
+					"id": "OGC:CRS84"
+				},
+				"coordinates": [
+					"x",
+					"y"
+				]
+			}
+		]
+	},
+	"ranges": {
+		"Temperature": {
+			"type": "NdArray",
+			"axisNames": [
+				"t"
+			],
+			"shape": [
+				3
+			],
+			"dataType": "integer",
+			"values": [
+				0,
+				2,
+				3
+			]
+		}
+	}
+}

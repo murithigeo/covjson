@@ -390,7 +390,7 @@ export class CustomDate extends Date {
   // Implement the parse string
 }
 
-export function calculateMedian(data: (number | string | null)[]): string | number | null {
+export function calculateMedian<T extends string | number>(data: (T | null)[]): T | null {
   if (data.length < 1) return null;
 
   let isNumber = typeof data[0] === 'number';
@@ -416,5 +416,5 @@ export function calculateMedian(data: (number | string | null)[]): string | numb
     .map((i) => data[i])
     .filter((v) => typeof v === 'number')
     .reduce((l, r) => l + r, 0);
-  return total / 2;
+  return (total / 2) as T;
 }

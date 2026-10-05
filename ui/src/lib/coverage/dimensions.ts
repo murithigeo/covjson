@@ -22,14 +22,28 @@ export default function (
 		case 'Trajectory':
 			conf.x = 'composite';
 			break;
-		case 'MultiPointSeries':
 		case 'MultiPolygonSeries':
 		case 'PolygonSeries':
 			conf.x = 't';
 			conf.fx = 'composite';
+			if (domain.axes.z) conf.y1 = 'z';
+			break;
+		case 'MultiPointSeries':
+			conf.x = 't';
+			conf.fx = 'composite';
+			break;
+		case 'MultiPolygon':
+		case 'Polygon':
+			conf.fx = 'composite';
+			if (domain.axes.t) conf.x = 't';
+			else if (domain.axes.z) conf.x = 'z';
+			if (conf.x === 't' && domain.axes.z) conf.y1 = 'z';
+			else if (conf.x === 'z' && domain.axes.t) conf.y1 = 't';
 			break;
 		case 'VerticalProfile':
 			conf.x = 'z';
+			break;
+		case 'Point':
 			break;
 		case 'PointSeries':
 			conf.x = 't';
@@ -41,6 +55,9 @@ export default function (
 export interface AxisConfig {
 	x: Axis;
 	y1?: Extract<Axis, 'z' | 't'>;
+	/**
+	 * Grid (x), MultiPoint/MultiPolygon/MultiPolygonSeries (Polygon/Point)
+	 */
 	fx?: Extract<Axis, 'composite' | 'x' | 'y'>;
 	fy?: Extract<Axis, 'composite' | 'x' | 'y'>;
 }

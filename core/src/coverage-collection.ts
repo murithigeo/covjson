@@ -159,11 +159,10 @@ export class CoverageCollection<T extends Domain = Domain> extends Base<CovColl<
       .sort((a, b) => a - b);
   }
   get t() {
-    const all = this.coverages.flatMap(({ domain }) => domain.t).map((v) => v.value);
-
-    return [...new Set(all)]
-      .map((v) => new CustomDate(v))
-      .sort((a, b) => a.getTime() - b.getTime());
+    return new Set(this.coverages.flatMap((cov) => cov.t))
+      .keys()
+      .toArray()
+      .sort((a, b) => new Date(a).getTime() - new Date(b).getTime());
   }
   private set referencing(referencing: ReferenceSystemConnection[] | undefined) {
     this.#referencing = referencing;

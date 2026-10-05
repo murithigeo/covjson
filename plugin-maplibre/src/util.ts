@@ -13,6 +13,10 @@ export function getCoverageId(data: Coverage, promoteId = 'uuid'): string {
 	return promoteId in data ? data[promoteId] : data.properties[promoteId];
 }
 
+/**
+ * Implement worker
+ * Implement partial updates
+ */
 export async function loadCovJson(data: PluginOptions['data']): Promise<Coverage[]> {
 	if (typeof data === 'string') {
 		data = await load<Exclude<CoverageJSON, NdArray>>(data);

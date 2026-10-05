@@ -23,17 +23,20 @@
 
 	let urlCache = new SvelteMap<string, string>(Object.entries(covjsonOrgData));
 	let files = $state<FileList>();
-	let value = $state<string>(covjsonOrgData['Grid Tiled']);
-	let name = $state<string>('Grid Tiled');
+	let value = $state<string>();
+	let name = $state<string>();
 	let errors = $state<Partial<Record<'message', string>>[]>([]);
 
 	let invalid = $derived(errors.length > 0);
 
 	onMount(() => {
-		if (type === 'url' && !data) {
-			name = 'Grid Tiled';
-			value = covjsonOrgData[name];
-			onclick(false);
+		if (type === 'url') {
+			if (!data) {
+				name = 'Grid Tiled';
+				value = covjsonOrgData['Grid Tiled'];
+				return onclick(false);
+			}
+			// Try to prefill
 		}
 	});
 	async function onclick(validate = true) {
@@ -114,7 +117,7 @@
 			{#each urlCache as [k, v] (k)}
 				<ButtonGroup.Root>
 					<Button
-						{variant}
+						variant={name === k ? 'secondary' : 'outline'}
 						disabled={type !== 'url'}
 						onclick={() => {
 							[name, value] = [k, v];

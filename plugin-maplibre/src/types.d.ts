@@ -3,7 +3,7 @@ import type {
 	Domain as CovDomain,
 	CoverageCollection as CovCollection
 } from 'coveragejson';
-import { Coverage, CoverageCollection, getDomain } from '@murithigeo/covjson-core';
+import { Coverage, CoverageCollection, type InferDomainClass } from '@murithigeo/covjson-core';
 import {
 	GeoJSONSource,
 	type FillLayerSpecification,
@@ -12,7 +12,7 @@ import {
 	type SymbolLayerSpecification
 } from 'maplibre-gl';
 
-type Domain = Awaited<ReturnType<typeof getDomain>>;
+type Domain = InferDomainClass | ReturnType<InferDomainClass['denormalize']>;
 type GeoJSONSourceOptions = Omit<ConstructorParameters<typeof GeoJSONSource>[1], 'data' | 'type'>;
 
 interface BasicPluginOptions {

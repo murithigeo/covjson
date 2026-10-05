@@ -1,20 +1,11 @@
-import type {
-  Coverage as CRG,
-  Domain,
-  NdArray as Nd,
-  Position,
-  MultiPolygon,
-  MultiPoint,
-  Section,
-  Trajectory
-} from 'coveragejson';
+import type { Coverage as CRG, Domain, NdArray as Nd, Position } from 'coveragejson';
 import { Base, type ReferenceArgument } from './base.ts';
 import { Parameter, ParameterGroup } from './parameters.ts';
-import { BaseDomain, CustomDate, getDomain, type GridType } from './domain/index.ts';
+import { BaseDomain, getDomain, type GridType } from './domain/index.ts';
 import { load } from './load.ts';
 import type { InferDomainClass } from './domain/types.d.ts';
 import { Referencing } from './referencing.ts';
-import { NdArray, type NdArrayOptions } from './ranges.ts';
+import { Range, type RangeOptions } from './ranges.ts';
 import { nanoid } from 'nanoid';
 import type { Feature } from 'geojson';
 import { cartesianProduct } from './utils.ts';
@@ -26,7 +17,7 @@ export interface CoverageOptions {
   /**
    * Options to be applied to each ndarray
    */
-  ranges?: Record<string, NdArrayOptions>;
+  ranges?: Record<string, RangeOptions>;
   /**
    * The preferred language of any parameters
    * @see {I18N} for more details
@@ -55,7 +46,7 @@ export class Coverage<
   domainType: ID['domainType'];
   parameters: Map<string, Parameter>;
   parameterGroups: ParameterGroup[];
-  ranges: Map<string, NdArray>;
+  ranges: Map<string, Range>;
   uuid: string;
   indices: Map<string, number>;
   options: CoverageOptions;
@@ -81,7 +72,7 @@ export class Coverage<
 
     this.ranges = new Map();
     for (const id in ranges)
-      this.ranges.set(id.toUpperCase(), new NdArray(ranges[id], options.ranges?.[id]));
+      this.ranges.set(id.toUpperCase(), new Range(ranges[id], options.ranges?.[id]));
 
     this.parameters = new Map();
     for (const id in parameters)
@@ -134,16 +125,15 @@ export class Coverage<
   /**
    * Assumes that the domain contained has implemented the method
    */
-  // denormalize(){
+  denormalize(): Omit<this, 'domain'> & { domain: ReturnType<ID['denormalize']> } {
+    this.domain.denormalize();
+    return this;
+  }
 
-  //   this.domain
-  //   return this;
-  // }
-
-  // normalize(): this {
-  //   this.domain.normalize?.();
-  //   return this;
-  // }
+  normalize(): this {
+    this.domain.normalize?.();
+    return this;
+  }
 
   get feature(): Feature<
     ID['geometry'],

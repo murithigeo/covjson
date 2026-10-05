@@ -5,19 +5,19 @@
 		isUndefined,
 		type DataRow
 	} from '@murithigeo/covjson-core';
-	import { Switch } from '#lib/components/ui/switch/index.js';
 	import ParameterRender from './param-render.svelte';
 	import * as ButtonGroup from '#lib/components/ui/button-group/index.js';
-	import { Separator } from '#lib/components/ui/separator/index.js';
 	import { Button } from '#lib/components/ui/button/index.js';
-	import { TrashIcon, PinIcon, PinOffIcon } from '@lucide/svelte';
+	import { TrashIcon, PinIcon, PinOffIcon, ChartColumnIcon } from '@lucide/svelte';
 	import dimensions, { type AxisConfig } from './dimensions.ts';
 	import { getDashCtx } from '#lib/dashboards/utils/ctx.svelte.js';
-	import { Label } from '#lib/components/ui/label/index.js';
 	import { Badge } from '#lib/components/ui/badge/index.js';
 	import { ReactiveParameter } from '#lib/dashboards/utils/parameter.svelte.js';
 	import * as Card from '#lib/components/ui/card/index.js';
 	import * as Tabs from '#lib/components/ui/tabs/index.js';
+	import * as ToggleGroup from '#lib/components/ui/toggle-group/index.js';
+	import { SvelteMap } from 'svelte/reactivity';
+	import { Separator } from '#lib/components/ui/separator/index.ts';
 </script>
 
 <script lang="ts">
@@ -50,7 +50,7 @@
 	/**
 	 * @todo Allow incremental updates by not rerendering entire card. i.e if coverage here, only update coverage indices
 	 */
-	const domain = coverage.domain.denormalize();
+	const domain = coverage.denormalize().domain;
 
 	const ds = dimensions(domain);
 	let x = $state(ds.x);
@@ -65,7 +65,13 @@
 			.filter(([key]) => coverage.ranges.has(key))
 			.toArray()
 	);
+	let viewAsChart = $state(
+		// svelte-ignore state_referenced_locally
+		new SvelteMap(parameters.map(([k, v]) => [k, v.isString ? false : true]))
+	);
 
+	// svelte-ignore state_referenced_locally
+	let currentParameter = $state(parameters[0][0]);
 	let selected = $derived(parameters.filter(([key]) => ctx.selected.has(key)).map(([key]) => key));
 
 	let data = $state<DataRow[]>([]);
@@ -85,49 +91,25 @@
 <Card.Root>
 	<Card.Header>
 		<Card.Title><Badge variant="outline">{coverage.domain.domainType}</Badge></Card.Title>
-		<Card.Description class="flex space-x-2">
-			<div class="flex items-center space-x-2">
-				<Switch
-					checked={fx === ds.fx}
-					disabled={!ds.fx}
-					onCheckedChange={(checked) => {
-						if (checked) fx = ds.fx;
-						else fx = undefined;
-					}}
-				/>
-				<Label>{ds.fx}</Label>
-			</div>
-			<Separator orientation="vertical" />
-			<div class="flex items-center space-x-2">
-				<Switch
-					checked={fy === ds.fy}
-					disabled={!ds.fy}
-					onCheckedChange={(checked) => {
-						if (checked) fy = ds.fy;
-						else fy = undefined;
-					}}
-				/>
-				<Label>{ds.fy}</Label>
-			</div>
-			<Separator orientation="vertical" />
-			<!-- Make dropdown or find a way to render the splines
-			<div class="flex items-center space-x-2">
-				<Switch
-					checked={y1 === ds.y1}
-					disabled={!ds.y1}
-					onCheckedChange={(checked) => {
-						if (checked) y1 = ds.y1;
-						else y1 = undefined;
-					}}
-				/>
-				<Label>{ds.y1}</Label>
-			</div> -->
-			<Separator orientation="vertical" />
-
-			<div class="flex items-center space-x-2">
-				<Switch bind:checked={facetAll} />
-				<Label>facetAll</Label>
-			</div>
+		<Card.Description class="flex flex-row items-center space-x-2">
+			<ToggleGroup.Root
+				type="multiple"
+				variant="outline"
+				onValueChange={(list) => {
+					fx = list.includes('fx') ? ds.fx : undefined;
+					fy = list.includes('fy') ? ds.fy : undefined;
+					y1 = list.includes('y1') ? ds.y1 : undefined;
+					facetAll = list.includes('facetAll');
+					if (currentParameter) viewAsChart.set(currentParameter, list.includes('chart'));
+				}}
+			>
+				{#each Object.entries(ds).filter(([k, v]) => !isUndefined(v) && k !== 'x') as [k, v]}
+					<ToggleGroup.Item value={k}>{v}</ToggleGroup.Item>
+				{/each}
+				<ToggleGroup.Item value="facetAll">Facet All</ToggleGroup.Item>
+				<Separator orientation="vertical" />
+				<ToggleGroup.Item value="chart"><ChartColumnIcon /></ToggleGroup.Item>
+			</ToggleGroup.Root>
 		</Card.Description>
 		<Card.Action>
 			<ButtonGroup.Root>
@@ -149,7 +131,7 @@
 		</Card.Action>
 	</Card.Header>
 	<Card.Content>
-		<Tabs.Root value={selected[0]}>
+		<Tabs.Root value={selected[0]} orientation="vertical">
 			<Tabs.List>
 				{#each new Set([...selected, ...parameters.map(([k]) => k)]) as value, i (i)}
 					<Tabs.Trigger {value}>{value}</Tabs.Trigger>
@@ -164,6 +146,7 @@
 						bind:y1
 						bind:fy
 						bind:coverage
+						bind:viewAsChart
 						{parameter}
 						bind:facetAll
 						{domain}

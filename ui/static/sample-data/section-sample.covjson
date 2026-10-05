@@ -1,0 +1,161 @@
+{
+	"$schema": "https://schemas.opengis.net/covjson/1.0/coveragejson.json",
+	"type": "Coverage",
+	"parameters": {
+		"temperature": {
+			"type": "Parameter",
+			"observedProperty": {
+				"label": {
+					"en": "Water Temperature"
+				}
+			},
+			"unit": {
+				"symbol": {
+					"type": "http://uom.org/UCUM",
+					"value": "Degree Celsius"
+				}
+			}
+		},
+		"Salinity": {
+			"type": "Parameter",
+			"observedProperty": {
+				"label": {
+					"en": "Salt/Water Ratio"
+				}
+			}
+		}
+	},
+	"domain": {
+		"type": "Domain",
+		"domainType": "Section",
+		"referencing": [
+			{
+				"coordinates": [
+					"x",
+					"y"
+				],
+				"system": {
+					"type": "GeographicCRS",
+					"id": "http://www.opengis.net/def/crs/OGC/1.3/CRS84"
+				}
+			}
+		],
+		"axes": {
+			"composite": {
+				"dataType": "tuple",
+				"coordinates": [
+					"t",
+					"x",
+					"y"
+				],
+				"values": [
+					[
+						"2026-08-18T00:00:00Z",
+						40.4259824,
+						-3.864726
+					],
+					[
+						"2026-08-19T00:00:00Z",
+						40.6844679,
+						-3.5544798
+					],
+					[
+						"2026-08-20T:03:00:00+03:00",
+						41.548567,
+						-3.3179811
+					]
+				]
+			},
+			"z": {
+				"values": [
+					0,
+					100,
+					200,
+					250,
+					290,
+					500,
+					900,
+					2000
+				]
+			}
+		}
+	},
+	"ranges": {
+		"temperature": {
+			"type": "NdArray",
+			"dataType": "float",
+			"values": [
+				10,
+				12.5,
+				13.5,
+				12,
+				13.3,
+				13.987,
+				11.5,
+				12,
+				null,
+				11.5,
+				null,
+				null,
+				11.2,
+				11.9,
+				12.3,
+				11,
+				10,
+				8.8,
+				11.2,
+				10.2,
+				7.8,
+				11.14,
+				9.18,
+				6.7
+			],
+			"shape": [
+				7,
+				3
+			],
+			"axisNames": [
+				"z",
+				"composite"
+			]
+		},
+		"Salinity": {
+			"type": "NdArray",
+			"dataType": "float",
+			"values": [
+				null,
+				100,
+				95,
+				95,
+				92.5,
+				91.5,
+				100,
+				88.8,
+				90,
+				99,
+				78,
+				67,
+				null,
+				60,
+				44,
+				80,
+				60,
+				60,
+				81,
+				55,
+				40,
+				80,
+				40,
+				33
+			],
+			"axisNames": [
+				"z",
+				"composite"
+			],
+			"shape": [
+				7,
+				3
+			]
+		}
+	}
+}

@@ -1,6 +1,6 @@
 import {
 	Coverage,
-	NdArray,
+	Range,
 	Parameter,
 	ParameterGroup,
 	type OnIndicesChange
@@ -50,7 +50,7 @@ class DashboardContext {
 		else this.pinned.set(coverage.uuid, coverage);
 	}
 
-	updateRangeData(paramId: string, covUuid: string, range: NdArray) {
+	updateRangeData(paramId: string, covUuid: string, range: Range) {
 		let param = this.parameters.get(paramId);
 		if (!param) return;
 

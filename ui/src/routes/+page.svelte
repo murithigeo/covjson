@@ -16,6 +16,7 @@
 	import { setMode, systemPrefersMode } from 'mode-watcher';
 	import workerUrl from 'maplibre-gl/dist/maplibre-gl-worker.mjs?worker&url';
 	setWorkerUrl(workerUrl);
+
 	// Add support https://www.npmjs.com/package/netcdfjs
 	//@ts-expect-error incompatibility with inbuilt maplibre type
 	addSourceType('coveragejson', MaplibrePlugin).catch(() => {});
@@ -24,18 +25,19 @@
 	let loaded = $state(false);
 	let coverages = $state<Coverage[]>([]);
 	let onIndicesChange = $state<OnIndicesChange>();
-	onMount(async () => {
+	onMount(() => {
 		setMode(systemPrefersMode.current || 'dark');
-		const res = await fetch(covjsonData['Grid Tiled']);
-		if (!res.ok) return;
-		data = await res.json();
+		fetch(covjsonData['MultiPolygon']).then((res) => {
+			if (!res.ok) return;
+			res.json().then((d) => (data = d));
+		});
 	});
 	$effect(() => {
 		if (!map || !data || !loaded) return;
 
 		const source = 'cov-load-test';
 		const layers = ['grid-outline', 'grid-layer', 'section'];
-		if (!!map.getSource(source)) {
+		if (map.getSource(source)) {
 			// Or just implement an update/override method
 			layers.forEach((id) => map!.removeLayer(id));
 			map.removeSource(source);
