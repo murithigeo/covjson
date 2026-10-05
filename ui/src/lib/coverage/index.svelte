@@ -8,7 +8,7 @@
 	import ParameterRender from './param-render.svelte';
 	import * as ButtonGroup from '#lib/components/ui/button-group/index.js';
 	import { Button } from '#lib/components/ui/button/index.js';
-	import { TrashIcon, PinIcon, PinOffIcon, ChartColumnIcon } from '@lucide/svelte';
+	import { TrashIcon, PinIcon, PinOffIcon, ChartColumnIcon, TableIcon } from '@lucide/svelte';
 	import dimensions, { type AxisConfig } from './dimensions.ts';
 	import { getDashCtx } from '#lib/dashboards/utils/ctx.svelte.js';
 	import { Badge } from '#lib/components/ui/badge/index.js';
@@ -65,13 +65,7 @@
 			.filter(([key]) => coverage.ranges.has(key))
 			.toArray()
 	);
-	let viewAsChart = $state(
-		// svelte-ignore state_referenced_locally
-		new SvelteMap(parameters.map(([k, v]) => [k, v.isString ? false : true]))
-	);
 
-	// svelte-ignore state_referenced_locally
-	let currentParameter = $state(parameters[0][0]);
 	let selected = $derived(parameters.filter(([key]) => ctx.selected.has(key)).map(([key]) => key));
 
 	let data = $state<DataRow[]>([]);
@@ -86,6 +80,7 @@
 	$effect(() => {
 		dataPromise;
 	});
+	let tabValue = $derived<'table' | 'chart'>('chart');
 </script>
 
 <Card.Root>
@@ -100,16 +95,19 @@
 					fy = list.includes('fy') ? ds.fy : undefined;
 					y1 = list.includes('y1') ? ds.y1 : undefined;
 					facetAll = list.includes('facetAll');
-					if (currentParameter) viewAsChart.set(currentParameter, list.includes('chart'));
 				}}
 			>
 				{#each Object.entries(ds).filter(([k, v]) => !isUndefined(v) && k !== 'x') as [k, v]}
 					<ToggleGroup.Item value={k}>{v}</ToggleGroup.Item>
 				{/each}
 				<ToggleGroup.Item value="facetAll">Facet All</ToggleGroup.Item>
-				<Separator orientation="vertical" />
-				<ToggleGroup.Item value="chart"><ChartColumnIcon /></ToggleGroup.Item>
 			</ToggleGroup.Root>
+			<Tabs.Root bind:value={tabValue}>
+				<Tabs.List>
+					<Tabs.Trigger value="chart"><ChartColumnIcon /></Tabs.Trigger>
+					<Tabs.Trigger value="table"><TableIcon /></Tabs.Trigger>
+				</Tabs.List>
+			</Tabs.Root>
 		</Card.Description>
 		<Card.Action>
 			<ButtonGroup.Root>
@@ -132,7 +130,7 @@
 	</Card.Header>
 	<Card.Content>
 		<Tabs.Root value={selected[0]} orientation="vertical">
-			<Tabs.List>
+			<Tabs.List class="h-full overflow-y-auto">
 				{#each new Set([...selected, ...parameters.map(([k]) => k)]) as value, i (i)}
 					<Tabs.Trigger {value}>{value}</Tabs.Trigger>
 				{/each}
@@ -146,9 +144,9 @@
 						bind:y1
 						bind:fy
 						bind:coverage
-						bind:viewAsChart
 						{parameter}
 						bind:facetAll
+						bind:tabValue
 						{domain}
 					/>
 				</Tabs.Content>

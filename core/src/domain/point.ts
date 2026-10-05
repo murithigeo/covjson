@@ -61,7 +61,10 @@ abstract class Base<D extends PointD | PSeriesD | VertProfDomain> extends BaseDo
     return indices;
   }
   get axesSize(): Map<keyof D['axes'], number> {
-    return new Map().set('x', 0).set('y', 0).set('t', this.t.length).set('z', this.z.length);
+    const map = new Map().set('x', 0).set('y', 0);
+    if (this.axes.t) map.set('t', this.t.length);
+    if (this.axes.z) map.set('z', this.z.length);
+    return map;
   }
 }
 

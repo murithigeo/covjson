@@ -40,7 +40,7 @@
 		parameter: ReactiveParameter;
 		facetAll?: boolean;
 		domain: ReturnType<InferDomainClass['denormalize']>;
-		viewAsChart: SvelteMap<string, boolean>;
+		tabValue: 'chart' | 'table';
 	}
 
 	let {
@@ -53,7 +53,7 @@
 		y1 = $bindable(),
 		facetAll = $bindable(),
 		domain = $bindable(),
-		viewAsChart = $bindable()
+		tabValue = $bindable(parameter.isString ? 'table' : 'chart')
 	}: Props = $props();
 
 	let axesSize = $derived(coverage.axesSize as Map<Axis, number>);
@@ -91,12 +91,6 @@
 		return value;
 	}
 
-	let tabValue = $derived.by(() => {
-		if (stringy) return 'table';
-		const ischart = viewAsChart.get(parameter.key);
-		if (ischart) return 'chart';
-		return 'table';
-	});
 	/**
 	 * https://stackoverflow.com/a/31536517
 	 */
@@ -111,20 +105,30 @@
 					let value: unknown = row[fieldName];
 					//@ts-expect-error fieldName should Axis
 					if (axisNames.includes(fieldName)) value = resolveAxisIdx(fieldName, value);
-					return JSON.stringify(value, (k, v) => (isUndefined(v) || isNull(v) ? '' : v));
+					return JSON.stringify(value, (k, v) => {
+						if (isUndefined(v)) return 'undefined';
+						if (!isNull(v)) return 'null';
+						if (Array.isArray(v)) return `${v}`;
+						return v;
+					});
 				})
 			)
 		].join('\r\n');
 	};
 	let filename = $derived(`coverage-${coverage.id || coverage.uuid}_${parameter.key}`);
-
+	/**
+	 * Only enable when downloading & disable again
+	 */
+	let legend = $state(false);
 	function download(format: 'csv' | ChartImageOptions['format']): void {
 		if (format !== 'csv') {
+			// legend = true;
 			if (!chartRef) return;
-			downloadImage(chartRef, { filename, format });
+			downloadImage(chartRef, { filename, format }); //.then(()=>legend = false)
 			return;
 		}
-		const blob = new Blob([rowsToCsv()], { type: 'text/csv;charset=utf-8' });
+		const str = rowsToCsv();
+		const blob = new Blob([str], { type: 'text/csv;charset=utf-8' });
 		const container = document.createElement('a');
 		container.href = URL.createObjectURL(blob);
 		container.download = filename + '.csv';
@@ -140,21 +144,16 @@
 			color: categoric ? undefined : parameter.color
 		}
 	});
-	$inspect(data);
 </script>
 
 <Card.Root>
 	<Card.Content>
 		<Tabs.Root bind:value={tabValue}>
-			<!-- <Tabs.List>
-				<Tabs.Trigger value="chart" disabled={stringy}>Chart</Tabs.Trigger>
-				<Tabs.Trigger value="table">Table</Tabs.Trigger>
-			</Tabs.List> -->
-			<Tabs.Content value="table">
+			<Tabs.Content value="table" class="w-full overflow-auto">
 				{@render table()}
 			</Tabs.Content>
-			<Tabs.Content value="chart">
-				{#if !stringy}
+			{#if !stringy}
+				<Tabs.Content value="chart">
 					<Chart.Container config={chartConfig}>
 						<LineChart
 							ref={chartRef}
@@ -182,7 +181,7 @@
 								axis: { facetAll: true }
 							}}
 							highlight={{ lines: true, points: true, facetAll }}
-							padding={defaultChartPadding({ legend: true, right: 10 })}
+							padding={defaultChartPadding({ legend, right: 10 })}
 							transform={{ mode: 'domain', axis: 'both' }}
 							c={categoric ? 'category' : undefined}
 							cScale={categoric ? scaleOrdinal() : undefined}
@@ -248,8 +247,8 @@
 							{/snippet}
 						</LineChart>
 					</Chart.Container>
-				{/if}
-			</Tabs.Content>
+				</Tabs.Content>
+			{/if}
 		</Tabs.Root>
 	</Card.Content>
 	<Card.Footer class="flex w-full flex-row flex-wrap justify-center gap-2">
@@ -275,11 +274,18 @@
 		>
 
 		<ButtonGroup.Root>
-			<Button variant="outline" size="icon-sm"><DownloadIcon /></Button>
+			<!-- Render the preffered format when tabValue -->
+			<Button
+				variant="outline"
+				class="flex gap-2"
+				onclick={() => {
+					tabValue === 'chart' ? download('csv') : download('png');
+				}}><DownloadIcon /> {tabValue === 'chart' ? 'csv' : 'png'}</Button
+			>
 			<DropDownMenu.Root>
 				<DropDownMenu.Trigger>
 					{#snippet child({ props })}
-						<Button {...props} variant="outline" size="icon-sm"><ChevronDownIcon /></Button>
+						<Button {...props} variant="outline" size="icon"><ChevronDownIcon /></Button>
 					{/snippet}
 				</DropDownMenu.Trigger>
 				<DropDownMenu.Content align="center" class="w-auto">
@@ -385,7 +391,7 @@
 {/snippet}
 
 {#snippet table()}
-	<Table.Root class="table-auto">
+	<Table.Root class="w-full table-auto overflow-auto">
 		<Table.Caption>Tabulated {parameter.key} data</Table.Caption>
 
 		<Table.Header>

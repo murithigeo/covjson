@@ -50,7 +50,9 @@ abstract class Base<T extends MpD | MpsD> extends BaseDomain<T> {
     return this.axes.t.values.map((v) => v);
   }
   get axesSize(): Map<keyof T['axes'], number> {
-    return new Map().set('composite', this.axes.composite.values.length).set('t', this.t.length);
+    const map = new Map().set('composite', this.axes.composite.values.length);
+    if (this.axes.t) map.set('t', this.t.length);
+    return map;
   }
   _reproject(referencing: Referencing): this {
     super._reproject(referencing);

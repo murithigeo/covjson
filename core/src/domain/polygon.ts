@@ -17,10 +17,10 @@ abstract class Base<T extends PolygonDomain | PolySeriesD | MP | MPs> extends Ba
   }
 
   get axesSize(): Map<keyof T['axes'], number> {
-    return new Map()
-      .set('composite', this.axes.composite.values.length)
-      .set('t', this.t.length)
-      .set('z', this.z.length);
+    const map = new Map().set('composite', this.axes.composite.values.length);
+    if (this.axes.t) map.set('t', this.t.length);
+    if (this.axes.z) map.set('z', this.z.length);
+    return map;
   }
   _reproject(referencing: Referencing): this {
     super._reproject(referencing);
