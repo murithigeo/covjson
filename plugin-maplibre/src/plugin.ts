@@ -3,14 +3,10 @@ import {
 	type Evented,
 	Map as MapInstance,
 	GeoJSONSource,
-	type MapGeoJSONFeature
+	type MapGeoJSONFeature,
+	Popup
 } from 'maplibre-gl';
-import {
-	Coverage,
-	CoverageCollection,
-	type OnIndicesChange,
-	type WithRequiredProperty
-} from '@murithigeo/covjson-core';
+import { Coverage, CoverageCollection, type WithRequiredProperty } from '@murithigeo/covjson-core';
 import type { BasicPluginOptions, PluginOptions } from './types.js';
 import type { Position } from 'coveragejson';
 import { loadCovJson } from './util.ts';
@@ -20,7 +16,6 @@ import type { Point, Polygon } from 'geojson';
 export class MaplibrePlugin extends GeoJSONSource {
 	_coverages: Map<string, Coverage>;
 	covOptions: WithRequiredProperty<BasicPluginOptions, 'layers' | 'listenTo'>;
-	tempSourceId: string;
 	constructor(id: string, options: PluginOptions, dispatcher: Dispatcher, eventedParent: Evented) {
 		super(
 			id,
@@ -39,7 +34,6 @@ export class MaplibrePlugin extends GeoJSONSource {
 			listenTo: options.listenTo || [],
 			reproject: 'reproject' in options ? options.reproject : true
 		};
-		this.tempSourceId = `${this.id}::::scratchpad`;
 		this.setCovData(options.data).then(() => this.covOptions.onLoad?.(this.covMapToCollection()));
 	}
 
@@ -82,8 +76,6 @@ export class MaplibrePlugin extends GeoJSONSource {
 				});
 				const point = e.lngLat.wrap().toArray();
 				const coverages = this.getCoveragesFromFeatureList(features, point);
-				const [coverage] = coverages;
-				if (coverage) this.onIndicesChange(coverage.uuid, coverage.indices);
 				//@ts-expect-error we are patching the event object
 				e.coverages = coverages;
 			});
@@ -95,86 +87,6 @@ export class MaplibrePlugin extends GeoJSONSource {
 			.map((id) => this._coverages.get(id.toString()))
 			.filter((v) => v !== undefined)
 			.map((v) => v.calculateIndices(point)); // todo check if indices get calculated correctly
-	}
-
-	onIndicesChange(coverage: Coverage | string | undefined, indices: Map<string, number>) {
-		if (typeof coverage === 'string') {
-			coverage = this._coverages.get(coverage);
-		}
-		if (!coverage) return;
-		const geometry = this.indicesToGeometry(coverage, indices || coverage.indices);
-
-		if (!geometry) return;
-
-		if (!this.map.isStyleLoaded()) return;
-		let mapSource = this.map.getSource<GeoJSONSource>?.(this.tempSourceId);
-		if (!mapSource) {
-			this.map.addSource(this.tempSourceId, {
-				type: 'geojson',
-				data: { type: 'FeatureCollection', features: [] }
-			});
-			mapSource = this.map.getSource(this.tempSourceId);
-		}
-
-		const id = `${this.tempSourceId}:::temp-layer`;
-		const ltype = geometry.type === 'Point' ? 'symbol' : 'fill';
-		// Overwrite the data
-		mapSource?.setData(geometry).then(() => {
-			const layer = this.map.getLayer(id);
-			if (layer && layer.type === ltype) return;
-			if (layer) this.map.removeLayer(id);
-			if (geometry.type === 'Point') {
-				this.map.addLayer({
-					id,
-					source: this.tempSourceId,
-					type: 'symbol',
-					paint: this.covOptions.tempLayerPaint?.symbol,
-					filter: ['==', ['geometry-type'], 'Point']
-				});
-				return;
-			}
-			this.map.addLayer({
-				id,
-				source: this.tempSourceId,
-				type: 'fill',
-				paint: this.covOptions.tempLayerPaint?.fill,
-				filter: ['==', ['geometry-type'], 'Polygon']
-			});
-		});
-	}
-	indicesToGeometry(coverage: Coverage, indices: Map<string, number>): Polygon | Point | undefined {
-		switch (coverage.domain.domainType) {
-			case 'Grid':
-				return coverage.domain.getPolygonAtIndices(indices.get('x') || 0, indices.get('y') || 0);
-			case 'MultiPoint':
-			case 'MultiPointSeries':
-				return {
-					type: 'Point',
-					coordinates: coverage.domain.axes.composite.values[indices.get('composite')!]
-				};
-			case 'Trajectory':
-			case 'Section':
-				return {
-					type: 'Point',
-					coordinates: coverage.domain.axes.composite.values[indices.get('composite')!].slice(
-						1
-					) as Position
-				};
-			case 'Point':
-			case 'VerticalProfile':
-			case 'PointSeries':
-				return coverage.domain.geometry;
-			case 'MultiPolygon':
-			case 'MultiPolygonSeries':
-			case 'Polygon':
-			case 'PolygonSeries':
-				return {
-					type: 'Polygon',
-					coordinates: coverage.domain.axes.composite.values[indices.get('composite') || 0]
-				};
-			default:
-				return; //throw error?
-		}
 	}
 
 	updateCoverageData() {}

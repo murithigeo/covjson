@@ -7,12 +7,8 @@ export interface DashboardProps extends PartialBy<MetadataRenderProps<Coverage[]
 	/**
 	 * Point this to the layer's onIndicesChange func
 	 */
-	onIndicesChange?: OnIndicesChange;
+	onIndicesChange?: (coverage: Coverage, data: DataRow) => void;
 	children?: Snippet;
-	formatters?: {
-		temporal?: Formatter<string>;
-		elevation?: Formatter<number>;
-	};
 }
 type Formatter<T extends string | number> = (val: T) => T;
 

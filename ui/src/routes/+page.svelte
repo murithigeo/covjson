@@ -1,8 +1,9 @@
 <script lang="ts">
-	import { MapLibre, type Map } from 'svelte-maplibre';
-	import { addSourceType, setWorkerUrl } from 'maplibre-gl';
+	import { center } from '@turf/center';
+	import { MapLibre, type Map, GeoJSON, SymbolLayer, LineLayer } from 'svelte-maplibre';
+	import { addSourceType, setWorkerUrl, Popup, LngLat } from 'maplibre-gl';
 	import { MaplibrePlugin } from '@murithigeo/covjson-maplibre';
-	import { Coverage, type OnIndicesChange } from '@murithigeo/covjson-core';
+	import { Coverage, type DataRow, type OnIndicesChange } from '@murithigeo/covjson-core';
 	import TresDashboard from '#lib/dashboards/templates/tres.svelte';
 	import * as Sheet from '#lib/components/ui/sheet/index.js';
 	import { Label } from '#lib/components/ui/label/index.js';
@@ -15,6 +16,7 @@
 	import { onMount } from 'svelte';
 	import { setMode, systemPrefersMode } from 'mode-watcher';
 	import workerUrl from 'maplibre-gl/dist/maplibre-gl-worker.mjs?worker&url';
+	import type { Position } from 'geojson';
 	setWorkerUrl(workerUrl);
 
 	// Add support https://www.npmjs.com/package/netcdfjs
@@ -24,7 +26,7 @@
 	let map = $state<Map>();
 	let loaded = $state(false);
 	let coverages = $state<Coverage[]>([]);
-	let onIndicesChange = $state<OnIndicesChange>();
+
 	onMount(() => {
 		setMode(systemPrefersMode.current || 'dark');
 		fetch(covjsonData['MultiPolygon']).then((res) => {
@@ -32,6 +34,7 @@
 			res.json().then((d) => (data = d));
 		});
 	});
+
 	$effect(() => {
 		if (!map || !data || !loaded) return;
 
@@ -53,7 +56,6 @@
 			},
 			onLoad: (data) => ({ coverages } = data)
 		});
-		onIndicesChange = map.getSource<MaplibrePlugin>(source)?.onIndicesChange;
 		map.addLayer({
 			source,
 			id: 'grid-layer',
@@ -80,6 +82,41 @@
 
 			coverages = e.coverages;
 		});
+	});
+
+	let onIndicesChange = $derived((coverage: Coverage, data: DataRow | null) => {
+		// close popup if data is null
+		const indices = Object.fromEntries(
+			coverage.axesSize
+				.entries()
+				.toArray()
+				.map(([axisName]): [string, number] => [axisName, data[axisName] as number])
+		);
+
+		// Figure how to render popup
+		let lngLat: Position;
+		switch (coverage.domain.domainType) {
+			case 'VerticalProfile':
+			case 'Point':
+			case 'PointSeries':
+				lngLat = coverage.domain.geometry.coordinates;
+				break;
+			case 'MultiPoint':
+			case 'MultiPointSeries':
+			case 'Section':
+			case 'Trajectory':
+				lngLat = coverage.domain.geometry.coordinates[indices.composite];
+				break;
+			default:
+				({
+					geometry: { coordinates: lngLat }
+				} = center(
+					coverage.domain.domainType === 'Grid'
+						? coverage.domain.getPolygonAtIndices(indices.x, indices.y)
+						: coverage.domain.geometry
+				));
+		}
+		if (map) new Popup().setLngLat(lngLat).setHTML(`<p>HEree</p>`).addTo(map);
 	});
 </script>
 
@@ -126,6 +163,6 @@
 			bind:loaded
 			standardControls
 			style="https://api.maptiler.com/maps/winter-v4/style.json?key=pj3BZkbRpSWczKG2Ml2w"
-		/>
+		></MapLibre>
 	</TresDashboard>
 </div>

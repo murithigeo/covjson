@@ -48,6 +48,7 @@
 		"@sveltejs/package": "^2.5.7",
 		"@sveltejs/vite-plugin-svelte": "^7.3.0",
 		"@tailwindcss/vite": "^4.3.3",
+		"@turf/center": "^7.4.0",
 		"@types/d3-scale": "^4.0.9",
 		"@types/node": "^24",
 		"@vitest/browser-playwright": "^4.1.3",

@@ -4,22 +4,28 @@
 		type Coverage,
 		CustomDate,
 		isNull,
-		isUndefined,
-		type InferDomainClass
+		isUndefined
 	} from '@murithigeo/covjson-core';
 	import type { ReactiveParameter } from '#lib/dashboards/utils/parameter.svelte.js';
 	import * as Card from '#lib/components/ui/card/index.js';
 	import { Badge } from '#lib/components/ui/badge/index.js';
 	import * as Tabs from '#lib/components/ui/tabs/index.js';
-	import type { AxisConfig, Axis } from './dimensions.ts';
+	import {
+		type AxisConfig,
+		type Axis,
+		resolveAxisIdx,
+		resolveAxisIdxForChart,
+		type DenormalizedDomain,
+		download,
+		type DownloadOptions
+	} from './axes-utils.ts';
 	import {
 		LineChart,
 		LinearGradient,
 		Points,
 		Spline,
 		defaultChartPadding,
-		type ChartImageOptions,
-		downloadImage
+		type ChartState
 	} from 'layerchart';
 	import * as Chart from '#lib/components/ui/chart/index.js';
 	import * as ButtonGroup from '#lib/components/ui/button-group/index.js';
@@ -29,8 +35,6 @@
 	import * as Table from '#lib/components/ui/table/index.js';
 	import { Label } from '#lib/components/ui/label/index.js';
 	import { DownloadIcon, ChevronDownIcon } from '@lucide/svelte';
-	import type { MultiPoint, Polygon, Position, Section } from 'coveragejson';
-	import type { SvelteMap } from 'svelte/reactivity';
 </script>
 
 <script lang="ts">
@@ -39,8 +43,9 @@
 		coverage: Coverage;
 		parameter: ReactiveParameter;
 		facetAll?: boolean;
-		domain: ReturnType<InferDomainClass['denormalize']>;
+		domain: DenormalizedDomain;
 		tabValue: 'chart' | 'table';
+		tooltip: DataRow | null;
 	}
 
 	let {
@@ -53,10 +58,12 @@
 		y1 = $bindable(),
 		facetAll = $bindable(),
 		domain = $bindable(),
-		tabValue = $bindable(parameter.isString ? 'table' : 'chart')
+		tabValue = $bindable(parameter.isString ? 'table' : 'chart'),
+		tooltip = $bindable()
 	}: Props = $props();
 
 	let axesSize = $derived(coverage.axesSize as Map<Axis, number>);
+	let axisNames = $derived([...axesSize.keys()]);
 	let chartRef = $state<HTMLElement>();
 	let stringy = parameter.isString;
 	let categoric = $derived(parameter.isCategorical);
@@ -72,71 +79,21 @@
 				return r;
 			})
 	);
-	function resolveAxisIdx(
-		axis: Axis,
-		idx: number
-	): string | number | (Polygon | MultiPoint | Section)['axes']['composite']['values'][number] {
-		if (axis === 'z' || axis === 't') return coverage[axis][idx];
-		// @ts-expect-error domain is denormalized
-		return domain.axes[axis]?.values[idx];
-	}
-	function resolveAxisIdxForChart(axis: Axis, idx: number): number | CustomDate {
-		let value = resolveAxisIdx(axis, idx);
-		if (Array.isArray(value)) {
-			if (typeof value[0] === 'string') value = value[0];
-			else value = idx;
-			/// Others resolve to an object with {axis,idx} so that we resolve in tooltip
-		}
-		if (typeof value === 'string') return new CustomDate(value);
-		return value;
-	}
 
-	/**
-	 * https://stackoverflow.com/a/31536517
-	 */
-	const rowsToCsv = () => {
-		const axisNames = [...axesSize.keys()];
-		const header = [...axisNames, 'value'];
-		if (categoric) header.push('category');
-		return [
-			header.join(','),
-			...data.map((row) =>
-				header.map((fieldName) => {
-					let value: unknown = row[fieldName];
-					//@ts-expect-error fieldName should Axis
-					if (axisNames.includes(fieldName)) value = resolveAxisIdx(fieldName, value);
-					return JSON.stringify(value, (k, v) => {
-						if (isUndefined(v)) return 'undefined';
-						if (!isNull(v)) return 'null';
-						if (Array.isArray(v)) return `${v}`;
-						return v;
-					});
-				})
-			)
-		].join('\r\n');
-	};
-	let filename = $derived(`coverage-${coverage.id || coverage.uuid}_${parameter.key}`);
+	let downloadFn = $derived((format: DownloadOptions['format']) =>
+		download(data, {
+			format,
+			ref: chartRef,
+			axisNames,
+			filename: `coverage-${coverage.id || coverage.uuid}_${parameter.key}`,
+			categoric
+		})
+	);
 	/**
 	 * Only enable when downloading & disable again
 	 */
 	let legend = $state(false);
-	function download(format: 'csv' | ChartImageOptions['format']): void {
-		if (format !== 'csv') {
-			// legend = true;
-			if (!chartRef) return;
-			downloadImage(chartRef, { filename, format }); //.then(()=>legend = false)
-			return;
-		}
-		const str = rowsToCsv();
-		const blob = new Blob([str], { type: 'text/csv;charset=utf-8' });
-		const container = document.createElement('a');
-		container.href = URL.createObjectURL(blob);
-		container.download = filename + '.csv';
-		container.click();
-		container.remove();
 
-		setTimeout(() => URL.revokeObjectURL(container.href), 0);
-	}
 	let chartConfig = $derived<Record<string, Record<'key' | 'label', string> & { color?: string }>>({
 		[parameter.key]: {
 			key: 'value',
@@ -144,39 +101,52 @@
 			color: categoric ? undefined : parameter.color
 		}
 	});
+	let context = $state<ChartState<DataRow>>();
+	const setTooltip = (data: undefined | null | DataRow) => {
+		if (isNull(data) || isUndefined(data)) return (tooltip = null);
+		const match = rows.find((row) =>
+			axisNames.every((axisName) => row[axisName] === data?.[axisName])
+		);
+		if (!match) return;
+		tooltip = match;
+	};
+	$effect(() => {
+		setTooltip(context?.tooltip.data);
+	});
+
+	// render a snippet to render tooltip values //https://github.com/techniq/layerchart/issues/639
 </script>
 
 <Card.Root>
 	<Card.Content>
 		<Tabs.Root bind:value={tabValue}>
-			<Tabs.Content value="table" class="w-full overflow-auto">
-				{@render table()}
+			<Tabs.Content value="table">
+				<!-- {@render table()} -->
 			</Tabs.Content>
 			{#if !stringy}
 				<Tabs.Content value="chart">
 					<Chart.Container config={chartConfig}>
 						<LineChart
+							bind:context
 							ref={chartRef}
 							{data}
 							series={Object.values(chartConfig)}
 							x1={(d) => {
 								if (isUndefined(y1)) return undefined;
 
-								return resolveAxisIdxForChart(y1, d[y1]);
+								return resolveAxisIdxForChart(domain, y1, d[y1]);
 							}}
 							x={(d) => {
-								return resolveAxisIdxForChart(x, d[x]);
+								return resolveAxisIdxForChart(domain, x, d[x]);
 							}}
 							fx={(d) => {
 								if (isUndefined(fx)) return undefined;
-								return resolveAxisIdxForChart(fx, d[fx]);
+								return resolveAxisIdxForChart(domain, fx, d[fx]);
 							}}
 							fy={(d) => {
 								if (isUndefined(fy)) return undefined;
-								return resolveAxisIdxForChart(fy, d[fy]);
+								return resolveAxisIdxForChart(domain, fy, d[fy]);
 							}}
-							// legend
-							// bind:context
 							facet={{
 								axis: { facetAll: true }
 							}}
@@ -279,7 +249,7 @@
 				variant="outline"
 				class="flex gap-2"
 				onclick={() => {
-					tabValue === 'chart' ? download('csv') : download('png');
+					tabValue === 'chart' ? downloadFn('csv') : downloadFn('png');
 				}}><DownloadIcon /> {tabValue === 'chart' ? 'csv' : 'png'}</Button
 			>
 			<DropDownMenu.Root>
@@ -293,19 +263,19 @@
 						{@const disabled = stringy}
 						<!-- These should set viewMode to chart and back again -->
 						<!-- Or just render chart anyways but with a collapsible for table -->
-						<DropDownMenu.Item {disabled} textValue="png" onSelect={() => download('png')}
+						<DropDownMenu.Item {disabled} textValue="png" onSelect={() => downloadFn('png')}
 							>PNG</DropDownMenu.Item
 						>
-						<DropDownMenu.Item {disabled} textValue="jpeg" onSelect={() => download('jpeg')}
+						<DropDownMenu.Item {disabled} textValue="jpeg" onSelect={() => downloadFn('jpeg')}
 							>JPEG</DropDownMenu.Item
 						>
-						<DropDownMenu.Item {disabled} textValue="webp" onSelect={() => download('webp')}
+						<DropDownMenu.Item {disabled} textValue="webp" onSelect={() => downloadFn('webp')}
 							>WEBP</DropDownMenu.Item
 						>
 					</DropDownMenu.Group>
 					<DropDownMenu.Separator />
 					<DropDownMenu.Group>
-						<DropDownMenu.Item textValue="csv" onSelect={() => download('csv')}
+						<DropDownMenu.Item textValue="csv" onSelect={() => downloadFn('csv')}
 							>CSV</DropDownMenu.Item
 						>
 					</DropDownMenu.Group>
@@ -363,7 +333,7 @@
 					{#if rowIndex === 0}
 						{#each cellsToRender as cell}
 							<Table.Cell rowspan={cell.rowspan} class="border align-middle">
-								{resolveAxisIdx(cell.axisName, cell.index)}
+								{resolveAxisIdx(domain, cell.axisName, cell.index)}
 							</Table.Cell>
 						{/each}
 					{/if}

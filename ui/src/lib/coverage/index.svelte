@@ -5,19 +5,17 @@
 		isUndefined,
 		type DataRow
 	} from '@murithigeo/covjson-core';
-	import ParameterRender from './param-render.svelte';
+	import ParameterRender from './data-view.svelte';
 	import * as ButtonGroup from '#lib/components/ui/button-group/index.js';
 	import { Button } from '#lib/components/ui/button/index.js';
 	import { TrashIcon, PinIcon, PinOffIcon, ChartColumnIcon, TableIcon } from '@lucide/svelte';
-	import dimensions, { type AxisConfig } from './dimensions.ts';
+	import dimensions, { type Axis, type AxisConfig } from './axes-utils.ts';
 	import { getDashCtx } from '#lib/dashboards/utils/ctx.svelte.js';
 	import { Badge } from '#lib/components/ui/badge/index.js';
 	import { ReactiveParameter } from '#lib/dashboards/utils/parameter.svelte.js';
 	import * as Card from '#lib/components/ui/card/index.js';
 	import * as Tabs from '#lib/components/ui/tabs/index.js';
 	import * as ToggleGroup from '#lib/components/ui/toggle-group/index.js';
-	import { SvelteMap } from 'svelte/reactivity';
-	import { Separator } from '#lib/components/ui/separator/index.ts';
 </script>
 
 <script lang="ts">
@@ -80,7 +78,18 @@
 	$effect(() => {
 		dataPromise;
 	});
-	let tabValue = $derived<'table' | 'chart'>('chart');
+	let tabValue = $state<'table' | 'chart'>('chart');
+	/**
+	 * If facetAll, display all values, else display for current value
+	 */
+	let tooltip = $state<DataRow | null>(null);
+	$effect(() => {
+		if (!tooltip) return;
+		const indices = domain.axesSize
+			.entries()
+			.map(([k]): [Axis, number] => [k, tooltip![k] as number]);
+		onIndicesChange?.(coverage, new Map(indices));
+	});
 </script>
 
 <Card.Root>
@@ -144,9 +153,10 @@
 						bind:y1
 						bind:fy
 						bind:coverage
-						{parameter}
 						bind:facetAll
 						bind:tabValue
+						bind:tooltip
+						{parameter}
 						{domain}
 					/>
 				</Tabs.Content>
