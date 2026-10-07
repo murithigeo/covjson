@@ -39,57 +39,55 @@
 		<Resizable.Handle withHandle />
 
 		<Resizable.Pane>
-			<div class="h-screen overflow-auto">
-				<Card.Root>
-					<Card.Content class="h-screen overflow-auto">
-						<Accordion.Root type="multiple" value={['parameters', 'coverages']}>
-							<Accordion.Item value="parameters">
-								<Accordion.Trigger>Parameters</Accordion.Trigger>
-								<Accordion.Content>
-									<div class="">
-										{#each parameters as [k, data] (k)}
-											<ParameterComponent
-												stats={stats.get(k)}
-												{data}
-												bind:checked={
-													() => selected.has(k),
-													(checked) => {
-														if (checked) selected.add(k);
-														else selected.delete(k);
-													}
+			<Card.Root>
+				<Card.Content class="h-screen overflow-auto">
+					<Accordion.Root type="multiple" value={['parameters', 'coverages']}>
+						<Accordion.Item value="parameters">
+							<Accordion.Trigger>Parameters</Accordion.Trigger>
+							<Accordion.Content>
+								<div class="">
+									{#each parameters as [k, data] (k)}
+										<ParameterComponent
+											stats={stats.get(k)}
+											{data}
+											bind:checked={
+												() => selected.has(k),
+												(checked) => {
+													if (checked) selected.add(k);
+													else selected.delete(k);
 												}
-											/>
-										{/each}
-									</div>
-								</Accordion.Content>
-							</Accordion.Item>
-							<Accordion.Item value="parameterGroups">
-								<Accordion.Trigger>Parameter Groups</Accordion.Trigger>
-								<Accordion.Content></Accordion.Content>
-							</Accordion.Item>
-							<Accordion.Item value="coverages">
-								<Accordion.Trigger>Coverages</Accordion.Trigger>
-								<Accordion.Content>
-									<div class="">
-										{#each coverages as [uuid, coverage], i (i)}
-											<CoverageComponent
-												bind:selected
-												data={coverage}
-												bind:onIndicesChange
-												show={{ parameterGroups: true, parameters: true }}
-												bind:pinned={
-													() => pinned.has(coverage.uuid), () => pinned.set(uuid, coverage)
-												}
-											/>
-										{/each}
-									</div>
-								</Accordion.Content>
-							</Accordion.Item>
-						</Accordion.Root>
-					</Card.Content>
-				</Card.Root>
-			</div></Resizable.Pane
-		>
+											}
+										/>
+									{/each}
+								</div>
+							</Accordion.Content>
+						</Accordion.Item>
+						<Accordion.Item value="parameterGroups">
+							<Accordion.Trigger>Parameter Groups</Accordion.Trigger>
+							<Accordion.Content></Accordion.Content>
+						</Accordion.Item>
+						<Accordion.Item value="coverages">
+							<Accordion.Trigger>Coverages</Accordion.Trigger>
+							<Accordion.Content>
+								<div class="">
+									{#each coverages as [uuid, coverage], i (i)}
+										<CoverageComponent
+											bind:selected
+											data={coverage}
+											bind:onIndicesChange
+											show={{ parameterGroups: true, parameters: true }}
+											bind:pinned={
+												() => pinned.has(coverage.uuid), () => pinned.set(uuid, coverage)
+											}
+										/>
+									{/each}
+								</div>
+							</Accordion.Content>
+						</Accordion.Item>
+					</Accordion.Root>
+				</Card.Content>
+			</Card.Root>
+		</Resizable.Pane>
 	</Resizable.PaneGroup>
 </div>
 <!-- 
