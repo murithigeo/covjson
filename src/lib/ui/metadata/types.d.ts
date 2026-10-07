@@ -11,10 +11,6 @@ export type MetadataRenderProps<T> = {
 
 type Optional<T, K extends keyof T> = Pick<Partial<T>, K> & Omit<T, K>;
 
-export type OnColorChange = (
-	parameter: Parameter,
-	color: string | null,
-	categoryId?: string
-) => void;
+export type OnColorChange = (parameter: Parameter, color: string, categoryId?: string) => void;
 
 export type OnChangeFn<K, V> = (key: K, v: V) => void;

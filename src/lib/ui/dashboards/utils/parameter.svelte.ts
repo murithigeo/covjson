@@ -31,6 +31,7 @@ export class ReactiveParameter extends Parameter implements RangeStatistics {
 			this.setCategory(cat, param.categoryEncoding!.get(cat.id)!);
 		});
 	}
+	frequency: Map<string, number> | null;
 
 	get simpleLabel() {
 		return this.label.query()?.value || this.key;

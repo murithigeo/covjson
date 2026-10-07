@@ -4,7 +4,6 @@
 		type OnIndicesChange,
 		isUndefined,
 		type DataRow,
-		type RangeStatistics,
 		Range,
 		Parameter
 	} from '#lib/core/index.ts';
@@ -17,15 +16,22 @@
 		PinOffIcon,
 		ChartColumnIcon,
 		TableIcon,
-		VariableIcon
+		VariableIcon,
+		DownloadIcon,
+		BoxesIcon,
+		LayoutArrowRightIcon,
+		LayoutArrowDownIcon,
+		ChartLineIcon,
+		ListChecksIcon,
+		CircleAlertIcon
 	} from '@lucide/svelte';
 	import dimensions, { type Axis, type AxisConfig } from './axes-utils.ts';
 	import { Badge } from '#lib/components/ui/badge/index.js';
-	import { ReactiveParameter } from '#lib/ui/dashboards/utils/parameter.svelte.js';
 	import * as Card from '#lib/components/ui/card/index.js';
 	import * as Tabs from '#lib/components/ui/tabs/index.js';
 	import * as ToggleGroup from '#lib/components/ui/toggle-group/index.js';
-	import type { OnChangeFn } from '../metadata/types';
+	import ParameterGroup from '../metadata/parameter-group.svelte';
+	import * as Empty from '#lib/components/ui/empty/index.ts';
 </script>
 
 <script lang="ts">
@@ -71,7 +77,7 @@
 	 */
 
 	const ds = $derived(dimensions(coverage.domain));
-	let x = $state(ds.x);
+	let x = $derived(ds.x);
 	let fx = $state<AxisConfig['fx']>();
 	let fy = $state<AxisConfig['fy']>();
 	let y1 = $state<AxisConfig['y1']>();
@@ -81,19 +87,17 @@
 		coverage.parameters.entries().toArray()
 	);
 
+	let activeParam = $state([...coverage.ranges.keys()][0]);
 	let data = $state<DataRow[]>([]);
+	function dataFetcher(selected: string[], axisNames: string[]): void {
+		coverage.query(coverage.indices, selected, axisNames).then((rows) => (data = rows));
+	}
 
-	const setData = (rows: DataRow[]) => (data = rows);
-	let dataPromise = $derived.by(async () => {
-		const preloadAxis = [...new Set([fx, fy, x, y1])].filter((v) => !isUndefined(v));
-		const rows = await coverage.query(coverage.indices, [...selected], preloadAxis);
-		return setData(rows);
-	});
-
+	let axes = $derived(new Set([x, fx, fy, y1].filter((v) => !isUndefined(v))));
 	$effect(() => {
-		dataPromise;
+		dataFetcher([...selected], [...axes]);
 	});
-	let tabValue = $state<'table' | 'chart' | 'param-info'>('chart');
+	let tabValue = $state<'table' | 'chart' | 'param-info' | 'download'>('chart');
 	/**
 	 * If facetAll, display all values, else display for current value
 	 */
@@ -102,7 +106,7 @@
 		if (!tooltip) return;
 		const indices = coverage.axesSize
 			.entries()
-			.map(([k]): [Axis, number] => [k, tooltip![k] as number]);
+			.map(([k]): [Axis, number] => [k as Axis, tooltip![k] as number]);
 		onIndicesChange?.(coverage, new Map(indices));
 	});
 </script>
@@ -121,18 +125,35 @@
 					facetAll = list.includes('facetAll');
 				}}
 			>
-				{#each Object.entries(ds).filter(([k, v]) => !isUndefined(v) && k !== 'x') as [k, v]}
-					<ToggleGroup.Item value={k}>{v}</ToggleGroup.Item>
+				{#each Object.entries(ds).filter(([k, v]) => !isUndefined(v) && k !== 'x') as [k] (k)}
+					<ToggleGroup.Item value={k}
+						>{#if k === 'fx'}
+							<LayoutArrowRightIcon />
+						{:else if k === 'fy'}
+							<LayoutArrowDownIcon />
+						{:else}
+							<ChartLineIcon />
+						{/if}
+					</ToggleGroup.Item>
 				{/each}
-				<ToggleGroup.Item value="facetAll">Facet All</ToggleGroup.Item>
+				<ToggleGroup.Item value="facetAll"><ListChecksIcon /></ToggleGroup.Item>
 			</ToggleGroup.Root>
 			<Tabs.Root bind:value={tabValue}>
 				<Tabs.List>
-					<Tabs.Trigger value="chart"><ChartColumnIcon /></Tabs.Trigger>
-					<Tabs.Trigger value="table"><TableIcon /></Tabs.Trigger>
+					<Tabs.Trigger value="chart" disabled={activeParam === 'parameter-groups'}
+						><ChartColumnIcon /></Tabs.Trigger
+					>
+					<Tabs.Trigger value="table" disabled={activeParam === 'parameter-groups'}
+						><TableIcon /></Tabs.Trigger
+					>
 					{#if renderParameter}
-						<Tabs.Trigger value="param-info"><VariableIcon /></Tabs.Trigger>
+						<Tabs.Trigger value="param-info" disabled={activeParam === 'parameter-groups'}
+							><VariableIcon /></Tabs.Trigger
+						>
 					{/if}
+					<Tabs.Trigger value="download" disabled={activeParam === 'parameter-groups'}
+						><DownloadIcon /></Tabs.Trigger
+					>
 				</Tabs.List>
 			</Tabs.Root>
 		</Card.Description>
@@ -150,27 +171,54 @@
 		</Card.Action>
 	</Card.Header>
 	<Card.Content>
-		<Tabs.Root value={[...selected][0]} orientation="vertical">
-			<Tabs.List class="h-full overflow-y-auto">
+		<Tabs.Root bind:value={activeParam} orientation="horizontal">
+			<Tabs.List class="overflow-x-auto">
+				<Tabs.Trigger value="parameter-groups" disabled={!coverage.parameterGroups.length}
+					><BoxesIcon class="size-4" /></Tabs.Trigger
+				>
+
 				{#each new Set([...selected, ...parameters.map(([k]) => k)]) as value, i (i)}
-					<Tabs.Trigger {value}>{value}</Tabs.Trigger>
+					<Tabs.Trigger {value}>
+						{value}
+					</Tabs.Trigger>
 				{/each}
 			</Tabs.List>
+			<Tabs.Content value="parameter-groups">
+				<div class="flex space-y-2">
+					{#each coverage.parameterGroups as pGroup, i (i)}
+						<ParameterGroup bind:selected data={pGroup} />
+					{/each}
+				</div>
+			</Tabs.Content>
 			{#each parameters as [key, parameter], i (i)}
 				<Tabs.Content value={key}>
-					<ParameterRender
-						bind:data
-						bind:x
-						bind:fx
-						bind:y1
-						bind:fy
-						bind:facetAll
-						bind:tabValue
-						bind:tooltip
-						{parameter}
-						range={stats[key]}
-						{coverage}
-					/>
+					{#if selected.has(key)}
+						<ParameterRender
+							bind:data
+							bind:x
+							bind:fx
+							bind:y1
+							bind:fy
+							bind:facetAll
+							bind:tabValue
+							bind:tooltip
+							{parameter}
+							range={stats[key]}
+							{coverage}
+							bind:renderParameter
+						/>
+					{:else}
+						<Empty.Root>
+							<Empty.Header>
+								<Empty.Media><CircleAlertIcon /></Empty.Media>
+								<Empty.Title>Parameter Not Selected</Empty.Title>
+								<Empty.Description>Data for this parameter has not been loaded</Empty.Description>
+								<Empty.Content>
+									<Button onclick={() => selected.add(key)}>Select</Button>
+								</Empty.Content>
+							</Empty.Header>
+						</Empty.Root>
+					{/if}
 				</Tabs.Content>
 			{/each}
 		</Tabs.Root>

@@ -5,7 +5,6 @@ import {
 	ParameterGroup,
 	type OnIndicesChange
 } from '#lib/core/index.ts';
-
 import { getContext, onDestroy, setContext } from 'svelte';
 import { SvelteSet, SvelteMap } from 'svelte/reactivity';
 import { ReactiveParameter } from './parameter.svelte.js';

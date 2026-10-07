@@ -113,7 +113,7 @@
 	</Field.Field>
 	<Field.Field>
 		<ButtonGroup.Root class="flex flex-wrap">
-			{@const variant = 'outline'}
+			{const variant = 'outline'}
 			{#each urlCache as [k, v] (k)}
 				<ButtonGroup.Root>
 					<Button

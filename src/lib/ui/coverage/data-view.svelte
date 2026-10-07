@@ -8,18 +8,13 @@
 		Parameter,
 		Range
 	} from '#lib/core/index.ts';
-	import type { ReactiveParameter } from '#lib/ui/dashboards/utils/parameter.svelte.js';
 	import * as Card from '#lib/components/ui/card/index.js';
-	import { Badge } from '#lib/components/ui/badge/index.js';
 	import * as Tabs from '#lib/components/ui/tabs/index.js';
 	import {
 		type AxisConfig,
 		type Axis,
 		resolveAxisIdx,
-		resolveAxisIdxForChart,
-		type DenormalizedDomain,
-		download,
-		type DownloadOptions
+		resolveAxisIdxForChart
 	} from './axes-utils.ts';
 	import {
 		LineChart,
@@ -30,15 +25,12 @@
 		type ChartState
 	} from 'layerchart';
 	import * as Chart from '#lib/components/ui/chart/index.js';
-	import * as ButtonGroup from '#lib/components/ui/button-group/index.js';
-	import { Button } from '#lib/components/ui/button/index.js';
-	import * as DropDownMenu from '#lib/components/ui/dropdown-menu/index.js';
 	import { scaleOrdinal } from 'd3-scale';
 	import * as Table from '#lib/components/ui/table/index.js';
-	import { Label } from '#lib/components/ui/label/index.js';
-	import { DownloadIcon, ChevronDownIcon } from '@lucide/svelte';
 	import ParameterComponent from '../metadata/parameter.svelte';
 	import { getRandomColor } from '#lib/utils.ts';
+	import Stats from '../metadata/parameter/stats.svelte';
+	import Downloader from './downloader.svelte';
 </script>
 
 <script lang="ts">
@@ -47,13 +39,14 @@
 		coverage: ReturnType<Coverage['denormalize']>;
 		parameter: Parameter;
 		facetAll?: boolean;
-		tabValue: 'chart' | 'table' | 'param-info';
+		tabValue: 'chart' | 'table' | 'param-info' | 'download';
 		tooltip: DataRow | null;
 		range: Range;
 		colors?: {
 			primary: string;
 			categories: Map<string, string>;
 		};
+		renderParameter?: boolean;
 	}
 
 	const initColor = getRandomColor();
@@ -66,9 +59,10 @@
 		x = $bindable(),
 		fy = $bindable(),
 		y1 = $bindable(),
+		renderParameter = $bindable(),
 		facetAll = $bindable(),
 		tabValue = $bindable(range.dataType === 'string' ? 'table' : 'chart'),
-		tooltip = $bindable(),
+		tooltip = $bindable(null),
 		colors = $bindable({
 			primary: initColor,
 			categories: new Map(parameter.categoryEncoding?.keys().map((id) => [id, initColor]))
@@ -83,26 +77,15 @@
 	let categories = $derived(parameter.observedProperty.categories);
 	let categoric = $derived<boolean>(!isUndefined(categories));
 	let data = $derived(
-		rows
-			.map((d) => Object.entries(d))
-			.map((e) => e.filter(([k]) => [...axesSize.keys(), parameter.key].includes(k)))
-			.map((e): DataRow => Object.fromEntries(e))
-			.map(({ [parameter.key]: value, ...r }): DataRow => {
-				r.value = value;
-				if (categoric) r.category = parameter.getCategory(value as number)?.id || '';
-				return r;
-			})
-	);
-
-	let downloadFn = $derived((format: DownloadOptions['format']) =>
-		download(data, {
-			format,
-			ref: chartRef,
-			axisNames,
-			filename: `coverage-${coverage.id || coverage.uuid}_${parameter.key}`,
-			categoric
+		rows.map((r) => {
+			const d: DataRow = {};
+			for (const [axisName] of axesSize) d[axisName] = r[axisName];
+			d.value = r[parameter.key];
+			if (categoric) d.category = parameter.getCategory(d.value as number)?.id || '';
+			return d;
 		})
 	);
+
 	/**
 	 * Only enable when downloading & disable again
 	 */
@@ -133,7 +116,12 @@
 
 <Card.Root>
 	<Card.Content>
-		<Tabs.Root bind:value={tabValue}>
+		<Tabs.Root
+			bind:value={
+				() => (stringy && tabValue === 'chart' ? 'table' : tabValue),
+				(t) => (tabValue = stringy ? 'table' : t)
+			}
+		>
 			<Tabs.Content value="table">
 				{@render table()}
 			</Tabs.Content>
@@ -162,7 +150,7 @@
 								return resolveAxisIdxForChart(coverage.domain, fy, d[fy]);
 							}}
 							facet={{
-								axis: { facetAll: true }
+								axis: { facetAll }
 							}}
 							highlight={{ lines: true, points: true, facetAll }}
 							padding={defaultChartPadding({ legend, right: 10 })}
@@ -227,64 +215,36 @@
 				{/if}
 			</Tabs.Content>
 			<Tabs.Content value="param-info">
-				<ParameterComponent
-					data={parameter}
-					stats={{
-						dataType: range.dataType,
-						max: range.max,
-						min: range.min,
-						median: range.median,
-						mean: range.mean,
-						frequency: range.frequency
-					}}
-					checkable={false}
+				{#if renderParameter}
+					<ParameterComponent
+						data={parameter}
+						stats={range}
+						checkable={false}
+						color={colors.primary}
+						onColorChange={(_, color, catId) => {
+							if (!catId) return (colors.primary = color);
+							colors.categories.set(catId, color);
+						}}
+					/>
+				{:else}
+					<Stats {...range} class="grid grid-cols-2 gap-1" />
+				{/if}
+			</Tabs.Content>
+			<Tabs.Content value="download">
+				<Downloader
+					bind:ref={chartRef}
+					bind:data
+					axisNames={[...axesSize.keys()]}
+					axisResolver={(axis, idx) => resolveAxisIdx(coverage.domain, axis, idx)}
+					{categoric}
+					filename="coverage-${coverage.id || coverage.uuid}_${parameter.key}"
 				/>
 			</Tabs.Content>
 		</Tabs.Root>
 	</Card.Content>
-	<Card.Footer class="flex w-full flex-row flex-wrap justify-center gap-2">
-		<ButtonGroup.Root>
-			<!-- Render the preffered format when tabValue -->
-			<Button
-				variant="outline"
-				class="flex gap-2"
-				onclick={() => {
-					tabValue === 'chart' ? downloadFn('csv') : downloadFn('png');
-				}}><DownloadIcon /> {tabValue === 'chart' ? 'csv' : 'png'}</Button
-			>
-			<DropDownMenu.Root>
-				<DropDownMenu.Trigger>
-					{#snippet child({ props })}
-						<Button {...props} variant="outline" size="icon"><ChevronDownIcon /></Button>
-					{/snippet}
-				</DropDownMenu.Trigger>
-				<DropDownMenu.Content align="center" class="w-auto">
-					<DropDownMenu.Group>
-						{@const disabled = stringy}
-						<!-- These should set viewMode to chart and back again -->
-						<!-- Or just render chart anyways but with a collapsible for table -->
-						<DropDownMenu.Item {disabled} textValue="png" onSelect={() => downloadFn('png')}
-							>PNG</DropDownMenu.Item
-						>
-						<DropDownMenu.Item {disabled} textValue="jpeg" onSelect={() => downloadFn('jpeg')}
-							>JPEG</DropDownMenu.Item
-						>
-						<DropDownMenu.Item {disabled} textValue="webp" onSelect={() => downloadFn('webp')}
-							>WEBP</DropDownMenu.Item
-						>
-					</DropDownMenu.Group>
-					<DropDownMenu.Separator />
-					<DropDownMenu.Group>
-						<DropDownMenu.Item textValue="csv" onSelect={() => downloadFn('csv')}
-							>CSV</DropDownMenu.Item
-						>
-					</DropDownMenu.Group>
-				</DropDownMenu.Content>
-			</DropDownMenu.Root>
-		</ButtonGroup.Root>
-	</Card.Footer>
 </Card.Root>
 
+<!-- Add copy button where user can copy as GeoJSON geometry -->
 {#snippet renderAxis({
 	depth,
 	currentRows,
@@ -312,7 +272,7 @@
 		currentRows.some((r) => r[axisName] === ani)
 	)}
 
-	{#each validIndices as ani, index}
+	{#each validIndices as ani, index (ani)}
 		<!-- Filter data for this specific axis value -->
 		{@const matchedRows = currentRows.filter((r) => r[axisName] === ani)}
 
@@ -325,24 +285,32 @@
 
 		{#if isLastAxis}
 			<!-- We hit the innermost axis. Now we actually render the Table.Rows -->
-			{#each matchedRows as row, rowIndex}
+			{#each matchedRows as row, rowIndex (rowIndex)}
 				<Table.Row>
 					<!-- Render the accumulated rowspans ONLY on the first row of this deepest group -->
 					{#if rowIndex === 0}
-						{#each cellsToRender as cell}
-							<Table.Cell rowspan={cell.rowspan} class="border align-middle">
-								{resolveAxisIdx(coverage.domain, cell.axisName, cell.index)}
+						{#each cellsToRender as cell, index (index)}
+							<Table.Cell
+								rowspan={cell.rowspan}
+								class="border align-middle break-all whitespace-normal"
+							>
+								{@const value = resolveAxisIdx(coverage.domain, cell.axisName, cell.index)}
+								{#if Array.isArray(value)}
+									{JSON.stringify(value, null, 1)}
+								{:else}
+									{value}
+								{/if}
 							</Table.Cell>
 						{/each}
 					{/if}
 
 					{@const { value } = row}
 					<!-- Render the leaf row values -->
-					<Table.Cell class="border"
+					<Table.Cell class="border break-all whitespace-normal"
 						>{isNull(value) ? 'null' : isUndefined(value) ? 'undefined' : value}</Table.Cell
 					>
 					{#if categories}
-						<Table.Cell class="border">{row.category}</Table.Cell>
+						<Table.Cell class="border break-all whitespace-normal">{row.category}</Table.Cell>
 					{/if}
 				</Table.Row>
 			{/each}
@@ -358,37 +326,11 @@
 {/snippet}
 
 {#snippet table()}
-	<Table.Root class="w-full table-auto overflow-auto">
-		<Table.Caption>Tabulated {parameter.key} data</Table.Caption>
+	<div class="w-full overflow-auto">
+		<Table.Root class="table-auto">
+			<Table.Caption>Tabulated {parameter.key} data</Table.Caption>
 
-		<Table.Header>
-			<Table.Row>
-				{#each axesSize as [axisName]}
-					<Table.Head class="border">{axisName}</Table.Head>
-				{/each}
-				<Table.Head class="border">value</Table.Head>
-				{#if categories}
-					<Table.Head class="border">category</Table.Head>
-				{/if}
-			</Table.Row>
-		</Table.Header>
-
-		<Table.Body>
-			<!-- 
-          Recursive snippet that drills down through axesSize 
-          depth: Current axis index
-          currentRows: The filtered subset of data up to this point
-          inheritedCells: Parent grouping cells waiting to be rendered on the first row
-        -->
-
-			{@render renderAxis({
-				depth: 0,
-				currentRows: data,
-				inheritedCells: []
-			})}
-		</Table.Body>
-		<Table.Footer>
-			{#if data.length}
+			<Table.Header>
 				<Table.Row>
 					{#each axesSize as [axisName] (axisName)}
 						<Table.Head class="border">{axisName}</Table.Head>
@@ -398,7 +340,35 @@
 						<Table.Head class="border">category</Table.Head>
 					{/if}
 				</Table.Row>
-			{/if}
-		</Table.Footer>
-	</Table.Root>
+			</Table.Header>
+
+			<Table.Body>
+				<!-- 
+          Recursive snippet that drills down through axesSize 
+          depth: Current axis index
+          currentRows: The filtered subset of data up to this point
+          inheritedCells: Parent grouping cells waiting to be rendered on the first row
+        -->
+
+				{@render renderAxis({
+					depth: 0,
+					currentRows: data,
+					inheritedCells: []
+				})}
+			</Table.Body>
+			<Table.Footer>
+				{#if data.length}
+					<Table.Row>
+						{#each axesSize as [axisName] (axisName)}
+							<Table.Head class="border">{axisName}</Table.Head>
+						{/each}
+						<Table.Head class="border">value</Table.Head>
+						{#if categories}
+							<Table.Head class="border">category</Table.Head>
+						{/if}
+					</Table.Row>
+				{/if}
+			</Table.Footer>
+		</Table.Root>
+	</div>
 {/snippet}

@@ -1,23 +1,17 @@
-import type maplibregl from 'maplibre-gl';
-import type { Map } from 'leaflet';
-import { type OnIndicesChange, Coverage, CoverageCollection } from '@murithigeo/covjson-core';
-import type { MetadataRenderProps } from '../types.d.ts';
+import { type Coverage } from '#lib/core/index.ts';
+import type { MetadataRenderProps } from '#lib/ui/metadata/types.d.ts';
 import type { Snippet } from 'svelte';
+
 export interface DashboardProps extends PartialBy<MetadataRenderProps<Coverage[]>, 'data'> {
 	/**
 	 * Point this to the layer's onIndicesChange func
 	 */
-	onIndicesChange?: (coverage: Coverage, data: DataRow) => void;
+	onIndicesChange?: (
+		coverage: Coverage | ReturnType<Coverage['denormalize']>,
+		data: DataRow
+	) => void;
 	children?: Snippet;
 }
 type Formatter<T extends string | number> = (val: T) => T;
 
 type PartialBy<T, K extends keyof T> = Omit<T, K> & Partial<Pick<T, K>>;
-
-interface ChartCustomizationOptions {
-	/**
-	 * The key is the categoryId and the string is the color
-	 * Used to create a gradient as well as a legend
-	 */
-	categories: Record<string, string>;
-}

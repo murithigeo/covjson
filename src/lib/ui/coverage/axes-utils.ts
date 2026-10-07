@@ -1,5 +1,4 @@
 import {
-	type WithRequiredProperty,
 	type InferDomainClass,
 	CustomDate,
 	MultiPoint,
@@ -7,7 +6,8 @@ import {
 	Section,
 	type DataRow,
 	isUndefined,
-	isNull
+	isNull,
+	Coverage
 } from '#lib/core/index.ts';
 import { downloadImage, type ChartImageOptions } from 'layerchart';
 
@@ -100,44 +100,15 @@ export function resolveAxisIdxForChart(
 }
 
 export interface DownloadOptions {
-	axisNames: string[];
 	categoric?: boolean;
 	format?: 'csv' | ChartImageOptions['format'];
 	filename: string;
 	ref?: HTMLElement;
+	coverage: ReturnType<Coverage['denormalize']>;
 }
 export function download(data: DataRow[], options: DownloadOptions) {
 	if (options.format !== 'csv') {
 		if (!options.ref) return;
 		return downloadImage(options.ref, { format: options.format, filename: options.filename }); //.then(()=>legend = false)
 	}
-	const header = [...options.axisNames, 'value'];
-	if (options.categoric) header.push('category');
-	/**
-	 * https://stackoverflow.com/a/31536517
-	 */
-	const str = [
-		header.join(','),
-		...data.map((row) =>
-			header.map((fieldName) => {
-				let value: unknown = row[fieldName];
-				//@ts-expect-error fieldName should Axis
-				if (axisNames.includes(fieldName)) value = resolveAxisIdx(fieldName, value);
-				return JSON.stringify(value, (k, v) => {
-					if (isUndefined(v)) return 'undefined';
-					if (!isNull(v)) return 'null';
-					if (Array.isArray(v)) return `${v}`;
-					return v;
-				});
-			})
-		)
-	].join('\r\n');
-	const blob = new Blob([str], { type: 'text/csv;charset=utf-8' });
-	const container = document.createElement('a');
-	container.href = URL.createObjectURL(blob);
-	container.download = options.filename + '.csv';
-	container.click();
-	container.remove();
-
-	setTimeout(() => URL.revokeObjectURL(container.href), 0);
 }

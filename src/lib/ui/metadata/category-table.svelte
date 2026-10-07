@@ -4,15 +4,16 @@
 	import * as Item from '#lib/components/ui/item/index.js';
 	import { buttonVariants } from '#lib/components/ui/button/index.js';
 	import * as Card from '#lib/components/ui/card/index.js';
-	import type { MetadataRenderProps, OnColorChange } from './types.d.ts';
+	import type { MetadataRenderProps } from './types.d.ts';
 	import { cn } from '#lib/utils.js';
 	import ColorPicker from './parameter/color-picker.svelte';
 	import { ChevronsUpDownIcon, ChartColumnStacked } from '@lucide/svelte';
 	import type { Category } from '#lib/core/parameters.ts';
 	import type { RangeStatistics } from '#lib/core/ranges.ts';
+	import { isNull } from '#lib/core/index.ts';
 
 	interface Props extends MetadataRenderProps<Category[]> {
-		onColorChange: (catId: string, color: string | null) => void;
+		onColorChange: (catId: string, color: string) => void;
 		color?: string;
 		/**
 		 * The count of each category
@@ -65,7 +66,10 @@
 											<Table.Cell {rowspan} class={cn(cellStyle, 'rounded-full')}
 												><ColorPicker
 													{hex}
-													onInput={({ hex }) => onColorChange?.(id, hex)}
+													onInput={({ hex }) => {
+														if (isNull(hex)) return;
+														onColorChange?.(id, hex);
+													}}
 													label=""
 												/></Table.Cell
 											>

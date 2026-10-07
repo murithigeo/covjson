@@ -1,8 +1,6 @@
 <script lang="ts">
 	import { center } from '@turf/center';
-	import { MapLibre, type Map } from 'svelte-maplibre';
-	import { addSourceType, setWorkerUrl, Popup } from 'maplibre-gl';
-	import { MaplibrePlugin } from '#lib/plugin-maplibre/index.ts';
+	import { type Map } from 'svelte-maplibre';
 	import { Coverage, type DataRow } from '#lib/core/index.ts';
 	import TresDashboard from '#lib/ui/dashboards/templates/tres.svelte';
 	import * as Sheet from '#lib/components/ui/sheet/index.js';
@@ -15,16 +13,13 @@
 	import ModeWatcher from '#lib/mode-watcher.svelte';
 	import { onMount } from 'svelte';
 	import { setMode, systemPrefersMode } from 'mode-watcher';
-	import workerUrl from 'maplibre-gl/dist/maplibre-gl-worker.mjs?worker&url';
 	import type { Position } from 'geojson';
-	setWorkerUrl(workerUrl);
+	import Maplibre from '#lib/ui/preview/maplibre.svelte';
 
 	// Add support https://www.npmjs.com/package/netcdfjs
-	//@ts-expect-error incompatibility with inbuilt maplibre type
-	addSourceType('coveragejson', MaplibrePlugin).catch(() => {});
 	let data = $state<object>();
 	let map = $state<Map>();
-	let loaded = $state(false);
+	let loaded = $state<string>();
 	let coverages = $state<Coverage[]>([]);
 
 	onMount(() => {
@@ -84,40 +79,41 @@
 		});
 	});
 
-	let onIndicesChange = $derived((coverage: Coverage, data: DataRow | null) => {
-		// close popup if data is null
-		const indices = Object.fromEntries(
-			coverage.axesSize
-				.entries()
-				.toArray()
-				.map(([axisName]): [string, number] => [axisName, data[axisName] as number])
-		);
+	let onIndicesChange = $derived(
+		(coverage: Coverage | ReturnType<Coverage['denormalize']>, data: DataRow | null) => {
+			// close popup if data is null
+			const indices = Object.fromEntries(
+				coverage.axesSize
+					.entries()
+					.toArray()
+					.map(([axisName]): [string, number] => [axisName, data[axisName] as number])
+			);
 
-		// Figure how to render popup
-		let lngLat: Position;
-		switch (coverage.domain.domainType) {
-			case 'VerticalProfile':
-			case 'Point':
-			case 'PointSeries':
-				lngLat = coverage.domain.geometry.coordinates;
-				break;
-			case 'MultiPoint':
-			case 'MultiPointSeries':
-			case 'Section':
-			case 'Trajectory':
-				lngLat = coverage.domain.geometry.coordinates[indices.composite];
-				break;
-			default:
-				({
-					geometry: { coordinates: lngLat }
-				} = center(
-					coverage.domain.domainType === 'Grid'
-						? coverage.domain.getPolygonAtIndices(indices.x, indices.y)
-						: coverage.domain.geometry
-				));
+			// Figure how to render popup
+			let lngLat: Position;
+			switch (coverage.domain.domainType) {
+				case 'VerticalProfile':
+				case 'Point':
+				case 'PointSeries':
+					lngLat = coverage.domain.geometry.coordinates;
+					break;
+				case 'MultiPoint':
+				case 'MultiPointSeries':
+				case 'Section':
+				case 'Trajectory':
+					lngLat = coverage.domain.geometry.coordinates[indices.composite];
+					break;
+				default:
+					({
+						geometry: { coordinates: lngLat }
+					} = center(
+						coverage.domain.domainType === 'Grid'
+							? coverage.domain.getPolygonAtIndices(indices.x, indices.y)
+							: coverage.domain.geometry
+					));
+			}
 		}
-		if (map) new Popup().setLngLat(lngLat).setHTML(`<p>HEree</p>`).addTo(map);
-	});
+	);
 </script>
 
 <div class="h-screen">
@@ -157,12 +153,6 @@
 		<Label>! In Alpha</Label>
 	</div>
 	<TresDashboard bind:data={coverages} bind:onIndicesChange>
-		<MapLibre
-			class="h-full w-full"
-			bind:map
-			bind:loaded
-			standardControls
-			style="https://api.maptiler.com/maps/winter-v4/style.json?key=pj3BZkbRpSWczKG2Ml2w"
-		></MapLibre>
+		<Maplibre bind:map bind:loaded />
 	</TresDashboard>
 </div>

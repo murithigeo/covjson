@@ -6,7 +6,7 @@ import type {
 	StringNdArray,
 	NdArray
 } from 'coveragejson';
-import ndarray, { type Data, type NdArray as NdArr } from 'ndarray';
+import ndarray, { type NdArray as NdArr } from 'ndarray';
 import { parseTemplate } from 'url-template';
 import { load } from './load.ts';
 import ops from 'ndarray-ops';
@@ -77,12 +77,8 @@ export class Range<
 				urlTemplate
 			}));
 		}
-		if (ndarr.type === 'NdArray') {
+		if (ndarr.type === 'NdArray')
 			this.appendRange(this.shape, Array(this.shape.length).fill(0), ndarr);
-			this.computeMean();
-			this.computeMedian();
-			this.computeMinMax(ndarr);
-		}
 	}
 
 	get values(): [T | null, ...(T | null)[]] {
@@ -125,6 +121,9 @@ export class Range<
 		const offsets = tile.map((v, i) => v * (tileShape[i] ?? this.shape[i]));
 		const { shape = this.shape, values } = range;
 		ops.assign(this._ndarr.lo(...offsets).hi(...shape), ndarray(values, shape));
+		this.computeMean();
+		this.computeMedian();
+		this.computeMinMax(range);
 	}
 	/**
 	 * Get the tile which best matches the indices
@@ -168,9 +167,6 @@ export class Range<
 				}
 			}
 			this.appendRange(bestMatch.tileShape, tiles[i], range);
-			this.computeMean();
-			this.computeMedian();
-			this.computeMinMax(range);
 		});
 	}
 
@@ -185,7 +181,7 @@ export class Range<
 	}
 	async get(indices: MapIndices | number[]): Promise<T | null> {
 		if (!Array.isArray(indices)) indices = this.normalizeNamedIndices(indices);
-		let value = this._ndarr.get(...indices);
+		const value = this._ndarr.get(...indices);
 		if (this.type === 'NdArray') return value;
 		if (isUndefined(value)) return value;
 		return this.loadTileSet(indices).then(() => {
