@@ -1,5 +1,5 @@
-import { Coverage, type CoverageOptions } from './coverage.ts';
-import type { CoverageJSON, Domain, NdArray, TiledNdArray } from 'coveragejson';
+import { Coverage as Cov, type CoverageOptions } from './coverage.ts';
+import type { CoverageJSON, NdArray, TiledNdArray } from 'coveragejson';
 import { CoverageCollection } from './coverage-collection.ts';
 import { getDomain } from './domain/index.ts';
 import { Range, type RangeOptions } from './ranges.ts';
@@ -23,7 +23,7 @@ export default function getCoverageJson<T extends CoverageJSON>(
 		case 'CoverageCollection':
 			return CoverageCollection.load(doc, options as CoverageOptions);
 		case 'Coverage':
-			return Coverage.load(doc, options as CoverageOptions);
+			return Cov.load(doc, options as CoverageOptions);
 		case 'NdArray':
 			return new Range(doc, options as RangeOptions);
 		case 'TiledNdArray':
@@ -31,11 +31,10 @@ export default function getCoverageJson<T extends CoverageJSON>(
 	}
 }
 
+export type DenormalizedCoverage = ReturnType<Cov['denormalize']>;
+export type Coverage = Cov | DenormalizedCoverage;
 /**
  * A function to be called when the current indices on the coverage change.
  * For integrating UI with mapping libraries i.e. to change view of the map or to highlight the clicked axis values
  */
-export type OnIndicesChange = (
-	coverage: Coverage | ReturnType<Coverage['denormalize']>,
-	indices: Map<string, number>
-) => void;
+export type OnIndicesChange = (coverage: Coverage, indices: Map<string, number>) => void;

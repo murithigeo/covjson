@@ -2,7 +2,7 @@
 	import { center } from '@turf/center';
 	import { type Map } from 'svelte-maplibre';
 	import { Coverage, type DataRow } from '#lib/core/index.ts';
-	import TresDashboard from '#lib/ui/dashboards/templates/tres.svelte';
+	import TresDashboard from '#lib/ui/dashboards/tres-dashboard-cpt.svelte';
 	import * as Sheet from '#lib/components/ui/sheet/index.js';
 	import { Label } from '#lib/components/ui/label/index.js';
 	import * as Tabs from '#lib/components/ui/tabs/index.js';
@@ -19,7 +19,7 @@
 	// Add support https://www.npmjs.com/package/netcdfjs
 	let data = $state<object>();
 	let map = $state<Map>();
-	let loaded = $state<string>();
+	let loaded = $state<boolean>(false);
 	let coverages = $state<Coverage[]>([]);
 
 	onMount(() => {

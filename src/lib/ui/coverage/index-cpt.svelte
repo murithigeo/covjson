@@ -1,6 +1,6 @@
 <script lang="ts" module>
 	import {
-		Coverage,
+		type Coverage,
 		type OnIndicesChange,
 		isUndefined,
 		type DataRow,
@@ -30,28 +30,22 @@
 	import * as Card from '#lib/components/ui/card/index.js';
 	import * as Tabs from '#lib/components/ui/tabs/index.js';
 	import * as ToggleGroup from '#lib/components/ui/toggle-group/index.js';
-	import ParameterGroup from '../metadata/parameter-group.svelte';
+	import ParameterGroup from '../metadata/parameter-group-cpt.svelte';
 	import * as Empty from '#lib/components/ui/empty/index.ts';
+	import type { CoverageProps } from './types';
+	import { SvelteSet } from 'svelte/reactivity';
 </script>
 
 <script lang="ts">
-	interface Props {
-		coverage: Coverage;
-		onIndicesChange?: OnIndicesChange;
-		renderParameter?: boolean;
-		selected?: Set<string>;
-		pinned?: boolean;
-		onTrashCoverage?: (coverage: Coverage) => void;
-	}
-
 	let {
-		coverage: cov = $bindable(),
+		actions,
+		data: cov = $bindable(),
 		onIndicesChange = $bindable(),
-		renderParameter = $bindable(true),
-		selected = $bindable(new Set(cov.ranges.keys())),
+		show,
+		selected = $bindable(new SvelteSet(cov.ranges.keys())),
 		pinned = $bindable(),
 		onTrashCoverage
-	}: Props = $props();
+	}: CoverageProps = $props();
 
 	let stats = $state<Record<string, Range>>({});
 
@@ -146,7 +140,7 @@
 					<Tabs.Trigger value="table" disabled={activeParam === 'parameter-groups'}
 						><TableIcon /></Tabs.Trigger
 					>
-					{#if renderParameter}
+					{#if show}
 						<Tabs.Trigger value="param-info" disabled={activeParam === 'parameter-groups'}
 							><VariableIcon /></Tabs.Trigger
 						>
@@ -157,18 +151,25 @@
 				</Tabs.List>
 			</Tabs.Root>
 		</Card.Description>
-		<Card.Action>
-			<ButtonGroup.Root>
-				<Button size="icon-sm" variant="outline" onclick={() => (pinned = !pinned)}
-					>{#if pinned}
-						<PinOffIcon />{:else}<PinIcon />
-					{/if}</Button
-				>
-				<Button size="icon-sm" variant="outline" onclick={() => onTrashCoverage?.(cov)}
-					><TrashIcon /></Button
-				>
-			</ButtonGroup.Root>
-		</Card.Action>
+		{#if actions}
+			<Card.Action>
+				<ButtonGroup.Root>
+					{#if actions.pinnable}
+						<Button size="icon-sm" variant="outline" onclick={() => (pinned = !pinned)}
+							>{#if pinned}
+								<PinOffIcon />{:else}<PinIcon />
+							{/if}</Button
+						>
+					{/if}
+
+					{#if actions.trashable}
+						<Button size="icon-sm" variant="outline" onclick={() => onTrashCoverage?.(cov)}
+							><TrashIcon /></Button
+						>
+					{/if}
+				</ButtonGroup.Root>
+			</Card.Action>
+		{/if}
 	</Card.Header>
 	<Card.Content>
 		<Tabs.Root bind:value={activeParam} orientation="horizontal">
@@ -183,13 +184,16 @@
 					</Tabs.Trigger>
 				{/each}
 			</Tabs.List>
-			<Tabs.Content value="parameter-groups">
-				<div class="flex space-y-2">
-					{#each coverage.parameterGroups as pGroup, i (i)}
-						<ParameterGroup bind:selected data={pGroup} />
-					{/each}
-				</div>
-			</Tabs.Content>
+			{#if show?.parameterGroups}
+				<Tabs.Content value="parameter-groups">
+					<div class="flex space-y-2">
+						{#each coverage.parameterGroups as pGroup, i (i)}
+							<ParameterGroup bind:selected data={pGroup} />
+						{/each}
+					</div>
+				</Tabs.Content>
+			{/if}
+
 			{#each parameters as [key, parameter], i (i)}
 				<Tabs.Content value={key}>
 					{#if selected.has(key)}
@@ -202,10 +206,10 @@
 							bind:facetAll
 							bind:tabValue
 							bind:tooltip
-							{parameter}
-							range={stats[key]}
+							{show}
+							stats={stats[key]}
 							{coverage}
-							bind:renderParameter
+							{parameter}
 						/>
 					{:else}
 						<Empty.Root>

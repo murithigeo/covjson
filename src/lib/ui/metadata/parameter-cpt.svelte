@@ -1,3 +1,5 @@
+<svelte:options customElement="covjson-parameter" />
+
 <script lang="ts">
 	import { isNull, Parameter, type RangeStatistics } from '#lib/core/index.ts';
 	import LocaleTable from './locale-table.svelte';
@@ -21,7 +23,6 @@
 		key?: string;
 		checked?: boolean;
 		checkable?: boolean;
-		onCheckedChange?: OnChangeFn<Parameter, boolean>;
 	}
 
 	let {
@@ -31,8 +32,7 @@
 		checkable = $bindable(true),
 		key: pKey,
 		checked = $bindable(true),
-		onColorChange,
-		onCheckedChange
+		onColorChange
 	}: Props = $props();
 
 	let key = $derived(pKey || parameter.key);
@@ -67,11 +67,7 @@
 					label=""
 				/>
 				{#if checkable}
-					<Checkbox
-						bind:checked
-						onCheckedChange={(checked) => onCheckedChange?.(parameter, checked)}
-						disabled={!checkable}
-					/>
+					<Checkbox bind:checked disabled={!checkable} />
 				{/if}
 			</ButtonGroup.Root>
 		</Card.Action>

@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { addSourceType, setWorkerUrl, type Map } from 'maplibre-gl';
-	import type { Snippet } from 'svelte';
+	import type { ComponentProps, Snippet } from 'svelte';
 	import { MapLibre } from 'svelte-maplibre';
 	import { MaplibrePlugin } from '#lib/plugin-maplibre/plugin.ts';
 	import workerUrl from 'maplibre-gl/dist/maplibre-gl-worker.mjs?worker&url';
@@ -8,7 +8,7 @@
 
 	interface Props {
 		map?: Map;
-		children?: Snippet;
+		children?: ComponentProps<typeof MapLibre>['children'];
 		loaded?: boolean;
 	}
 	let { map = $bindable(), loaded = $bindable(), children }: Props = $props();
@@ -23,5 +23,7 @@
 	bind:loaded
 	standardControls
 	style="https://api.maptiler.com/maps/winter-v4/style.json?key=pj3BZkbRpSWczKG2Ml2w"
-	>{@render children?.()}</MapLibre
+	>{#snippet children({ ...props })}
+		{@render children?.(props)}
+	{/snippet}</MapLibre
 >

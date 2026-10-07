@@ -1,23 +1,21 @@
 <svelte:options customElement="tres-dashboard" />
 
 <script lang="ts">
-	import type { DashboardProps } from '../utils/types.d.ts';
+	import type { DashboardProps } from './utils/types.d.ts';
 	import * as Resizable from '#lib/components/ui/resizable/index.js';
 	import * as Accordion from '#lib/components/ui/accordion/index.ts';
 	import { MediaQuery, SvelteMap, SvelteSet } from 'svelte/reactivity';
 	import { Parameter, ParameterGroup } from '#lib/core/parameters.ts';
-	import { Coverage, type RangeStatistics } from '#lib/core/index.ts';
-	import CoverageComponent from '#lib/ui/coverage/index.svelte';
-	import ParameterComponent from '#lib/ui/metadata/parameter.svelte';
-	import ParameterGroupComponent from '#lib/ui/metadata/parameter-group.svelte';
+	import type { Coverage, RangeStatistics } from '#lib/core/index.ts';
+	import CoverageComponent from '#lib/ui/coverage/index-cpt.svelte';
+	import ParameterComponent from '#lib/ui/metadata/parameter-cpt.svelte';
+	import ParameterGroupComponent from '#lib/ui/metadata/parameter-group-cpt.svelte';
 	import * as Card from '#lib/components/ui/card/index.ts';
 	let { onIndicesChange = $bindable(), data = $bindable(), children }: DashboardProps = $props();
 
 	const isMobile = new MediaQuery('max-width: 768px');
 	let direction = $derived<'horizontal' | 'vertical'>(isMobile.current ? 'vertical' : 'horizontal');
 	let pinned = new SvelteMap<string, Coverage>();
-	let parameters = new SvelteMap<string, Parameter>();
-	let parameterGroups = new SvelteSet<ParameterGroup>();
 	let selected = new SvelteSet<string>();
 	let stats = new SvelteMap<string, RangeStatistics>();
 
@@ -25,6 +23,10 @@
 		if (!data) return pinned;
 		return new SvelteMap([...pinned, ...data.map((cov) => [cov.uuid, cov] as const)]);
 	});
+
+	let parameters = $derived(
+		new SvelteMap<string, Parameter>([...coverages.values().flatMap((v) => v.parameters)])
+	);
 </script>
 
 <div class="h-screen">
@@ -46,20 +48,24 @@
 								<Accordion.Content>
 									<div class="">
 										{#each parameters as [k, data] (k)}
-											<ParameterComponent stats={stats.get(k)} {data} />
+											<ParameterComponent
+												stats={stats.get(k)}
+												{data}
+												bind:checked={
+													() => selected.has(k),
+													(checked) => {
+														if (checked) selected.add(k);
+														else selected.delete(k);
+													}
+												}
+											/>
 										{/each}
 									</div>
 								</Accordion.Content>
 							</Accordion.Item>
 							<Accordion.Item value="parameterGroups">
 								<Accordion.Trigger>Parameter Groups</Accordion.Trigger>
-								<Accordion.Content>
-									<div class="">
-										{#each parameterGroups as data, i (i)}
-											<ParameterGroupComponent {data} checkable bind:selected />
-										{/each}
-									</div>
-								</Accordion.Content>
+								<Accordion.Content></Accordion.Content>
 							</Accordion.Item>
 							<Accordion.Item value="coverages">
 								<Accordion.Trigger>Coverages</Accordion.Trigger>
@@ -68,9 +74,9 @@
 										{#each coverages as [uuid, coverage], i (i)}
 											<CoverageComponent
 												bind:selected
-												{coverage}
+												data={coverage}
 												bind:onIndicesChange
-												renderParameter
+												show={{ parameterGroups: true, parameters: true }}
 												bind:pinned={
 													() => pinned.has(coverage.uuid), () => pinned.set(uuid, coverage)
 												}

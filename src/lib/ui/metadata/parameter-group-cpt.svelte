@@ -7,7 +7,7 @@
 	import { Button } from '#lib/components/ui/button/index.js';
 	import * as ButtonGroup from '#lib/components/ui/button-group/index.js';
 	import * as Card from '#lib/components/ui/card/index.js';
-	import type { MetadataRenderProps } from './types.d.ts';
+	import type { MetadataRenderProps } from './types';
 
 	interface Props extends MetadataRenderProps<ParameterGroup> {
 		selected?: Set<string>;
