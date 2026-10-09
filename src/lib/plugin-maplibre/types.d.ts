@@ -48,48 +48,6 @@ interface BasicPluginOptions {
 	 * If you know that data is OGC:CRS84, then pass false
 	 */
 	reproject?: boolean;
-	/**
-	 * @default {uuid}
-	 */
-	promoteId?: string | string;
 }
 
 export type PluginOptions = BasicPluginOptions & GeoJSONSourceOptions;
-
-/**
- * Similar to {@see GeoJSONSourceDiff}
- */
-export interface CoverageJSONSourceDiff {
-	/**
-	 * When true, remove all coverages/data
-	 */
-	removeAll?: boolean;
-	/**
-	 * The IDs of Coverages to remove
-	 */
-	remove?: GeoJSONFeatureId;
-	/**
-	 *
-	 */
-	add?: CoverageJSON.Coverage[];
-	/**
-	 * An array of update objects
-	 */
-	update?: CoverageJSONCoverageDiff;
-}
-
-export interface CoverageJSONCoverageDiff extends Omit<GeoJSONFeatureDiff, 'newGeometry'> {
-	/**
-	 * The id of the Coverage
-	 */
-	newDomain?: CoverageJSON.Domain;
-	/**
-	 * Will clear the "parameters" and "ranges" map, "parameterGroups"
-	 * And anything else in the "properties" object
-	 */
-	removeAllProperties?: boolean;
-	/**
-	 * The properties to update
-	 */
-	addOrUpdateProperties?: { key: string; value: unknown }[];
-}

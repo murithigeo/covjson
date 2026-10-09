@@ -3,40 +3,30 @@ import type {
 	ReferenceSystemConnection,
 	CoverageCollection as CovColl,
 	Coverage as CRG,
-	NdArray as Nd,
-	Position
+	ReferenceSystemObject
 } from 'coveragejson';
 import { Parameter, ParameterGroup } from './parameters.ts';
 import { Coverage, type CoverageOptions } from './coverage.ts';
 import { Referencing, type UserReferencingOptions } from './referencing.ts';
-import { Base, type ReferenceArgument } from './base.ts';
+import { Base, type MapIndices, type ReferenceArgument } from './base.ts';
 import type { FeatureCollection } from 'geojson';
 import type { InferDomainClass } from './domain/types.d.ts';
-import { minMax, type MinMax, type WithRequiredProperty } from './utils.ts';
-import { isUndefined } from './domain/utils.ts';
+import { type WithRequiredProperty } from './utils.ts';
+import type { CoverageProperties, GetDataOptions, QueryOptions } from './types';
 
-export class CoverageCollection<T extends Domain = Domain> extends Base<CovColl<T>> {
-	_reproject(): this {
-		throw Error('Method not implemented. Use reproject instead');
-	}
+export class CoverageCollection<
+	D extends Domain = Domain,
+	ID extends InferDomainClass<D> = InferDomainClass<D>
+> extends Base<CovColl<D>> {
 	type: 'CoverageCollection';
-	coverages: Coverage<T>[];
-	#referencing?: ReferenceSystemConnection[] | undefined;
-	domainType?: InferDomainClass<T>['domainType'];
-	#parameters: Map<string, Parameter>;
+	coverages: Coverage<D>[];
+	domainType?: D['domainType'];
+	referencing: ReferenceSystemConnection<ReferenceSystemObject>[] | undefined;
+	parameters: Map<string, Parameter>;
 	parameterGroups: ParameterGroup[];
 	properties: Record<string, unknown>;
-	/**
-	 * Key is the range name and value the bounds.
-	 */
-	minMax: Record<string, MinMax | [null, null]>;
 	options: WithRequiredProperty<CoverageOptions, 'ranges'>;
-	constructor(
-		doc: Omit<CovColl, 'coverages'> & {
-			coverages: ((CRG<T> & { ranges: Record<string, Nd> }) | Coverage<T>)[];
-		},
-		options?: CoverageOptions
-	) {
+	constructor(doc: CoverageCollectionArg<D>, options?: CoverageOptions) {
 		super();
 		const {
 			type,
@@ -51,40 +41,38 @@ export class CoverageCollection<T extends Domain = Domain> extends Base<CovColl<
 		this.type = type;
 		this.domainType = domainType;
 		this.parameterGroups = parameterGroups.map((e) => new ParameterGroup(e));
-		this.#referencing = referencing;
+		this.referencing = referencing;
 		this.properties = properties;
-		this.#parameters = new Map();
+		this.parameters = new Map();
 		for (const id in parameters) {
-			this.#parameters.set(id.toUpperCase(), new Parameter(parameters[id], id.toUpperCase()));
+			this.parameters.set(id.toUpperCase(), new Parameter(parameters[id], id.toUpperCase()));
 		}
-		this.minMax = {};
 
-		/**
-		 * Piggy back on the options to get make minMax dynamic
-		 */
-		for (const id in this.#parameters.keys()) {
-			this.minMax[id] = [null, null];
-		}
-		this.coverages = coverages.map((cov) => {
-			if (!(cov instanceof Coverage)) cov = new Coverage(cov, options);
-			if (!cov.domain.referencing && this.referencing) cov.domain.referencing = this.referencing;
-			cov.ranges.keys().forEach((id) => {
-				if (!cov.parameters.has(id)) cov.parameters.set(id, this.#parameters.get(id)!);
-				// todo copy Parameter Groups too
+		this.coverages = [];
+
+		for (const coverage of coverages) {
+			if (coverage instanceof Coverage) {
+				this.coverages.push(coverage);
+				this.parameters = new Map([...this.parameters, ...coverage.parameters]);
+				if (!coverage.referencing) coverage.domain.referencing = this.referencing;
+				continue;
+			}
+			Coverage.load(coverage, this.options).then((cov) => {
+				this.parameters = new Map([...this.parameters, ...cov.parameters]);
+				if (!cov.referencing) cov.domain.referencing = this.referencing;
+				this.coverages.push(cov);
 			});
-			return cov;
-		});
+		}
 	}
-	updateMinMax(id: string, newBounds: MinMax) {
-		this.minMax[id] = minMax([...newBounds, ...this.minMax[id]]);
-	}
-	static async load<T extends Domain>(
-		doc: CovColl<T | string>,
+
+	static async load<D extends Domain>(
+		doc: CovColl<D | string>,
 		options?: CoverageOptions
-	): Promise<CoverageCollection<T>> {
-		return new CoverageCollection(
+	): Promise<CoverageCollection<D>> {
+		return new CoverageCollection<D>(
 			{
 				...doc,
+				domainType: doc.domainType,
 				coverages: await Promise.all(doc.coverages.map((cov) => Coverage.load(cov, options)))
 			},
 			options
@@ -105,29 +93,34 @@ export class CoverageCollection<T extends Domain = Domain> extends Base<CovColl<
 		force?: boolean
 	): this | Promise<this> {
 		if (referencing instanceof Referencing && force) {
-			this.coverages = this.coverages.map((cov) => {
-				cov = cov.reproject(referencing, true);
-				cov.domain.referencing = undefined; // No need to keep copies of the same thing
+			this._reproject(referencing);
+			this.coverages = this.coverages
+				.map((cov) => cov.reproject(referencing, true))
+				.map((cov) => {
+					delete cov.domain.referencing;
+					return cov;
+				});
+
+			return this;
+		}
+
+		return Promise.all(this.coverages.map((cov) => cov.reproject(referencing))).then((covs) => {
+			this.coverages = covs.map((cov, i) => {
+				if (i === 0 && cov.domain.referencing) this.referencing = [...cov.domain.referencing];
+				delete cov.domain.referencing;
 				return cov;
 			});
 
 			return this;
-		}
-		return Promise.all(this.coverages.map((cov) => cov.reproject(referencing))).then(
-			(coverages) => {
-				this.#referencing = coverages[0].referencing; // Get a copy from the first coverage;
-				this.coverages = coverages.map((cov) => {
-					cov.domain.referencing = undefined; // No need to keep copies of the same thing
-					return cov;
-				});
-
-				return this;
-			}
-		);
+		});
 	}
 
+	_reproject(referencing: Referencing): this {
+		this.referencing = referencing.connections;
+		return this;
+	}
 	// Add referencing memeber behavior
-	toPlain(): CovColl<T> {
+	toPlain(): CovColl<D> {
 		return {
 			type: this.type,
 			//@ts-expect-error upstream conflict
@@ -140,18 +133,13 @@ export class CoverageCollection<T extends Domain = Domain> extends Base<CovColl<
 			referencing: this.referencing
 		};
 	}
-	get featurecollection(): FeatureCollection<
-		InferDomainClass<T>['geometry'],
-		{ uuid: string; domainType: T['domainType'] }
-	> {
+	get featurecollection(): FeatureCollection<ID['geometry'], CoverageProperties<ID['domainType']>> {
 		return {
 			type: 'FeatureCollection',
 			features: this.coverages.map((cov) => cov.feature)
 		};
 	}
-	get referencing() {
-		return this.#referencing;
-	}
+
 	get z(): number[] {
 		return new Set(this.coverages.flatMap(({ domain }) => domain.z))
 			.keys()
@@ -164,42 +152,29 @@ export class CoverageCollection<T extends Domain = Domain> extends Base<CovColl<
 			.toArray()
 			.sort((a, b) => new Date(a).getTime() - new Date(b).getTime());
 	}
-	private set referencing(referencing: ReferenceSystemConnection[] | undefined) {
-		this.#referencing = referencing;
-	}
 
 	/**
 	 * Simple function to retrieve a list of data values.
 	 * For eagerLoading data, see @see {query}
 	 */
-	async getData(ref: Position | string | number, rangeIds?: string[]) {
-		const data = await Promise.all(this.coverages.map((cov) => cov.getData(ref, rangeIds)));
-		for (const [id] of this.parameters) {
-			const values = data
-				.map((row) => row[id])
-				.filter((v) => !isUndefined(v))
-				.filter((v) => !(typeof v === 'string'));
-			this.minMax[id] = minMax([...values, ...(this.minMax[id] || [])]);
-		}
+	async getData(ref: Exclude<ReferenceArgument, MapIndices>, options?: GetDataOptions) {
+		const data = await Promise.all(this.coverages.map((cov) => cov.getData(ref, options)));
+
 		return data;
 	}
 	/**
 	 * @param axisNames Axis names to preload data for
 	 */
-	query(ref: ReferenceArgument, rangeIds?: string[], axisNames?: string[]) {
-		return this.coverages.map((cov) => cov.query(ref, rangeIds, axisNames));
+	query(ref: Exclude<ReferenceArgument, MapIndices>, options: QueryOptions) {
+		return this.coverages.map((cov) => cov.query(ref, options));
 	}
-	/**
-	 * Recompile list of parameters from constituent coverages
-	 * If the parameter is referenced by more than 1 coverage, it is deleted from all coverages
-	 */
-	get parameters(): Map<string, Parameter> {
-		for (const cov of this.coverages) {
-			cov.parameters.forEach((v, k) => {
-				if (this.#parameters.has(k)) return;
-				this.#parameters.set(k, v);
-			});
-		}
-		return this.#parameters;
+
+	addCoverage(coverage: Coverage<D>) {
+		this.parameters = new Map([...this.parameters, ...coverage.parameters]);
+		this.coverages.push(coverage);
 	}
 }
+
+export type CoverageCollectionArg<D extends Domain> = Omit<CovColl<D>, 'coverages'> & {
+	coverages: Array<Coverage<D> | CRG<D>>;
+};

@@ -14,25 +14,13 @@ import { cartesianProduct, minMax } from './utils.ts';
 import { TilesetNotFound } from './error.ts';
 import { calculateMedian, isUndefined } from './domain/utils.ts';
 import type { MapIndices } from './base.ts';
+import type { OnNonCacheFetch, QueryOptions, RangeIndices } from './types';
 
-export interface RangeOptions<T extends DataValue = DataValue> {
-	/**
-	 * Transforms all values of the ndarray.
-	 * Convenient for converting values between various formats
-	 * Only called once per value
-	 */
-	transform?: (val: T | null, dataType: 'string' | 'float' | 'integer') => T | null;
-	/**
-	 * Callback to execute if the value fetched was not cached thus meaning new data was appended
-	 */
-	onNonCacheFetch?(value: Range<T>): void;
+export interface RangeOptions {
 	/**
 	 * When a indices hit requests that tileSet, the entire tileSet is loaded
 	 */
 	eagerLoad?: boolean;
-	/**
-	 *
-	 */
 	categoryEncoding?: Map<string, number[]>;
 }
 
@@ -53,10 +41,10 @@ export class Range<
 	mean: number | null;
 	median: T | null;
 	frequency: Map<string, number> | null;
-	options: RangeOptions<T>;
+	options: RangeOptions;
 	tileSets?: TiledNdArray['tileSets'];
 	_tileSets?: TileSetWoNulls[];
-	constructor(ndarr: Nd, options: RangeOptions<T> = {}) {
+	constructor(ndarr: Nd, options: RangeOptions = {}) {
 		this.dataType = ndarr.dataType;
 		this.axisNames = ndarr.axisNames || [];
 		this.type = ndarr.type;
@@ -99,7 +87,7 @@ export class Range<
 	 * const indices=new NdArr(...,axisNames:["t","x","y"]).reduceIndices({x:20,y:1})
 	 * indices=[0,20,1]
 	 */
-	normalizeNamedIndices(indices: MapIndices): number[] {
+	normalizeNamedIndices(indices: Map<string, number>): number[] {
 		if (!this.axisNames.length) return [0];
 		return this.axisNames
 			.map((name) => indices.get(name) || 0)
@@ -160,14 +148,7 @@ export class Range<
 			.map((tile) => Object.fromEntries(this.nameNormalizedIndices(tile)))
 			.map((d) => template.expand(d));
 		const ranges = await Promise.all(urls.map((url) => load<ValuesNdArray<T>>(url)));
-		ranges.forEach((range, i) => {
-			if (this.options.transform) {
-				for (let i = 0; i < range.values.length; i++) {
-					range.values[i] = this.options.transform(range.values[i], this.dataType);
-				}
-			}
-			this.appendRange(bestMatch.tileShape, tiles[i], range);
-		});
+		ranges.forEach((range, i) => this.appendRange(bestMatch.tileShape, tiles[i], range));
 	}
 
 	getTileCombos({ tileShape }: TileSetWoNulls): number[][] {
@@ -179,16 +160,14 @@ export class Range<
 			this.axisNames.map((_, i) => combo[i])
 		);
 	}
-	async get(indices: MapIndices | number[]): Promise<T | null> {
+	get(indices: Map<string, number> | number[], cb?: (range: Range) => void): Promise<T | null> {
 		if (!Array.isArray(indices)) indices = this.normalizeNamedIndices(indices);
 		const value = this._ndarr.get(...indices);
-		if (this.type === 'NdArray') return value;
 		if (isUndefined(value)) return value;
 		return this.loadTileSet(indices).then(() => {
-			this.options?.onNonCacheFetch?.(this);
+			cb?.(this);
 			return this._ndarr.get(...indices);
 		});
-		// Dont recurse to avoid infinite looping
 	}
 
 	/**
@@ -264,4 +243,8 @@ export interface RangeStatistics {
 	 * Provided a categoryEncoding object, calculate the bins
 	 */
 	frequency: Map<string, number> | null;
+}
+
+export function isNdArray(doc: CoverageJSON.CoverageJSON): doc is NdArray {
+	return doc.type === 'TiledNdArray' || doc.type === 'NdArray';
 }

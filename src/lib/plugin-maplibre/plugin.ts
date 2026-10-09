@@ -6,23 +6,28 @@ import {
 	type MapGeoJSONFeature,
 	type PromoteIdSpecification
 } from 'maplibre-gl';
-import { CoverageCollection, Exception, Range, Referencing, load } from '#lib/core/index.ts';
-import type { BasicPluginOptions, CoverageJSONCoverageDiff, PluginOptions } from './types.js';
-import type { Position } from 'coveragejson';
-import { Coverage } from '#lib/core/coverage.ts';
+import {
+	CoverageCollection,
+	Exception,
+	Range,
+	Referencing,
+	isNdArray,
+	load
+} from '#lib/core/index.js';
+import type { BasicPluginOptions, PluginOptions } from './types.js';
+import type { Domain, Parameter, Position } from 'coveragejson';
 
 export class MaplibrePlugin extends GeoJSONSource {
 	_coveragecollection: CoverageCollection;
 	covOptions: BasicPluginOptions;
-	_referencing: Referencing;
+	_referencing?: Referencing;
 	constructor(id: string, options: PluginOptions, dispatcher: Dispatcher, eventedParent: Evented) {
 		super(
 			id,
 			{
 				...options,
 				data: { type: 'FeatureCollection', features: [] },
-				type: 'geojson',
-				promoteId: 
+				type: 'geojson'
 			},
 			dispatcher,
 			eventedParent
@@ -53,61 +58,93 @@ export class MaplibrePlugin extends GeoJSONSource {
 		}
 	}
 	getPromoteId(promoteId: PromoteIdSpecification) {
-		if(!promoteId||typeof promoteId==="object")return "uuid"
+		if (!promoteId || typeof promoteId === 'object') return 'uuid';
 		return promoteId;
 	}
 	getCoveragesFromFeatureList(features: MapGeoJSONFeature[], point: Position) {
 		const idKey = this.getPromoteId(this.promoteId);
-		const featureIds = features.map(({ properties }) => properties[idKey]);
+		const featureIds = features.map(({ properties }) => properties.uuid);
 		return this._coveragecollection.coverages.filter((cov) => {
 			let value: string;
-			
-		})
-
-		return features
-			.map(({ properties }) => properties.uuid as string)
-			.map((id) => this._coveragecollection.coverages.filter().get(id.toString()))
-			.filter((v) => v !== undefined)
-			.map((v) => v.calculateIndices(point)); // todo check if indices get calculated correctly
+		});
 	}
 
 	// todo reproject
-	async loadCovData(data: PluginOptions['data']): Promise<Coverage | CoverageCollection> {
-		let doc: Exclude<typeof data, string>;
+	async loadCovData(data: PluginOptions['data']): Promise<CoverageCollection> {
+		let x: Exclude<PluginOptions['data'], string>;
 		if (typeof data === 'string') {
-			doc = await load<CoverageJSON.CoverageJSON>(data).then((doc) => {
-				switch (doc.type) {
-					case 'NdArray':
-					case 'TiledNdArray':
-						throw new Exception({
-							url: data,
-							status: 200,
-							statusText: 'Expected Coverage/Domain/CoverageCollection but got NdArray'
-						});
-				}
+			x = await load<CoverageJSON.CoverageJSON>(data).then((doc) => {
+				if (isNdArray(doc)) throw Error(`NdArrays are not supported`);
 				return doc;
 			});
-		}
-		if (typeof data !== 'string') {
-			// Fix type narrowing
-			switch (data.type) {
-				case 'CoverageCollection':
-					return CoverageCollection.load(data);
-				case 'Domain':
-					data = new Coverage({ type: 'Coverage', domain: data, ranges: {} });
-				case 'Coverage':
-					if (data instanceof Coverage) return data;
-					return await Coverage.load(data);
-			}
+		} else x = data;
+
+		switch (x.type) {
+			case 'Domain':
+				x = new Coverage({ type: 'Coverage', domain: x, ranges: {} });
+			case 'Coverage':
+				x = new CoverageCollection({ type: 'CoverageCollection', coverages: [x] });
+			case 'CoverageCollection':
+				if (x instanceof CoverageCollection) return x;
+				return CoverageCollection.load(x);
 		}
 	}
 	async setCovData(data: PluginOptions['data']) {
-		let covjson = await this.loadCovData(data).then(async (data) => {
-			if (!this.covOptions.reproject) return covjson;
-			return await covjson.reproject();
+		this._coveragecollection = await this.loadCovData(data).then(async (data) => {
+			if (!this.covOptions.reproject || !this._referencing) return data;
+			return await data.reproject(this._referencing);
 		});
+		this.setData(this._coveragecollection.featurecollection);
 	}
-	updateCovData(diff: CoverageJSONCoverageDiff): Promise<void> {
-		return;
+	/**
+	 * Adapted closely to GeoJSON's source
+	 */
+	async updateCovData(diff: SourceDiff): Promise<void> {
+		if (diff.add) {
+			this._coveragecollection.coverages.push(...diff.add);
+		}
+		if (diff.remove) {
+			diff.remove.forEach((id) => {
+				const idx = this._coveragecollection.coverages.findIndex((cov) => cov.uuid === id);
+				if (idx < 0) return;
+				this._coveragecollection.coverages.splice(idx, 1);
+			});
+		}
+		if (diff.update) {
+		}
 	}
+}
+
+interface SourceDiff {
+	/**
+	 * A list of coverage uuids to remove
+	 */
+	remove?: string[];
+	/**
+	 * Add coverages
+	 */
+	add?: Coverage[];
+	/**
+	 *
+	 */
+	update?: CoverageDiff[];
+}
+
+interface CoverageDiff {
+	/**
+	 * The uuid of the coverage
+	 */
+	uuid: string;
+	/**
+	 * The new Domain
+	 */
+	newDomain?: Domain;
+	/**
+	 *
+	 */
+	addOrUpdate?: {
+		parameters?: Record<string, Parameter>;
+		ranges?: Record<string, Range>;
+		properties?: Record<string, unknown>[];
+	};
 }

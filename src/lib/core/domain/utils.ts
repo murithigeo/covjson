@@ -386,14 +386,17 @@ export class CustomDate extends Date {
 	// Implement the parse string
 }
 
-export function calculateMedian<T extends string | number>(data: (T | null)[]): T | null {
+export function calculateMedian<T extends string | number>(
+	data: (T | null)[],
+	stringy?: boolean
+): T | null {
 	if (data.length < 1) return null;
 
-	let isNumber = typeof data[0] === 'number';
+	stringy = stringy ?? !!data.find((d) => typeof d === 'string');
 
 	if (!data.length) return null;
 
-	const compareFn = !isNumber
+	const compareFn = stringy
 		? (a: any, b: any) => String(a).localeCompare(b)
 		: (a: any, b: any) => Number(a) - Number(b);
 
@@ -403,7 +406,7 @@ export function calculateMedian<T extends string | number>(data: (T | null)[]): 
 	if (data.length % 2 === 0) {
 		index = [index, index - 1];
 	}
-	if (!isNumber) {
+	if (!stringy) {
 		if (Array.isArray(index)) return null;
 		return data[index];
 	}

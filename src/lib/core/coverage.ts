@@ -1,4 +1,4 @@
-import type { Coverage as CRG, Domain, NdArray as Nd, Position } from 'coveragejson';
+import type { Coverage as CRG, Domain, NdArray, Position } from 'coveragejson';
 import { Base, type ReferenceArgument } from './base.ts';
 import { Parameter, ParameterGroup } from './parameters.ts';
 import { BaseDomain, getDomain, type GridType } from './domain/index.ts';
@@ -7,9 +7,15 @@ import type { InferDomainClass } from './domain/types.d.ts';
 import { Referencing } from './referencing.ts';
 import { Range, type RangeOptions } from './ranges.ts';
 import { nanoid } from 'nanoid';
-import type { Feature } from 'geojson';
 import { cartesianProduct } from './utils.ts';
-import type { CoverageAsFeature } from './types';
+import type { Feature } from 'geojson';
+import type {
+	CoverageNonCacheFetch,
+	CoverageProperties,
+	GetDataOptions,
+	OnNonCacheFetch,
+	QueryOptions
+} from './types';
 
 /**
  * Add a function to forcibly set each ranges minMax externally
@@ -30,10 +36,7 @@ export interface CoverageOptions {
 	 */
 	gridType?: GridType;
 }
-export class Coverage<
-	D extends Domain = Domain,
-	ID extends InferDomainClass<D> = InferDomainClass<D>
-> extends Base<CRG<D>> {
+export class Coverage<D extends Domain = Domain> extends Base<CRG<D>> {
 	get t() {
 		return this.domain.t;
 	}
@@ -42,19 +45,16 @@ export class Coverage<
 	}
 	type: 'Coverage';
 	id?: string | undefined;
-	domain: ID;
+	domain: InferDomainClass<D>;
 	properties: Record<string, unknown>;
-	domainType: ID['domainType'];
+	domainType: (typeof this.domain)['domainType'];
 	parameters: Map<string, Parameter>;
 	parameterGroups: ParameterGroup[];
-	ranges: Map<string, Range>;
+	ranges: Map<string, string | Range>;
 	uuid: string;
 	indices: Map<string, number>;
 	options: CoverageOptions;
-	constructor(
-		coverage: CRG<D | ID> & { ranges: Record<string, Nd> },
-		options: CoverageOptions = {}
-	) {
+	constructor(coverage: CRG<D | InferDomainClass<D>>, options: CoverageOptions = {}) {
 		super();
 		const {
 			type,
@@ -72,9 +72,14 @@ export class Coverage<
 		this.domainType = this.domain.domainType || domainType;
 
 		this.ranges = new Map();
-		for (const id in ranges)
-			this.ranges.set(id.toUpperCase(), new Range(ranges[id], options.ranges?.[id]));
-
+		for (const id in ranges) {
+			const value = ranges[id];
+			if (typeof value === 'string') {
+				this.ranges.set(id, value);
+				continue;
+			}
+			this.ranges.set(id.toUpperCase(), new Range(value, options.ranges?.[id]));
+		}
 		this.parameters = new Map();
 		for (const id in parameters)
 			this.parameters.set(id.toUpperCase(), new Parameter(parameters[id], id.toUpperCase()));
@@ -86,21 +91,14 @@ export class Coverage<
 		this.options = options;
 	}
 
-	static async resolve<T extends Domain>(
-		coverage: CRG<T | string>
-	): Promise<
-		CRG<T> & {
-			ranges: Record<string, Nd>;
-		}
-	> {
+	static async resolve<T extends Domain>(coverage: CRG<T | string>): Promise<CRG<T>> {
 		if (typeof coverage.domain === 'string') coverage.domain = await load<T>(coverage.domain);
 		coverage.domain.domainType = coverage.domain.domainType || coverage?.domainType;
 
-		const ranges: Record<string, Nd> = {};
+		const ranges: Record<string, NdArray> = {};
 		for (const id in coverage.ranges) {
 			let range = coverage.ranges[id];
-			if (typeof range === 'string') range = await load<Nd>(range);
-			ranges[id] = range;
+			if (typeof range === 'string') range = await load<NdArray>(range);
 		}
 		let domain: T;
 		if (typeof coverage.domain === 'string') domain = await load<T>(coverage.domain);
@@ -126,7 +124,9 @@ export class Coverage<
 	/**
 	 * Assumes that the domain contained has implemented the method
 	 */
-	denormalize(): Omit<this, 'domain'> & { domain: ReturnType<ID['denormalize']> } {
+	denormalize(): Omit<this, 'domain'> & {
+		domain: InferDomainClass<D>['denormalize'];
+	} {
 		this.domain.denormalize();
 		//@ts-expect-error
 		return this;
@@ -137,7 +137,10 @@ export class Coverage<
 		return this;
 	}
 
-	get feature(): CoverageAsFeature<ID['domainType'], ID['geometry']> {
+	get feature(): Feature<
+		(typeof this.domain)['geometry'],
+		CoverageProperties<(typeof this.domain)['domainType']>
+	> {
 		return {
 			type: 'Feature',
 			geometry: this.domain.geometry,
@@ -171,14 +174,16 @@ export class Coverage<
 		return this;
 	}
 	/**
-	 * @todo add explicit types that it returns {ranges:Record<string,Nd>}
+	 * @todo add explicit types that it returns {ranges:Record<string,NdArray>}
 	 */
 	toPlain(): CRG<D> {
 		//@ts-expect-error domainType conflict upstream
 		return structuredClone({
 			type: this.type,
 			domain: this.domain.toPlain(),
-			ranges: this.ranges.entries().reduce((l, r) => ({ ...l, [r[0]]: r[1].toPlain() }), {}),
+			ranges: this.ranges
+				.entries()
+				.reduce((l, [k, v]) => ({ ...l, [k]: typeof v === 'string' ? v : v.toPlain() }), {}),
 			domainType: this.domain.domainType,
 			parameters: this.parameters
 				.entries()
@@ -198,22 +203,26 @@ export class Coverage<
 	}
 	/**
 	 *
-	 * @param point The point to get data for
+	 * @param ref The reference to get data for
 	 * @param rangeIds The parameter IDs to get data for. Should be in uppercase
-	 * @param computeCategories If set, then a key `{rangeId}:${catId} will be included
-	 * @returns {Promise<Record<string,RangeValue|undefined>>} If the range does not exist, the value is undefined
-	 * @example
-	 *  const data=await coverage.getData([0,0],["QC","POTM","x"])
-	 *  data==={"QC":50,"POTM":100,"x":undefined}
 	 */
-	async getData(ref: ReferenceArgument, rangeIds?: string[]): Promise<DataRow> {
+	async getData(ref: ReferenceArgument, options: GetDataOptions = {}): Promise<DataRow> {
+		if (!ref) ref = this.indices;
 		if (!(ref instanceof Map)) ref = this.queryIndices(ref);
-		if (!rangeIds) rangeIds = [...this.parameters.keys()];
+		options.ranges = options.ranges || [...this.ranges.keys()];
 
-		const values = rangeIds
+		const values = options.ranges
 			.map((id) => id.toUpperCase())
 			.filter((id) => this.ranges.has(id))
-			.map(async (id) => [id, await this.ranges.get(id)!.get(ref)] as const);
+			.map(async (id) => {
+				let range = this.ranges.get(id)!;
+				if (typeof range === 'string') {
+					const options = this.options.ranges?.[id];
+					range = await load<NdArray>(range).then((obj) => new Range(obj, options));
+					this.ranges.set(id, range);
+				}
+				return [id, await (range as Range).get(ref, (range) => options?.cb?.(id, range))] as const;
+			});
 
 		const row: DataRow = Object.fromEntries(await Promise.all(values));
 
@@ -232,21 +241,20 @@ export class Coverage<
 	}
 
 	/**
-	 * Similar to getData but allows fetching multiple dimensions in a fell swoop
-	 * @param axisNames A list of axisNames whose whose values will be preloaded
-	 * @example
-	 * // In a grid, you might want to preload all z axis values while using a particular t axis value
-	 * query("z") === [{z:0,POTM:10},{z:1,POTM:20}] etc
+	 *
+	 * @param ref The reference. Can be a Map of computed indices or a Position
+	 * @returns
 	 */
-	query(
-		ref: ReferenceArgument = this.indices,
-		rangeIds?: string[],
-		preloadAxisNames = Array<string>()
-	) {
+	query(ref: ReferenceArgument, options: QueryOptions) {
+		options.axisNames = options.axisNames || {};
 		const consider = this.axesSize
 			.entries()
-			.filter(([axisName]) => preloadAxisNames.includes(axisName))
-			.map(([axisName, count]) => [axisName, [...Array(count).keys()]] as const)
+			.filter(([axisName]) => options.axisNames!?.[axisName])
+			.map(([axisName, count]): [string, number[]] => {
+				let s = options.axisNames![axisName];
+				if (typeof s === 'boolean') s = [...Array(count).keys()];
+				return [axisName, s] as const;
+			})
 			.toArray();
 		const axisIndices = consider.map(([, indices]) => [...indices]);
 		const prod = cartesianProduct<number>(...axisIndices).map(
@@ -256,7 +264,7 @@ export class Coverage<
 		if (!(ref instanceof Map)) ref = this.queryIndices(ref);
 		const rows = prod
 			.map((indices) => new Map([...ref, ...indices]))
-			.map(async (indices) => this.getData(indices, rangeIds));
+			.map(async (indices) => this.getData(indices, options));
 		return Promise.all(rows);
 	}
 }

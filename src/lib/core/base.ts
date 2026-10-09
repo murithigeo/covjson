@@ -49,4 +49,5 @@ export abstract class Base<T> {
 }
 
 export type MapIndices<D extends Domain = Domain> = Map<string | keyof D['axes'], number>;
-export type ReferenceArgument = MapIndices | number | string | Position;
+export type ReferenceArgument<D extends Domain = Domain> =
+	MapIndices<D> | number | string | Position;

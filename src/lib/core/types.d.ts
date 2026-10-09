@@ -1,7 +1,8 @@
-import type { DomainTypes } from 'coveragejson';
+import type { DomainTypes, Domain } from 'coveragejson';
 import type { Geometry, Feature } from 'geojson';
-
-interface CoverageProperties<DT extends DomainTypes> {
+import type { DataValue } from './coverage';
+import { Range } from './ranges';
+export interface CoverageProperties<DT extends DomainTypes> {
 	/**
 	 * Other properties not explicitly declared in schema
 	 */
@@ -17,7 +18,37 @@ interface CoverageProperties<DT extends DomainTypes> {
 	 */
 	id?: string;
 }
-export type CoverageAsFeature<DT extends DomainTypes, G extends Geometry> = Feature<
-	G,
-	CoverageProperties<D>
->;
+
+/**
+ * Callback to execute if a TiledNdArray's value has been freshly retrieved
+ */
+type OnNonCacheFetch = (range: Range) => void;
+/**
+ *
+ */
+
+type CoverageNonCacheFetch = (k: string, v: Range) => void;
+/**
+ * The Domain's axes keys and their sizes
+ */
+type DomainIndices<D extends Domain = Domain> = Record<keyof D, number>;
+
+type RangeIndices = Record<string, number> | number[];
+
+interface QueryOptions {
+	/**
+	 * Dimensions to be preload
+	 * The values are the specific indices to get
+	 */
+	axisNames?: Record<string, number[] | boolean>;
+	/**
+	 * The ranges to query
+	 */
+	ranges?: string[];
+	/**
+	 * Callback to executed if the data value was not previously cached
+	 */
+	cb?(name: string, range: Range): void;
+}
+
+export type GetDataOptions = Exclude<QueryOptions, 'axisNames'>;
