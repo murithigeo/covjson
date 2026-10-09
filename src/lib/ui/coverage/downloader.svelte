@@ -1,34 +1,25 @@
 <script lang="ts">
-	import { type DataRow } from '#lib/core/index.ts';
 	import { downloadImage, type ChartImageOptions } from 'layerchart';
 	import * as ButtonGroup from '#lib/components/ui/button-group/index.ts';
-	import { Slider } from '#lib/components/ui/slider/index.ts';
 	import * as Field from '#lib/components/ui/field/index.ts';
 	import { Label } from '#lib/components/ui/label/index.ts';
-	import type { Axis, resolveAxisIdx } from './axes-utils';
 	import ColorPicker from '../metadata/parameter/color-picker.svelte';
 	import { Button } from '#lib/components/ui/button/index.ts';
-	interface Props {
-		ref: HTMLElement | undefined;
-		data: DataRow[];
-		axisNames: Axis[];
-		filename: string;
-		categoric: boolean;
-		axisResolver: (axis: Axis, idx: number) => ReturnType<typeof resolveAxisIdx>;
-	}
+	import type { Axis, DownloaderProps } from './types';
+
 	let {
 		ref = $bindable(),
 		data = $bindable(),
-		filename = $bindable(),
 		axisNames = $bindable(),
 		categoric = $bindable(),
-		axisResolver
-	}: Props = $props();
+		axisResolver,
+		filename
+	}: DownloaderProps = $props();
 	let background = $state('white');
-	let quality = $state(0.92);
+
 	let downloadImageFn = $derived((format: ChartImageOptions['format']) => {
 		if (!ref) return;
-		downloadImage(ref, { format, background, quality, filename });
+		downloadImage(ref, { format, background, filename });
 	});
 
 	const downloadCsvFn = () => {
@@ -43,7 +34,7 @@
 				header.map((fieldName) => {
 					let value: unknown = row[fieldName];
 					if (axisNames.includes(fieldName as Axis))
-						value = axisResolver(fieldName as Axis, value as number);
+						value = axisResolver?.(fieldName as Axis, value as number) || value;
 					// For MultiPoint, we can split into x,y,z
 					if (Array.isArray(value)) return JSON.stringify(value, null, 2);
 					return value;
@@ -70,15 +61,6 @@
 			<Button variant="outline" onclick={() => downloadImageFn('webp')}>WebP</Button>
 		</ButtonGroup.Root>
 		<Field.Group>
-			<Field.Field>
-				<Label for="quality">Quality</Label>
-				<Slider
-					type="single"
-					bind:value={() => quality * 100, (v) => (quality = v / 100)}
-					min={0}
-					max={100}
-				/>
-			</Field.Field>
 			<Field.Field>
 				<Label for="background">Background</Label>
 				<ColorPicker bind:hex={background} />

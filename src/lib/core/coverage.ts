@@ -9,6 +9,7 @@ import { Range, type RangeOptions } from './ranges.ts';
 import { nanoid } from 'nanoid';
 import type { Feature } from 'geojson';
 import { cartesianProduct } from './utils.ts';
+import type { CoverageAsFeature } from './types';
 
 /**
  * Add a function to forcibly set each ranges minMax externally
@@ -127,6 +128,7 @@ export class Coverage<
 	 */
 	denormalize(): Omit<this, 'domain'> & { domain: ReturnType<ID['denormalize']> } {
 		this.domain.denormalize();
+		//@ts-expect-error
 		return this;
 	}
 
@@ -135,17 +137,16 @@ export class Coverage<
 		return this;
 	}
 
-	get feature(): Feature<
-		ID['geometry'],
-		{ uuid: string; domainType: ID['domainType']; parameters: string[] }
-	> {
+	get feature(): CoverageAsFeature<ID['domainType'], ID['geometry']> {
 		return {
 			type: 'Feature',
 			geometry: this.domain.geometry,
 			properties: {
+				...this.properties,
+				id: this.id,
 				uuid: this.uuid,
 				domainType: this.domainType, // Allow filtering for maplibregl
-				parameters: this.ranges.keys().toArray()
+				parameters: [...this.ranges.keys()]
 			}
 		};
 	}
@@ -244,11 +245,10 @@ export class Coverage<
 	) {
 		const consider = this.axesSize
 			.entries()
-			.filter(([axisName, count]) => count > 1 && preloadAxisNames.includes(axisName)) // count>1 means filtering out 1D values
+			.filter(([axisName]) => preloadAxisNames.includes(axisName))
 			.map(([axisName, count]) => [axisName, [...Array(count).keys()]] as const)
 			.toArray();
-
-		const axisIndices = consider.map(([, indices]) => indices.map((idx) => idx)); // Remove readonly marker
+		const axisIndices = consider.map(([, indices]) => [...indices]);
 		const prod = cartesianProduct<number>(...axisIndices).map(
 			(combo) => new Map(combo.map((idx, i) => [consider[i][0], idx]))
 		);

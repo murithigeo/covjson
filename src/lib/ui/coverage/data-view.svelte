@@ -1,21 +1,7 @@
 <script lang="ts" module>
-	import {
-		type DataRow,
-		type Coverage,
-		CustomDate,
-		isNull,
-		isUndefined,
-		Parameter,
-		Range
-	} from '#lib/core/index.ts';
+	import { type DataRow, CustomDate, isNull, isUndefined } from '#lib/core/index.ts';
 	import * as Card from '#lib/components/ui/card/index.js';
 	import * as Tabs from '#lib/components/ui/tabs/index.js';
-	import {
-		type AxisConfig,
-		type Axis,
-		resolveAxisIdx,
-		resolveAxisIdxForChart
-	} from './axes-utils.ts';
 	import {
 		LineChart,
 		LinearGradient,
@@ -26,12 +12,11 @@
 	} from 'layerchart';
 	import * as Chart from '#lib/components/ui/chart/index.js';
 	import { scaleOrdinal } from 'd3-scale';
-	import * as Table from '#lib/components/ui/table/index.js';
 	import ParameterComponent from '../metadata/parameter-cpt.svelte';
 	import { getRandomColor } from '#lib/utils.ts';
 	import Stats from '../metadata/parameter/stats.svelte';
 	import Downloader from './downloader.svelte';
-	import type { CoverageProps, DataViewProps } from './types';
+	import type { Axis, DataViewProps } from './types';
 	import { SvelteMap } from 'svelte/reactivity';
 	import TableCpt from './table-cpt.svelte';
 </script>
@@ -40,16 +25,16 @@
 	const _color = getRandomColor();
 	let {
 		data: rows = $bindable([]),
-		coverage = $bindable(),
+		covId,
 		show,
 		parameter,
-		stats = $bindable(),
+		range = $bindable(),
 		fx = $bindable(),
 		x = $bindable(),
 		fy = $bindable(),
 		y1 = $bindable(),
 		facetAll = $bindable(),
-		tabValue = $bindable(stats.dataType === 'string' ? 'table' : 'chart'),
+		tabValue = $bindable(range.dataType === 'string' ? 'table' : 'chart'),
 		tooltip = $bindable(null),
 		color = $bindable(_color),
 		categoryColors = $bindable(
@@ -58,23 +43,28 @@
 					? undefined
 					: parameter.observedProperty.categories?.map(({ id }) => [id, color])
 			)
+		),
+		axisResolver = (a, i) => i,
+		axes = $bindable(
+			range.axisNames.map((name, i): [Axis, number] => [name as Axis, range.shape[i]])
 		)
 	}: DataViewProps = $props();
 	let _parameter = $derived(typeof parameter === 'string' ? undefined : parameter);
 	let key = $derived(typeof parameter === 'string' ? parameter : parameter.key);
-	let axesSize = $derived(coverage.axesSize as Map<Axis, number>);
-	let axisNames = $derived([...axesSize.keys()]);
+
 	let chartRef = $state<HTMLElement>();
-	let stringy = stats.dataType === 'string';
+
+	let stringy = range.dataType === 'string';
 	let categories = $derived.by(() => {
 		if (typeof parameter === 'string') return undefined;
 		return parameter.observedProperty.categories;
 	});
 	let categoric = $derived<boolean>(!isUndefined(categories));
+
 	let data = $derived(
 		rows.map((r) => {
 			const d: DataRow = {};
-			for (const [axisName] of axesSize) d[axisName] = r[axisName];
+			for (const [axisName] of axes) d[axisName] = r[axisName];
 			d.value = r[key];
 			if (categoric) d.category = _parameter?.getCategory(d.value as number)?.id || '';
 			return d;
@@ -97,7 +87,7 @@
 	const setTooltip = (data: undefined | null | DataRow) => {
 		if (isNull(data) || isUndefined(data)) return (tooltip = null);
 		const match = rows.find((row) =>
-			axisNames.every((axisName) => row[axisName] === data?.[axisName])
+			axes.every(([axisName]) => row[axisName] === data?.[axisName])
 		);
 		if (!match) return;
 		tooltip = match;
@@ -105,7 +95,15 @@
 	$effect(() => {
 		setTooltip(context?.tooltip.data);
 	});
-
+	const resolveAxisIdxForChart = (axisName: Axis, idx: number) => {
+		let value = axisResolver(axisName, idx);
+		if (Array.isArray(value)) {
+			if (typeof value[0] === 'string') value = value[0];
+			else value = idx;
+		}
+		if (typeof value === 'string') return new CustomDate(value);
+		return value;
+	};
 	// render a snippet to render tooltip values //https://github.com/techniq/layerchart/issues/639
 </script>
 
@@ -118,12 +116,7 @@
 			}
 		>
 			<Tabs.Content value="table">
-				<TableCpt
-					bind:data
-					{axesSize}
-					{key}
-					axisResolver={(an, idx) => resolveAxisIdx(coverage.domain, an, idx)}
-				/>
+				<TableCpt bind:data {axes} {key} {axisResolver} />
 			</Tabs.Content>
 			<Tabs.Content value="chart">
 				{#if !stringy}
@@ -133,21 +126,19 @@
 							bind:ref={chartRef}
 							{data}
 							series={Object.values(chartConfig)}
-							x1={(d) => {
-								if (isUndefined(y1)) return undefined;
+							// x1={(d) => {
+							// 	if (isUndefined(y1)) return undefined;
 
-								return resolveAxisIdxForChart(coverage.domain, y1, d[y1]);
-							}}
-							x={(d) => {
-								return resolveAxisIdxForChart(coverage.domain, x, d[x]);
-							}}
+							// 	return resolveAxisIdxForChart(y1, d[y1]);
+							// }}
+							x={(d) => resolveAxisIdxForChart(x, d[x])}
 							fx={(d) => {
 								if (isUndefined(fx)) return undefined;
-								return resolveAxisIdxForChart(coverage.domain, fx, d[fx]);
+								return resolveAxisIdxForChart(fx, d[fx]);
 							}}
 							fy={(d) => {
 								if (isUndefined(fy)) return undefined;
-								return resolveAxisIdxForChart(coverage.domain, fy, d[fy]);
+								return resolveAxisIdxForChart(fy, d[fy]);
 							}}
 							facet={{
 								axis: { facetAll }
@@ -218,7 +209,7 @@
 				{#if show?.parameters && _parameter}
 					<ParameterComponent
 						data={_parameter}
-						{stats}
+						stats={range}
 						checkable={false}
 						{color}
 						onColorChange={(_, col, catId) => {
@@ -227,17 +218,17 @@
 						}}
 					/>
 				{:else}
-					<Stats {...stats} class="grid grid-cols-2 gap-1" />
+					<Stats {...range} class="grid grid-cols-2 gap-1" />
 				{/if}
 			</Tabs.Content>
 			<Tabs.Content value="download">
 				<Downloader
 					bind:ref={chartRef}
 					bind:data
-					axisNames={[...axesSize.keys()]}
-					axisResolver={(axis, idx) => resolveAxisIdx(coverage.domain, axis, idx)}
+					axisNames={axes.map(([name]) => name)}
+					{axisResolver}
 					{categoric}
-					filename="coverage-{coverage.id || coverage.uuid}_{key}"
+					filename="coverage-{covId}_{key}"
 				/>
 			</Tabs.Content>
 		</Tabs.Root>

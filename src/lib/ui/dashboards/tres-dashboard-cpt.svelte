@@ -5,11 +5,10 @@
 	import * as Resizable from '#lib/components/ui/resizable/index.js';
 	import * as Accordion from '#lib/components/ui/accordion/index.ts';
 	import { MediaQuery, SvelteMap, SvelteSet } from 'svelte/reactivity';
-	import { Parameter, ParameterGroup } from '#lib/core/parameters.ts';
+	import { Parameter } from '#lib/core/parameters.ts';
 	import type { Coverage, RangeStatistics } from '#lib/core/index.ts';
 	import CoverageComponent from '#lib/ui/coverage/index-cpt.svelte';
 	import ParameterComponent from '#lib/ui/metadata/parameter-cpt.svelte';
-	import ParameterGroupComponent from '#lib/ui/metadata/parameter-group-cpt.svelte';
 	import * as Card from '#lib/components/ui/card/index.ts';
 	let { onIndicesChange = $bindable(), data = $bindable(), children }: DashboardProps = $props();
 

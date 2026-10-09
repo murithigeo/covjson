@@ -3,11 +3,12 @@ import type {
 	DataRow,
 	OnIndicesChange,
 	Parameter,
+	Range,
 	RangeStatistics
 } from '#lib/core/index.ts';
 import type { SvelteMap, SvelteSet } from 'svelte/reactivity';
-import type { Axis, AxisConfig, resolveAxisIdx } from './axes-utils';
 import type { HighlightPropsWithoutHTML } from 'layerchart';
+import type { Section, Polygon, Trajectory, MultiPoint, MultiPolygon } from 'coveragejson';
 
 type Props<D> = { data: D };
 
@@ -22,6 +23,10 @@ interface ShowOptions {
 	 * If false, the tab will not be shown
 	 */
 	parameterGroups?: boolean;
+	/**
+	 * Whether to show Download options
+	 */
+	downloads?: boolean;
 }
 interface ActionOptions {
 	/**
@@ -67,6 +72,7 @@ export interface CoverageProps extends CoverageOptions, Props<Coverage> {
 	onIndicesChange?: OnIndicesChange;
 }
 export interface DataViewProps extends AxisConfig, Props<DataRow[]> {
+	axisResolver?: AxisResolver;
 	show?: Partial<Pick<ShowOptions, 'parameters'>>;
 	/**
 	 * The currently active tab
@@ -78,14 +84,11 @@ export interface DataViewProps extends AxisConfig, Props<DataRow[]> {
 	 * Primarily powered by layerchart
 	 */
 	tooltip: DataRow | null;
-	/**
-	 * Since we denormalize coverage to determine axis config, require the denormalized version of the Coverage
-	 */
-	coverage: DenormalizedCoverage;
+
 	/**
 	 * The current statistics of the parameter in this Coverage
 	 */
-	stats: RangeStatistics;
+	range: Range;
 	/**
 	 * See {@link HighlightPropsWithoutHTML.facetAll}
 	 */
@@ -103,14 +106,24 @@ export interface DataViewProps extends AxisConfig, Props<DataRow[]> {
 	 * The colors of the categories if any
 	 */
 	categoryColors?: SvelteMap<string, string>;
+	/**
+	 * The coverage's identifier
+	 */
+	covId: string;
+	/**
+	 * If the component renders data from Coverage, then the range may not include 1D axes
+	 * @todo decouple data fetching/dimensions from coverage
+	 */
+	axes?: [Axis, number][];
 }
 
+type Axes = [Axis, number][];
 /**
  * Works best for tiled
  * Add options to toggle dimensions by header value
  */
 export interface TableProps extends Props<DataRow[]> {
-	axisResolver?: (axisName: Axis, idx: number) => ReturnType<typeof resolveAxisIdx>;
+	axisResolver?: AxisResolver;
 	/**
 	 * The parameter key value.
 	 * Used in table caption
@@ -123,5 +136,48 @@ export interface TableProps extends Props<DataRow[]> {
 	/**
 	 * We can also go by the unique axis values in the data
 	 */
-	axesSize: Map<Axis, number>;
+	axes: Axes;
 }
+
+interface DownloaderProps extends Props<DataRow[]> {
+	axisResolver?: AxisResolver;
+	/**
+	 * Needed for downloading chart images
+	 */
+	ref?: HTMLElement;
+	/**
+	 * Whether the dataset is categoric
+	 */
+	categoric: boolean;
+	/**
+	 * The axis names in the dataset. Used to create the header for CSV
+	 */
+	axisNames: string[];
+	/**
+	 * The name of the file
+	 */
+	filename?: string;
+}
+
+/**
+ * Get the actual value of the axisName index in a row
+ */
+export type AxisResolver = (
+	axisName: Axis,
+	idx: number
+) =>
+	| string
+	| number
+	| (Polygon | MultiPoint | Section | Trajectory)['axes']['composite']['values'][number];
+
+export interface AxisConfig {
+	x: Axis;
+	y1?: Extract<Axis, 'z' | 't'>;
+	/**
+	 * Grid (x), MultiPoint/MultiPolygon/MultiPolygonSeries (Polygon/Point)
+	 */
+	fx?: Extract<Axis, 'composite' | 'x' | 'y'>;
+	fy?: Extract<Axis, 'composite' | 'x' | 'y'>;
+}
+
+export type Axis = 'x' | 'y' | 'composite' | 'z' | 't';

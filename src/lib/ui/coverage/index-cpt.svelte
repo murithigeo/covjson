@@ -1,12 +1,5 @@
 <script lang="ts" module>
-	import {
-		type Coverage,
-		type OnIndicesChange,
-		isUndefined,
-		type DataRow,
-		Range,
-		Parameter
-	} from '#lib/core/index.ts';
+	import { isUndefined, type DataRow, Range, Parameter } from '#lib/core/index.ts';
 	import ParameterRender from './data-view.svelte';
 	import * as ButtonGroup from '#lib/components/ui/button-group/index.js';
 	import { Button } from '#lib/components/ui/button/index.js';
@@ -25,14 +18,14 @@
 		ListChecksIcon,
 		CircleAlertIcon
 	} from '@lucide/svelte';
-	import dimensions, { type Axis, type AxisConfig } from './axes-utils.ts';
+	import dimensions from './axes-utils.ts';
 	import { Badge } from '#lib/components/ui/badge/index.js';
 	import * as Card from '#lib/components/ui/card/index.js';
 	import * as Tabs from '#lib/components/ui/tabs/index.js';
 	import * as ToggleGroup from '#lib/components/ui/toggle-group/index.js';
 	import ParameterGroup from '../metadata/parameter-group-cpt.svelte';
 	import * as Empty from '#lib/components/ui/empty/index.ts';
-	import type { CoverageProps } from './types';
+	import type { Axis, AxisConfig, AxisResolver, CoverageProps } from './types';
 	import { SvelteSet } from 'svelte/reactivity';
 </script>
 
@@ -51,6 +44,11 @@
 
 	const coverage = cov.denormalize();
 
+	const axisResolver: AxisResolver = (axisName, idx) => {
+		if (axisName === 'z' || axisName === 't') return coverage.domain[axisName][idx];
+		//@ts-expect-error type mismatch
+		return coverage.domain.axes[axisName]?.values[idx];
+	};
 	for (const [key, range] of coverage.ranges) {
 		if (range.type === 'NdArray') {
 			stats[key] = range;
@@ -76,21 +74,21 @@
 	let fy = $state<AxisConfig['fy']>();
 	let y1 = $state<AxisConfig['y1']>();
 	let facetAll = $state(false);
-
 	let parameters = $derived.by<[string, Parameter][]>(() =>
 		coverage.parameters.entries().toArray()
 	);
 
 	let activeParam = $state([...coverage.ranges.keys()][0]);
+
 	let data = $state<DataRow[]>([]);
+
 	function dataFetcher(selected: string[], axisNames: string[]): void {
 		coverage.query(coverage.indices, selected, axisNames).then((rows) => (data = rows));
 	}
 
-	let axes = $derived(new Set([x, fx, fy, y1].filter((v) => !isUndefined(v))));
-	$effect(() => {
-		dataFetcher([...selected], [...axes]);
-	});
+	let axes = $derived([...coverage.axesSize.entries().map(([k, v]): [Axis, number] => [k, v])]);
+	let preloadAxes = $derived(new Set([x, fx, fy, y1].filter((v) => !isUndefined(v))));
+	$effect(() => dataFetcher([...selected], [...preloadAxes]));
 	let tabValue = $state<'table' | 'chart' | 'param-info' | 'download'>('chart');
 	/**
 	 * If facetAll, display all values, else display for current value
@@ -207,9 +205,11 @@
 							bind:tabValue
 							bind:tooltip
 							{show}
-							stats={stats[key]}
-							{coverage}
+							range={stats[key]}
 							{parameter}
+							covId={coverage.id || cov.uuid}
+							{axisResolver}
+							{axes}
 						/>
 					{:else}
 						<Empty.Root>

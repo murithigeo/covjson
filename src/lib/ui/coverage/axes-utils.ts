@@ -1,15 +1,5 @@
-import {
-	type InferDomainClass,
-	CustomDate,
-	MultiPoint,
-	Polygon,
-	Section,
-	type DataRow,
-	isUndefined,
-	isNull,
-	Coverage
-} from '#lib/core/index.ts';
-import { downloadImage, type ChartImageOptions } from 'layerchart';
+import { type InferDomainClass } from '#lib/core/index.ts';
+import type { AxisConfig } from './types';
 
 export default function (
 	domain: ReturnType<InferDomainClass['denormalize']> | InferDomainClass
@@ -45,9 +35,9 @@ export default function (
 			break;
 		case 'MultiPolygon':
 		case 'Polygon':
-			conf.fx = 'composite';
 			if (domain.axes.t) conf.x = 't';
 			else if (domain.axes.z) conf.x = 'z';
+			else conf.x = 'composite';
 			if (conf.x === 't' && domain.axes.z) conf.y1 = 'z';
 			else if (conf.x === 'z' && domain.axes.t) conf.y1 = 't';
 			break;
@@ -59,56 +49,8 @@ export default function (
 		case 'PointSeries':
 			conf.x = 't';
 			break;
+		default:
+			console.error('unhandled', domain);
 	}
 	return conf;
-}
-
-export interface AxisConfig {
-	x: Axis;
-	y1?: Extract<Axis, 'z' | 't'>;
-	/**
-	 * Grid (x), MultiPoint/MultiPolygon/MultiPolygonSeries (Polygon/Point)
-	 */
-	fx?: Extract<Axis, 'composite' | 'x' | 'y'>;
-	fy?: Extract<Axis, 'composite' | 'x' | 'y'>;
-}
-
-export type Axis = 'x' | 'y' | 'composite' | 'z' | 't';
-export type DenormalizedDomain = ReturnType<InferDomainClass['denormalize']>;
-export function resolveAxisIdx(
-	domain: DenormalizedDomain,
-	axis: Axis,
-	idx: number
-): string | number | (Polygon | MultiPoint | Section)['axes']['composite']['values'][number] {
-	if (axis === 'z' || axis === 't') return domain[axis][idx];
-	// @ts-expect-error domain is denormalized
-	return domain.axes[axis]?.values[idx];
-}
-export function resolveAxisIdxForChart(
-	domain: DenormalizedDomain,
-	axis: Axis,
-	idx: number
-): number | CustomDate {
-	let value = resolveAxisIdx(domain, axis, idx);
-	if (Array.isArray(value)) {
-		if (typeof value[0] === 'string') value = value[0];
-		else value = idx;
-		/// Others resolve to an object with {axis,idx} so that we resolve in tooltip
-	}
-	if (typeof value === 'string') return new CustomDate(value);
-	return value;
-}
-
-export interface DownloadOptions {
-	categoric?: boolean;
-	format?: 'csv' | ChartImageOptions['format'];
-	filename: string;
-	ref?: HTMLElement;
-	coverage: ReturnType<Coverage['denormalize']>;
-}
-export function download(data: DataRow[], options: DownloadOptions) {
-	if (options.format !== 'csv') {
-		if (!options.ref) return;
-		return downloadImage(options.ref, { format: options.format, filename: options.filename }); //.then(()=>legend = false)
-	}
 }

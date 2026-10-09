@@ -3,89 +3,111 @@ import {
 	type Evented,
 	Map as MapInstance,
 	GeoJSONSource,
-	type MapGeoJSONFeature
+	type MapGeoJSONFeature,
+	type PromoteIdSpecification
 } from 'maplibre-gl';
-import { Coverage, CoverageCollection, type WithRequiredProperty } from '#lib/core/index.ts';
-import type { BasicPluginOptions, PluginOptions } from './types.js';
+import { CoverageCollection, Exception, Range, Referencing, load } from '#lib/core/index.ts';
+import type { BasicPluginOptions, CoverageJSONCoverageDiff, PluginOptions } from './types.js';
 import type { Position } from 'coveragejson';
-import { loadCovJson } from './util.ts';
+import { Coverage } from '#lib/core/coverage.ts';
 
-//todo add hmr discerner. If URL already exists and tries to load again, invalid existing data
 export class MaplibrePlugin extends GeoJSONSource {
-	_coverages: Map<string, Coverage>;
-	covOptions: WithRequiredProperty<BasicPluginOptions, 'layers' | 'listenTo'>;
+	_coveragecollection: CoverageCollection;
+	covOptions: BasicPluginOptions;
+	_referencing: Referencing;
 	constructor(id: string, options: PluginOptions, dispatcher: Dispatcher, eventedParent: Evented) {
 		super(
 			id,
 			{
 				...options,
 				data: { type: 'FeatureCollection', features: [] },
-				type: 'geojson'
+				type: 'geojson',
+				promoteId: 
 			},
 			dispatcher,
 			eventedParent
 		);
-		this._coverages = new Map();
-		this.covOptions = {
-			...options,
-			layers: options.layers || [],
-			listenTo: options.listenTo || [],
-			reproject: 'reproject' in options ? options.reproject : true
-		};
-		this.setCovData(options.data).then(() => this.covOptions.onLoad?.(this.covMapToCollection()));
-	}
-
-	async setCovData(v: PluginOptions['data']): Promise<void> {
-		const load = loadCovJson(v).then((covs) => {
-			const features: GeoJSON.Feature[] = [];
-			for (const cov of covs) {
-				this._coverages.set(cov.uuid, cov);
-				features.push(cov.feature);
-			}
-			this.setData({ type: 'FeatureCollection', features });
-		});
-		return load.then(() => this.covOptions.onLoad?.(this.covMapToCollection()));
-	}
-	updateCovData() {}
-
-	covMapToCollection(): CoverageCollection {
-		const coll = new CoverageCollection({
+		this.covOptions = options;
+		this.covOptions.events = this.covOptions.events || {};
+		this._coveragecollection = new CoverageCollection({
 			type: 'CoverageCollection',
-			coverages: this._coverages.values().toArray()
+			coverages: []
 		});
-		return coll;
+		Referencing.load({ crsId: 'OGC:CRS84' }).then((d) => (this._referencing = d));
 	}
-	/**
-	 * Add option to return the raw object
-	 */
-	getCovData = () => this.covMapToCollection();
 
 	onAdd(map: MapInstance): void {
 		super.onAdd(map);
-		const events = new Set(this.covOptions.listenTo);
-		for (const event of events) {
-			map.on(event, this.covOptions.layers, (e) => {
-				// Doing so here ensures that layers are already loaded in
-				const layers = new Set(
-					this.covOptions.layers.filter((v) => map.getLayersOrder().includes(v))
-				);
-				const features = map.queryRenderedFeatures(e.point, {
-					layers
+		for (const layerId in this.covOptions.events) {
+			if (!this.map.getLayer(layerId)) continue;
+			for (const event of this.covOptions.events[layerId]) {
+				map.on(event, layerId, (e) => {
+					const features = this.map.queryRenderedFeatures(e.point, {
+						layers: [layerId]
+					});
+					const point = e.lngLat.wrap().toArray();
+					//@ts-expect-error patching the event object
+					e.coverages = this.getCoveragesFromFeatureList(features, point);
 				});
-				const point = e.lngLat.wrap().toArray();
-				const coverages = this.getCoveragesFromFeatureList(features, point);
-				//@ts-expect-error we are patching the event object
-				e.coverages = coverages;
-			});
+			}
 		}
 	}
+	getPromoteId(promoteId: PromoteIdSpecification) {
+		if(!promoteId||typeof promoteId==="object")return "uuid"
+		return promoteId;
+	}
 	getCoveragesFromFeatureList(features: MapGeoJSONFeature[], point: Position) {
+		const idKey = this.getPromoteId(this.promoteId);
+		const featureIds = features.map(({ properties }) => properties[idKey]);
+		return this._coveragecollection.coverages.filter((cov) => {
+			let value: string;
+			
+		})
+
 		return features
 			.map(({ properties }) => properties.uuid as string)
-			.map((id) => this._coverages.get(id.toString()))
+			.map((id) => this._coveragecollection.coverages.filter().get(id.toString()))
 			.filter((v) => v !== undefined)
 			.map((v) => v.calculateIndices(point)); // todo check if indices get calculated correctly
 	}
 
-	updateCoverageData() {}
+	// todo reproject
+	async loadCovData(data: PluginOptions['data']): Promise<Coverage | CoverageCollection> {
+		let doc: Exclude<typeof data, string>;
+		if (typeof data === 'string') {
+			doc = await load<CoverageJSON.CoverageJSON>(data).then((doc) => {
+				switch (doc.type) {
+					case 'NdArray':
+					case 'TiledNdArray':
+						throw new Exception({
+							url: data,
+							status: 200,
+							statusText: 'Expected Coverage/Domain/CoverageCollection but got NdArray'
+						});
+				}
+				return doc;
+			});
+		}
+		if (typeof data !== 'string') {
+			// Fix type narrowing
+			switch (data.type) {
+				case 'CoverageCollection':
+					return CoverageCollection.load(data);
+				case 'Domain':
+					data = new Coverage({ type: 'Coverage', domain: data, ranges: {} });
+				case 'Coverage':
+					if (data instanceof Coverage) return data;
+					return await Coverage.load(data);
+			}
+		}
+	}
+	async setCovData(data: PluginOptions['data']) {
+		let covjson = await this.loadCovData(data).then(async (data) => {
+			if (!this.covOptions.reproject) return covjson;
+			return await covjson.reproject();
+		});
+	}
+	updateCovData(diff: CoverageJSONCoverageDiff): Promise<void> {
+		return;
+	}
 }

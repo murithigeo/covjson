@@ -85,7 +85,7 @@ export class CoverageCollection<T extends Domain = Domain> extends Base<CovColl<
 		return new CoverageCollection(
 			{
 				...doc,
-				coverages: await Promise.all(doc.coverages.map((cov) => Coverage.resolve(cov)))
+				coverages: await Promise.all(doc.coverages.map((cov) => Coverage.load(cov, options)))
 			},
 			options
 		);
