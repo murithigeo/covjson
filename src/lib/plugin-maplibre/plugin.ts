@@ -16,7 +16,7 @@ import {
 } from '#lib/core/index.js';
 import type { BasicPluginOptions, PluginOptions } from './types.js';
 import type { Domain, Parameter, Position } from 'coveragejson';
-
+import { Coverage } from '#lib/core/coverage.js';
 export class MaplibrePlugin extends GeoJSONSource {
 	_coveragecollection: CoverageCollection;
 	covOptions: BasicPluginOptions;
@@ -27,7 +27,8 @@ export class MaplibrePlugin extends GeoJSONSource {
 			{
 				...options,
 				data: { type: 'FeatureCollection', features: [] },
-				type: 'geojson'
+				type: 'geojson',
+				promoteId: 'uuid'
 			},
 			dispatcher,
 			eventedParent
@@ -98,10 +99,14 @@ export class MaplibrePlugin extends GeoJSONSource {
 	}
 	/**
 	 * Adapted closely to GeoJSON's source
+	 * @todo call the GeoJSON.updateData method
 	 */
 	async updateCovData(diff: SourceDiff): Promise<void> {
 		if (diff.add) {
-			this._coveragecollection.coverages.push(...diff.add);
+			for (const cov of diff.add) {
+				if (cov instanceof Coverage) this._coveragecollection.coverages.push(cov);
+				else Coverage.load(cov).then((cov) => this._coveragecollection.coverages.push(cov));
+			}
 		}
 		if (diff.remove) {
 			diff.remove.forEach((id) => {
@@ -111,7 +116,18 @@ export class MaplibrePlugin extends GeoJSONSource {
 			});
 		}
 		if (diff.update) {
+			for (const update of diff.update) {
+				const idx = this._coveragecollection.coverages.findIndex(
+					(cov) => MaplibrePlugin.getCoverageId(cov, this.promoteId) === update.uuid
+				);
+			}
 		}
+	}
+	static getCoverageId(coverage: Coverage, promoteId?: string) {
+		if (!promoteId) return coverage;
+		if (promoteId in coverage) return coverage[promoteId] as string;
+		if (promoteId in coverage.properties) return coverage.properties[promoteId];
+		return coverage.uuid;
 	}
 }
 
@@ -123,7 +139,7 @@ interface SourceDiff {
 	/**
 	 * Add coverages
 	 */
-	add?: Coverage[];
+	add?: (Coverage | CoverageJSON.Coverage)[];
 	/**
 	 *
 	 */
@@ -138,13 +154,13 @@ interface CoverageDiff {
 	/**
 	 * The new Domain
 	 */
-	newDomain?: Domain;
+	newDomain?: Domain | string;
 	/**
 	 *
 	 */
 	addOrUpdate?: {
 		parameters?: Record<string, Parameter>;
-		ranges?: Record<string, Range>;
+		ranges?: Record<string, Range | string>;
 		properties?: Record<string, unknown>[];
 	};
 }
