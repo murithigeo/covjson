@@ -8,13 +8,12 @@ import type {
 } from 'coveragejson';
 import ndarray, { type NdArray as NdArr } from 'ndarray';
 import { parseTemplate } from 'url-template';
-import { load } from './load.ts';
+import { load } from './load.js';
 import ops from 'ndarray-ops';
-import { cartesianProduct, minMax } from './utils.ts';
-import { TilesetNotFound } from './error.ts';
-import { calculateMedian, isUndefined } from './domain/utils.ts';
+import { cartesianProduct, minMax } from './utils.js';
+import { TilesetNotFound } from './error.js';
+import { calculateMedian, isUndefined } from './domain/utils.js';
 import type { MapIndices } from './base.ts';
-import type { OnNonCacheFetch, QueryOptions, RangeIndices } from './types';
 
 export interface RangeOptions {
 	/**
@@ -31,7 +30,7 @@ export class Range<
 	Nd extends NdArray = NdArray
 > implements RangeStatistics {
 	dataType: 'string' | 'float' | 'integer';
-	type: Nd['type'];
+	type: 'NdArray' | 'TiledNdArray';
 	shape: number[];
 	axisNames: string[];
 	totalSize: number;
@@ -57,7 +56,7 @@ export class Range<
 		this.options = options;
 
 		this.totalSize = this.computeTotalSize(this.shape);
-		this._ndarr = ndarray(new Array(this.totalSize), ndarr.shape);
+		this._ndarr = ndarray(Array(this.totalSize).fill(null), ndarr.shape);
 		if (ndarr.type === 'TiledNdArray') {
 			this.tileSets = ndarr.tileSets;
 			this._tileSets = ndarr.tileSets.map(({ tileShape, urlTemplate }) => ({
@@ -160,14 +159,13 @@ export class Range<
 			this.axisNames.map((_, i) => combo[i])
 		);
 	}
-	get(indices: Map<string, number> | number[], cb?: (range: Range) => void): Promise<T | null> {
+	async get(indices: MapIndices | number[], cb?: (range: Range) => void): Promise<T | null> {
 		if (!Array.isArray(indices)) indices = this.normalizeNamedIndices(indices);
 		const value = this._ndarr.get(...indices);
-		if (isUndefined(value)) return value;
-		return this.loadTileSet(indices).then(() => {
-			cb?.(this);
-			return this._ndarr.get(...indices);
-		});
+		if (!isUndefined(value) || this.type === 'NdArray') return value;
+		await this.loadTileSet(indices);
+		cb?.(this);
+		return this._ndarr.get(...indices);
 	}
 
 	/**

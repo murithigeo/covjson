@@ -88,7 +88,7 @@
 	],
 	"dependencies": {
 		"@js-temporal/polyfill": "^0.5.1",
-		"@lucide/svelte": "^1.52.0",
+		"@lucide/svelte": "^1.55.0",
 		"@murithigeo/uriproj": "^1.0.0",
 		"@turf/bbox-polygon": "^7.4.0",
 		"@turf/combine": "^7.4.0",

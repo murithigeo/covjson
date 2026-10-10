@@ -37,10 +37,12 @@ type RangeIndices = Record<string, number> | number[];
 
 interface QueryOptions {
 	/**
-	 * Dimensions to be preload
-	 * The values are the specific indices to get
+	 * Boolean selects all indices
+	 * Number Array for specific values
+	 * Unbounded object for range
 	 */
-	axisNames?: Record<string, number[] | boolean>;
+
+	axisNames?: Record<string, AxisNamesOptions>;
 	/**
 	 * The ranges to query
 	 */
@@ -52,3 +54,5 @@ interface QueryOptions {
 }
 
 export type GetDataOptions = Exclude<QueryOptions, 'axisNames'>;
+
+export type AxisNamesOptions = number[] | Partial<Record<'start' | 'stop', number>>;

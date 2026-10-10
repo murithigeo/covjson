@@ -1,21 +1,15 @@
 import type { Coverage as CRG, Domain, NdArray, Position } from 'coveragejson';
-import { Base, type ReferenceArgument } from './base.ts';
-import { Parameter, ParameterGroup } from './parameters.ts';
-import { BaseDomain, getDomain, type GridType } from './domain/index.ts';
-import { load } from './load.ts';
+import { Base, type ReferenceArgument } from './base.js';
+import { Parameter, ParameterGroup } from './parameters.js';
+import { BaseDomain, getDomain, type GridType } from './domain/index.js';
+import { load } from './load.js';
 import type { InferDomainClass } from './domain/types.d.ts';
-import { Referencing } from './referencing.ts';
-import { Range, type RangeOptions } from './ranges.ts';
+import { Referencing } from './referencing.js';
+import { Range, type RangeOptions } from './ranges.js';
 import { nanoid } from 'nanoid';
-import { cartesianProduct } from './utils.ts';
+import { cartesianProduct } from './utils.js';
 import type { Feature } from 'geojson';
-import type {
-	CoverageNonCacheFetch,
-	CoverageProperties,
-	GetDataOptions,
-	OnNonCacheFetch,
-	QueryOptions
-} from './types';
+import type { CoverageProperties, GetDataOptions, QueryOptions } from './types';
 
 /**
  * Add a function to forcibly set each ranges minMax externally
@@ -24,7 +18,7 @@ export interface CoverageOptions {
 	/**
 	 * Options to be applied to each ndarray
 	 */
-	ranges?: Record<string, RangeOptions>;
+	ranges?: RangeOptions;
 	/**
 	 * The preferred language of any parameters
 	 * @see {I18N} for more details
@@ -37,6 +31,10 @@ export interface CoverageOptions {
 	gridType?: GridType;
 }
 export class Coverage<D extends Domain = Domain> extends Base<CRG<D>> {
+	/**
+	 * Ranges to be loaded when their values are first fetched
+	 */
+	_ranges: Record<string, string>;
 	get t() {
 		return this.domain.t;
 	}
@@ -50,7 +48,7 @@ export class Coverage<D extends Domain = Domain> extends Base<CRG<D>> {
 	domainType: (typeof this.domain)['domainType'];
 	parameters: Map<string, Parameter>;
 	parameterGroups: ParameterGroup[];
-	ranges: Map<string, string | Range>;
+	ranges: Map<string, Range>;
 	uuid: string;
 	indices: Map<string, number>;
 	options: CoverageOptions;
@@ -72,13 +70,12 @@ export class Coverage<D extends Domain = Domain> extends Base<CRG<D>> {
 		this.domainType = this.domain.domainType || domainType;
 
 		this.ranges = new Map();
-		for (const id in ranges) {
+		this._ranges = {};
+		for (let id in ranges) {
 			const value = ranges[id];
-			if (typeof value === 'string') {
-				this.ranges.set(id, value);
-				continue;
-			}
-			this.ranges.set(id.toUpperCase(), new Range(value, options.ranges?.[id]));
+			id = id.toUpperCase();
+			if (typeof value === 'string') this._ranges[id] = value;
+			else this.ranges.set(id, new Range(value, options.ranges));
 		}
 		this.parameters = new Map();
 		for (const id in parameters)
@@ -99,6 +96,7 @@ export class Coverage<D extends Domain = Domain> extends Base<CRG<D>> {
 		for (const id in coverage.ranges) {
 			let range = coverage.ranges[id];
 			if (typeof range === 'string') range = await load<NdArray>(range);
+			ranges[id] = range;
 		}
 		let domain: T;
 		if (typeof coverage.domain === 'string') domain = await load<T>(coverage.domain);
@@ -125,7 +123,7 @@ export class Coverage<D extends Domain = Domain> extends Base<CRG<D>> {
 	 * Assumes that the domain contained has implemented the method
 	 */
 	denormalize(): Omit<this, 'domain'> & {
-		domain: InferDomainClass<D>['denormalize'];
+		domain: ReturnType<InferDomainClass<D>['denormalize']>;
 	} {
 		this.domain.denormalize();
 		//@ts-expect-error
@@ -138,8 +136,8 @@ export class Coverage<D extends Domain = Domain> extends Base<CRG<D>> {
 	}
 
 	get feature(): Feature<
-		(typeof this.domain)['geometry'],
-		CoverageProperties<(typeof this.domain)['domainType']>
+		InferDomainClass<D>['geometry'],
+		CoverageProperties<InferDomainClass<D>['domainType']>
 	> {
 		return {
 			type: 'Feature',
@@ -213,13 +211,15 @@ export class Coverage<D extends Domain = Domain> extends Base<CRG<D>> {
 
 		const values = options.ranges
 			.map((id) => id.toUpperCase())
-			.filter((id) => this.ranges.has(id))
+			.filter((id) => this.ranges.has(id) || !!this._ranges[id])
 			.map(async (id) => {
-				let range = this.ranges.get(id)!;
-				if (typeof range === 'string') {
-					const options = this.options.ranges?.[id];
-					range = await load<NdArray>(range).then((obj) => new Range(obj, options));
-					this.ranges.set(id, range);
+				let range = this.ranges.get(id);
+				if (!range) {
+					range = await load<NdArray>(this._ranges[id]).then(
+						(obj) => new Range(obj, this.options.ranges)
+					);
+					this.ranges.set(id, range!);
+					delete this._ranges[id];
 				}
 				return [id, await (range as Range).get(ref, (range) => options?.cb?.(id, range))] as const;
 			});
@@ -251,8 +251,13 @@ export class Coverage<D extends Domain = Domain> extends Base<CRG<D>> {
 			.entries()
 			.filter(([axisName]) => options.axisNames!?.[axisName])
 			.map(([axisName, count]): [string, number[]] => {
+				let all = [...Array(count).keys()];
 				let s = options.axisNames![axisName];
-				if (typeof s === 'boolean') s = [...Array(count).keys()];
+				if (!Array.isArray(s)) {
+					if (typeof s === 'boolean') s = [...Array(count).keys()];
+					else s = all.slice(s.start, s.stop);
+				} else s = all;
+
 				return [axisName, s] as const;
 			})
 			.toArray();

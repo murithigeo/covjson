@@ -1,10 +1,10 @@
 <script lang="ts">
 	import { downloadImage, type ChartImageOptions } from 'layerchart';
 	import * as ButtonGroup from '#lib/components/ui/button-group/index.ts';
-	import * as Field from '#lib/components/ui/field/index.ts';
-	import { Label } from '#lib/components/ui/label/index.ts';
+	import * as Field from '#lib/components/ui/field/index.js';
+	import { Label } from '#lib/components/ui/label/index.js';
 	import ColorPicker from '../metadata/parameter/color-picker.svelte';
-	import { Button } from '#lib/components/ui/button/index.ts';
+	import { Button } from '#lib/components/ui/button/index.js';
 	import type { Axis, DownloaderProps } from './types';
 
 	let {

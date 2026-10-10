@@ -18,9 +18,7 @@ export class Trajectory extends BaseDomain<TrajDomain> {
 	}
 
 	get axesSize(): Map<'z' | 'composite', number> {
-		const map = new Map().set('composite', this.axes.composite.values.length);
-		if (this.axes.z) map.set('z', this.z.length);
-		return map;
+		return new Map().set('composite', this.axes.composite.values.length).set('z', this.z.length);
 	}
 	/**
 	 *

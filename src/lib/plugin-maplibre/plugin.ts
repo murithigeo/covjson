@@ -4,18 +4,21 @@ import {
 	Map as MapInstance,
 	GeoJSONSource,
 	type MapGeoJSONFeature,
-	type PromoteIdSpecification
+	type GeoJSONSourceDiff,
+	type GeoJSONFeatureDiff
 } from 'maplibre-gl';
 import {
 	CoverageCollection,
-	Exception,
+	type InferDomainClass,
 	Range,
 	Referencing,
+	getDomain,
 	isNdArray,
-	load
+	load,
+	Parameter
 } from '#lib/core/index.js';
 import type { BasicPluginOptions, PluginOptions } from './types.js';
-import type { Domain, Parameter, Position } from 'coveragejson';
+import type { Domain, NdArray, Position } from 'coveragejson';
 import { Coverage } from '#lib/core/coverage.js';
 export class MaplibrePlugin extends GeoJSONSource {
 	_coveragecollection: CoverageCollection;
@@ -39,6 +42,7 @@ export class MaplibrePlugin extends GeoJSONSource {
 			type: 'CoverageCollection',
 			coverages: []
 		});
+		this.setCovData(options.data);
 		Referencing.load({ crsId: 'OGC:CRS84' }).then((d) => (this._referencing = d));
 	}
 
@@ -58,16 +62,12 @@ export class MaplibrePlugin extends GeoJSONSource {
 			}
 		}
 	}
-	getPromoteId(promoteId: PromoteIdSpecification) {
-		if (!promoteId || typeof promoteId === 'object') return 'uuid';
-		return promoteId;
-	}
+
 	getCoveragesFromFeatureList(features: MapGeoJSONFeature[], point: Position) {
-		const idKey = this.getPromoteId(this.promoteId);
-		const featureIds = features.map(({ properties }) => properties.uuid);
-		return this._coveragecollection.coverages.filter((cov) => {
-			let value: string;
-		});
+		const featureIds = features.map(({ properties }) => properties.uuid as string);
+		return this._coveragecollection.coverages
+			.filter((cov) => featureIds.includes(cov.uuid))
+			.map((cov) => cov.calculateIndices(point));
 	}
 
 	// todo reproject
@@ -96,16 +96,19 @@ export class MaplibrePlugin extends GeoJSONSource {
 			return await data.reproject(this._referencing);
 		});
 		this.setData(this._coveragecollection.featurecollection);
+		this.covOptions?.onLoad?.(this._coveragecollection);
 	}
 	/**
 	 * Adapted closely to GeoJSON's source
 	 * @todo call the GeoJSON.updateData method
 	 */
 	async updateCovData(diff: SourceDiff): Promise<void> {
+		const geojsonDiff: GeoJSONSourceDiff = { add: [], update: [], remove: [] };
 		if (diff.add) {
-			for (const cov of diff.add) {
-				if (cov instanceof Coverage) this._coveragecollection.coverages.push(cov);
-				else Coverage.load(cov).then((cov) => this._coveragecollection.coverages.push(cov));
+			for (let cov of diff.add) {
+				if (!(cov instanceof Coverage)) cov = await Coverage.load(cov);
+				this._coveragecollection.coverages.push(cov);
+				geojsonDiff.add?.push(cov.feature);
 			}
 		}
 		if (diff.remove) {
@@ -115,19 +118,54 @@ export class MaplibrePlugin extends GeoJSONSource {
 				this._coveragecollection.coverages.splice(idx, 1);
 			});
 		}
+
 		if (diff.update) {
 			for (const update of diff.update) {
-				const idx = this._coveragecollection.coverages.findIndex(
-					(cov) => MaplibrePlugin.getCoverageId(cov, this.promoteId) === update.uuid
-				);
+				const idx = this._coveragecollection.coverages.findIndex((cov) => cov.uuid === update.uuid);
+				if (idx < 0) continue;
+				const geojsonFeatureDiff: GeoJSONFeatureDiff = { id: update.uuid };
+
+				const cov = this._coveragecollection.coverages[idx];
+				if (update.newDomain) {
+					if (typeof update.newDomain === 'string') {
+						update.newDomain = await load<Domain>(update.newDomain);
+					}
+					if (!('clone' in update.newDomain)) {
+						update.newDomain = getDomain(update.newDomain);
+					}
+					cov.domain = update.newDomain as InferDomainClass;
+					geojsonFeatureDiff.newGeometry = cov.domain.geometry;
+				}
+				geojsonFeatureDiff.addOrUpdateProperties = [];
+				if (update.addOrUpdate?.parameters) {
+					Object.entries(update.addOrUpdate.parameters).forEach(([k, v]) => {
+						if (!(v instanceof Parameter)) v = new Parameter(v, k);
+						cov.parameters.set(k, v);
+					});
+				}
+				if (update.addOrUpdate?.properties) {
+					geojsonFeatureDiff.addOrUpdateProperties.push(
+						...Object.entries(update.addOrUpdate.properties).map(([key, value]) => ({ key, value }))
+					);
+					cov.properties = { ...cov.properties, ...update.addOrUpdate.properties };
+				}
+				if (update.addOrUpdate?.ranges) {
+					Object.entries(update.addOrUpdate.ranges).forEach(([k, v]) => {
+						if (typeof v !== 'string' && !(v instanceof Range)) {
+							v = new Range(v);
+						}
+						cov.ranges.set(k, v);
+					});
+					geojsonFeatureDiff.addOrUpdateProperties.push({
+						key: 'ranges',
+						value: cov.ranges.keys().toArray()
+					});
+				}
+				this._coveragecollection.coverages[idx] = cov;
 			}
+			this.updateData(geojsonDiff);
+			this.covOptions.onLoad?.(this._coveragecollection);
 		}
-	}
-	static getCoverageId(coverage: Coverage, promoteId?: string) {
-		if (!promoteId) return coverage;
-		if (promoteId in coverage) return coverage[promoteId] as string;
-		if (promoteId in coverage.properties) return coverage.properties[promoteId];
-		return coverage.uuid;
 	}
 }
 
@@ -154,13 +192,13 @@ interface CoverageDiff {
 	/**
 	 * The new Domain
 	 */
-	newDomain?: Domain | string;
+	newDomain?: Domain | InferDomainClass | string;
 	/**
 	 *
 	 */
 	addOrUpdate?: {
-		parameters?: Record<string, Parameter>;
-		ranges?: Record<string, Range | string>;
+		parameters?: Record<string, CoverageJSON.Parameter | Parameter>;
+		ranges?: Record<string, Range | string | NdArray>;
 		properties?: Record<string, unknown>[];
 	};
 }

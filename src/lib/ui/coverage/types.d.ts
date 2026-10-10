@@ -4,15 +4,22 @@ import type {
 	OnIndicesChange,
 	Parameter,
 	Range,
-	RangeStatistics
+	RangeOptions,
+	RangeStatistics,
+	WithRequiredProperty
 } from '#lib/core/index.ts';
 import type { SvelteMap, SvelteSet } from 'svelte/reactivity';
-import type { HighlightPropsWithoutHTML } from 'layerchart';
+import type { ChartPropsWithoutHTML, HighlightPropsWithoutHTML } from 'layerchart';
 import type { Section, Polygon, Trajectory, MultiPoint, MultiPolygon } from 'coveragejson';
+import type { AxisNamesOptions, QueryOptions } from '#lib/core/types.js';
 
 type Props<D> = { data: D };
 
 interface ShowOptions {
+	/**
+	 * Whether to show axis configuration tab
+	 */
+	axes?: boolean;
 	/**
 	 * Whether to render the parameter
 	 * If not, the f(x) tab trigger will not be shown and neither will the tab content
@@ -64,16 +71,18 @@ export interface CoverageProps extends CoverageOptions, Props<Coverage> {
 	 * Bindable list of currently selected parameters
 	 * Defaults to the keys of ranges in the coverage
 	 */
-	selected?: SvelteSet<set>;
+	selected?: SvelteSet<string>;
 	/**
 	 * Function to execute when a row has been highlighted
 	 * Useful for displaying marker when data point is highlighted
 	 */
 	onIndicesChange?: OnIndicesChange;
 }
-export interface DataViewProps extends AxisConfig, Props<DataRow[]> {
+export interface DataViewProps extends Props<DataRow[]> {
 	axisResolver?: AxisResolver;
-	show?: Partial<Pick<ShowOptions, 'parameters'>>;
+	axesConfig?: AxisConfig;
+	rangeOptions?: RangeOptions;
+	show?: Partial<Pick<ShowOptions, 'parameters' | 'axes'>>;
 	/**
 	 * The currently active tab
 	 * For "string" parameters, this will default to table
@@ -114,7 +123,11 @@ export interface DataViewProps extends AxisConfig, Props<DataRow[]> {
 	 * If the component renders data from Coverage, then the range may not include 1D axes
 	 * @todo decouple data fetching/dimensions from coverage
 	 */
-	axes?: [Axis, number][];
+	axes?: Axes;
+	/**
+	 * Currently selected axis indices
+	 */
+	axisNames?: SvelteMap<string, AxisNamesOptions>;
 }
 
 type Axes = [Axis, number][];
@@ -170,14 +183,13 @@ export type AxisResolver = (
 	| number
 	| (Polygon | MultiPoint | Section | Trajectory)['axes']['composite']['values'][number];
 
-export interface AxisConfig {
-	x: Axis;
-	y1?: Extract<Axis, 'z' | 't'>;
-	/**
-	 * Grid (x), MultiPoint/MultiPolygon/MultiPolygonSeries (Polygon/Point)
-	 */
-	fx?: Extract<Axis, 'composite' | 'x' | 'y'>;
-	fy?: Extract<Axis, 'composite' | 'x' | 'y'>;
-}
+export type AxisConfig = SvelteMap<ChartDimensions, Axis>;
+export type ChartDimensions = 'x' | 'fx' | 'fy' | 'y1';
 
+export interface AxisConfiguratorProps {
+	config: AxisConfig;
+	axes: Axes;
+	axisNames?: DataViewProps['axisNames'];
+	axisResolver?: AxisResolver;
+}
 export type Axis = 'x' | 'y' | 'composite' | 'z' | 't';

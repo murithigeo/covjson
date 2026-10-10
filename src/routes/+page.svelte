@@ -1,7 +1,6 @@
 <script lang="ts">
-	import { center } from '@turf/center';
 	import { type Map } from 'svelte-maplibre';
-	import { Coverage, type DataRow } from '#lib/core/index.ts';
+	import type { Coverage } from '#lib/core/index.ts';
 	import TresDashboard from '#lib/ui/dashboards/tres-dashboard-cpt.svelte';
 	import * as Sheet from '#lib/components/ui/sheet/index.js';
 	import { Label } from '#lib/components/ui/label/index.js';
@@ -13,7 +12,6 @@
 	import ModeWatcher from '#lib/mode-watcher.svelte';
 	import { onMount } from 'svelte';
 	import { setMode, systemPrefersMode } from 'mode-watcher';
-	import type { Position } from 'geojson';
 	import Maplibre from '#lib/ui/preview/maplibre.svelte';
 
 	// Add support https://www.npmjs.com/package/netcdfjs
@@ -79,41 +77,41 @@
 		});
 	});
 
-	let onIndicesChange = $derived(
-		(coverage: Coverage | ReturnType<Coverage['denormalize']>, data: DataRow | null) => {
-			// close popup if data is null
-			const indices = Object.fromEntries(
-				coverage.axesSize
-					.entries()
-					.toArray()
-					.map(([axisName]): [string, number] => [axisName, data[axisName] as number])
-			);
+	// let onIndicesChange = $derived(
+	// 	(coverage: Coverage | ReturnType<Coverage['denormalize']>, data: DataRow | null) => {
+	// 		// close popup if data is null
+	// 		const indices = Object.fromEntries(
+	// 			coverage.axesSize
+	// 				.entries()
+	// 				.toArray()
+	// 				.map(([axisName]): [string, number] => [axisName, data[axisName] as number])
+	// 		);
 
-			// Figure how to render popup
-			let lngLat: Position;
-			switch (coverage.domain.domainType) {
-				case 'VerticalProfile':
-				case 'Point':
-				case 'PointSeries':
-					lngLat = coverage.domain.geometry.coordinates;
-					break;
-				case 'MultiPoint':
-				case 'MultiPointSeries':
-				case 'Section':
-				case 'Trajectory':
-					lngLat = coverage.domain.geometry.coordinates[indices.composite];
-					break;
-				default:
-					({
-						geometry: { coordinates: lngLat }
-					} = center(
-						coverage.domain.domainType === 'Grid'
-							? coverage.domain.getPolygonAtIndices(indices.x, indices.y)
-							: coverage.domain.geometry
-					));
-			}
-		}
-	);
+	// 		// Figure how to render popup
+	// 		let lngLat: Position;
+	// 		switch (coverage.domain.domainType) {
+	// 			case 'VerticalProfile':
+	// 			case 'Point':
+	// 			case 'PointSeries':
+	// 				lngLat = coverage.domain.geometry.coordinates;
+	// 				break;
+	// 			case 'MultiPoint':
+	// 			case 'MultiPointSeries':
+	// 			case 'Section':
+	// 			case 'Trajectory':
+	// 				lngLat = coverage.domain.geometry.coordinates[indices.composite];
+	// 				break;
+	// 			default:
+	// 				({
+	// 					geometry: { coordinates: lngLat }
+	// 				} = center(
+	// 					coverage.domain.domainType === 'Grid'
+	// 						? coverage.domain.getPolygonAtIndices(indices.x, indices.y)
+	// 						: coverage.domain.geometry
+	// 				));
+	// 		}
+	// 	}
+	// );
 </script>
 
 <div class="h-screen">
@@ -152,7 +150,7 @@
 		</Sheet.Root>
 		<Label>! In Alpha</Label>
 	</div>
-	<TresDashboard bind:data={coverages} bind:onIndicesChange>
+	<TresDashboard bind:data={coverages}>
 		<Maplibre bind:map bind:loaded />
 	</TresDashboard>
 </div>

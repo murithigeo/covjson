@@ -1,17 +1,17 @@
-import { Coverage as Cov, type CoverageOptions } from './coverage.ts';
+import { Coverage as Cov, type CoverageOptions } from './coverage.js';
 import type { CoverageJSON, NdArray, TiledNdArray } from 'coveragejson';
-import { CoverageCollection } from './coverage-collection.ts';
-import { getDomain } from './domain/index.ts';
-import { Range, type RangeOptions } from './ranges.ts';
-export * from './coverage.ts';
-export * from './coverage-collection.ts';
-export * from './domain/index.ts';
-export * from './parameters.ts';
-export * from './referencing.ts';
-export * from './ranges.ts';
-export * from './load.ts';
-export * from './utils.ts';
-export * from './error.ts';
+import { CoverageCollection } from './coverage-collection.js';
+import { getDomain } from './domain/index.js';
+import { Range, type RangeOptions } from './ranges.js';
+export * from './coverage.js';
+export * from './coverage-collection.js';
+export * from './domain/index.js';
+export * from './parameters.js';
+export * from './referencing.js';
+export * from './ranges.js';
+export * from './load.js';
+export * from './utils.js';
+export * from './error.js';
 
 export default function getCoverageJson<T extends CoverageJSON>(
 	doc: T,

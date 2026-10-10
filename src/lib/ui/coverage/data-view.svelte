@@ -16,8 +16,7 @@
 	import { getRandomColor } from '#lib/utils.ts';
 	import Stats from '../metadata/parameter/stats.svelte';
 	import Downloader from './downloader.svelte';
-	import type { Axis, DataViewProps } from './types';
-	import { SvelteMap } from 'svelte/reactivity';
+	import type { Axis, ChartDimensions, DataViewProps } from './types';
 	import TableCpt from './table-cpt.svelte';
 </script>
 
@@ -29,29 +28,18 @@
 		show,
 		parameter,
 		range = $bindable(),
-		fx = $bindable(),
-		x = $bindable(),
-		fy = $bindable(),
-		y1 = $bindable(),
+		axesConfig = $bindable(),
 		facetAll = $bindable(),
-		tabValue = $bindable(range.dataType === 'string' ? 'table' : 'chart'),
+		tabValue = $bindable(),
 		tooltip = $bindable(null),
 		color = $bindable(_color),
-		categoryColors = $bindable(
-			new SvelteMap(
-				typeof parameter === 'string'
-					? undefined
-					: parameter.observedProperty.categories?.map(({ id }) => [id, color])
-			)
-		),
+		categoryColors = $bindable(),
 		axisResolver = (a, i) => i,
-		axes = $bindable(
-			range.axisNames.map((name, i): [Axis, number] => [name as Axis, range.shape[i]])
-		)
+		axes = $bindable(range.axisNames.map((axisName, i) => [axisName as Axis, range.shape[i]]))
 	}: DataViewProps = $props();
+
 	let _parameter = $derived(typeof parameter === 'string' ? undefined : parameter);
 	let key = $derived(typeof parameter === 'string' ? parameter : parameter.key);
-
 	let chartRef = $state<HTMLElement>();
 
 	let stringy = range.dataType === 'string';
@@ -95,8 +83,13 @@
 	$effect(() => {
 		setTooltip(context?.tooltip.data);
 	});
-	const resolveAxisIdxForChart = (axisName: Axis, idx: number) => {
-		let value = axisResolver(axisName, idx);
+
+	const resolveAxisIdxForChart = (field: ChartDimensions, row: DataRow) => {
+		const axisName = axesConfig?.get(field);
+		if (isUndefined(axisName)) return undefined;
+		const idx = row[axisName];
+		if (isUndefined(idx)) return undefined;
+		let value = axisResolver(axisName, idx as number);
 		if (Array.isArray(value)) {
 			if (typeof value[0] === 'string') value = value[0];
 			else value = idx;
@@ -104,7 +97,6 @@
 		if (typeof value === 'string') return new CustomDate(value);
 		return value;
 	};
-	// render a snippet to render tooltip values //https://github.com/techniq/layerchart/issues/639
 </script>
 
 <Card.Root>
@@ -126,20 +118,9 @@
 							bind:ref={chartRef}
 							{data}
 							series={Object.values(chartConfig)}
-							// x1={(d) => {
-							// 	if (isUndefined(y1)) return undefined;
-
-							// 	return resolveAxisIdxForChart(y1, d[y1]);
-							// }}
-							x={(d) => resolveAxisIdxForChart(x, d[x])}
-							fx={(d) => {
-								if (isUndefined(fx)) return undefined;
-								return resolveAxisIdxForChart(fx, d[fx]);
-							}}
-							fy={(d) => {
-								if (isUndefined(fy)) return undefined;
-								return resolveAxisIdxForChart(fy, d[fy]);
-							}}
+							x={(d) => resolveAxisIdxForChart('x', d)}
+							fx={(d) => resolveAxisIdxForChart('fx', d)}
+							fy={(d) => resolveAxisIdxForChart('fy', d)}
 							facet={{
 								axis: { facetAll }
 							}}
@@ -150,10 +131,15 @@
 							cScale={categories ? scaleOrdinal() : undefined}
 							cDomain={categories ? [...categories.map(({ id }) => id), ''] : undefined}
 							cRange={categories
-								? [...categories.map(({ id }) => categoryColors.get(id)!), color]
+								? [...categories.map(({ id }) => categoryColors?.get(id) || color), color]
 								: undefined}
 							brush
-							props={{ tooltip: { root: { facetAll: true } } }}
+							props={{
+								tooltip: { root: { facetAll } },
+								labels: {
+									/// Add labels dependent on axis label
+								}
+							}}
 							onTooltipClick={(e, { data }) => console.log({ e, data })}
 						>
 							{#snippet tooltip()}
@@ -178,7 +164,10 @@
 										units="userSpaceOnUse"
 										stops={categories
 											.flatMap(({ id, values }) =>
-												values.map((int): [number, string] => [int, categoryColors.get(id)!])
+												values.map((int): [number, string] => [
+													int,
+													categoryColors?.get(id) || color
+												])
 											)
 											.sort(([a], [b]) => b - a)
 											.map(([int, color]): [number, string] => [getOffset(int), color])}
@@ -214,7 +203,7 @@
 						{color}
 						onColorChange={(_, col, catId) => {
 							if (!catId) return (color = col);
-							categoryColors.set(catId, color);
+							categoryColors?.set(catId, color);
 						}}
 					/>
 				{:else}

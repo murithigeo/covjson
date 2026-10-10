@@ -1,25 +1,6 @@
-import type {
-	Coverage as CovCoverage,
-	Domain as CovDomain,
-	CoverageCollection as CovCollection,
-	NdArray,
-	TiledNdArray
-} from 'coveragejson';
-import {
-	type Coverage,
-	CoverageCollection,
-	type InferDomainClass,
-	Range
-} from '#lib/core/index.ts';
-import {
-	GeoJSONSource,
-	type FillLayerSpecification,
-	type GeoJSONFeatureDiff,
-	type GeoJSONFeatureId,
-	type LineLayerSpecification,
-	type MapLayerEventType,
-	type SymbolLayerSpecification
-} from 'maplibre-gl';
+import type { NdArray } from 'coveragejson';
+import { type Coverage, CoverageCollection, type InferDomainClass } from '#lib/core/index.ts';
+import { GeoJSONSource, type MapLayerEventType } from 'maplibre-gl';
 
 type Domain = InferDomainClass | ReturnType<InferDomainClass['denormalize']>;
 type GeoJSONSourceOptions = Omit<ConstructorParameters<typeof GeoJSONSource>[1], 'data' | 'type'>;
@@ -40,7 +21,7 @@ interface BasicPluginOptions {
 	events?: Record<string, (keyof MapLayerEventType)[]>;
 
 	/**
-	 * Callback to get the data on update/set
+	 * Callback to execute when data is set or updated
 	 */
 	onLoad?: (data: CoverageCollection) => void;
 	/**
