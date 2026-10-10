@@ -251,14 +251,12 @@ export class Coverage<D extends Domain = Domain> extends Base<CRG<D>> {
 			.entries()
 			.filter(([axisName]) => options.axisNames!?.[axisName])
 			.map(([axisName, count]): [string, number[]] => {
-				let all = [...Array(count).keys()];
-				let s = options.axisNames![axisName];
-				if (!Array.isArray(s)) {
-					if (typeof s === 'boolean') s = [...Array(count).keys()];
-					else s = all.slice(s.start, s.stop);
-				} else s = all;
+				let values = options.axisNames![axisName];
 
-				return [axisName, s] as const;
+				if (!Array.isArray(values))
+					values = [...Array(count).keys()].slice(values.start, values.stop);
+
+				return [axisName, values] as const;
 			})
 			.toArray();
 		const axisIndices = consider.map(([, indices]) => [...indices]);

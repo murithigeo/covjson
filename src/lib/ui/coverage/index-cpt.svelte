@@ -145,6 +145,7 @@
 	</Card.Header>
 	<Card.Content>
 		<Tabs.Root bind:value={activeParam} orientation="horizontal">
+			<!--Move all tabs to same line but justify-->
 			<Tabs.List class="overflow-x-auto">
 				<Tabs.Trigger value="parameter-groups" disabled={!coverage.parameterGroups.length}
 					><BoxesIcon class="size-4" /></Tabs.Trigger
