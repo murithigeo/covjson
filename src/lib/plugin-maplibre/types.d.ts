@@ -1,9 +1,13 @@
 import type { NdArray } from 'coveragejson';
 import { type Coverage, CoverageCollection, type InferDomainClass } from '#lib/core/index.ts';
-import { GeoJSONSource, type MapLayerEventType } from 'maplibre-gl';
+import {
+	GeoJSONSource,
+	type MapLayerEventType,
+	type GeoJSONSourceSpecification
+} from 'maplibre-gl';
 
 type Domain = InferDomainClass | ReturnType<InferDomainClass['denormalize']>;
-type GeoJSONSourceOptions = Omit<ConstructorParameters<typeof GeoJSONSource>[1], 'data' | 'type'>;
+type GeoJSONSourceOptions = Omit<GeoJSONSourceSpecification, 'data' | 'type'>;
 
 interface BasicPluginOptions {
 	data:
