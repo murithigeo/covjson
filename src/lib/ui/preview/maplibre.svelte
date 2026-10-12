@@ -11,7 +11,7 @@
 		children?: ComponentProps<typeof MapLibre>['children'];
 		loaded?: boolean;
 	}
-	let { map = $bindable(), loaded = $bindable(), children }: Props = $props();
+	let { map = $bindable(), loaded = $bindable(false), children: children_ }: Props = $props();
 
 	//@ts-expect-error plugin doesnt conform to Source
 	addSourceType('coveragejson', MaplibrePlugin).catch(() => {});
@@ -19,11 +19,9 @@
 
 <MapLibre
 	class="h-full w-full"
-	bind:map
-	bind:loaded
 	standardControls
 	style="https://api.maptiler.com/maps/winter-v4/style.json?key=pj3BZkbRpSWczKG2Ml2w"
 	>{#snippet children({ ...props })}
-		{@render children?.(props)}
+		{@render children_?.(props)}
 	{/snippet}</MapLibre
 >

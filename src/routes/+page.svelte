@@ -10,8 +10,10 @@
 	import ModeWatcher from '#lib/mode-watcher.svelte';
 	import Maplibre from '#lib/ui/preview/maplibre.svelte';
 	import CovJsonSource from '#lib/docs/maplibre/source.svelte';
+	import CovJsonSymbolLayer from '#lib/docs/maplibre/symbol.svelte';
+	import gridtiled from '#lib/ui/json/data/grid-tiled.json' with { type: 'json' };
 	// Add support https://www.npmjs.com/package/netcdfjs
-	let data = $state<object>();
+	let data = $state<Exclude<CoverageJSON.CoverageJSON, CoverageJSON.NdArray>>(gridtiled);
 	let coverages = $state<Coverage[]>([]);
 </script>
 
@@ -53,7 +55,11 @@
 	</div>
 	<TresDashboard bind:data={coverages}>
 		<Maplibre>
-			<CovJsonSource bind:data></CovJsonSource>
+			{#snippet children()}
+				<CovJsonSource bind:data onData={(data) => (coverages = data.coverages)}>
+					<CovJsonSymbolLayer></CovJsonSymbolLayer>
+				</CovJsonSource>
+			{/snippet}
 		</Maplibre>
 	</TresDashboard>
 </div>

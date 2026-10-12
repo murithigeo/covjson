@@ -3,14 +3,45 @@
 	import type { AxisConfiguratorProps, ChartDimensions } from './types';
 	import * as Table from '#lib/components/ui/table/index.ts';
 	import { Switch } from '#lib/components/ui/switch/index.ts';
-	import { Slider } from '#lib/components/ui/slider/index.ts';
 	import { EllipsisIcon } from '@lucide/svelte';
+	import { isUndefined, numListIsRegular } from '#lib/core/index.ts';
+	import type { AxisNamesOptions } from '#lib/core/types.js';
+	import Slider from './slider.svelte';
 	let {
 		config = $bindable(),
 		axes,
-		axisResolver: resolver = (_, i) => i,
+		axisResolver: resolver = (_, i) => ({ value: i }),
 		axisNames = $bindable()
 	}: AxisConfiguratorProps = $props();
+
+	const getValues = (axisName: string, max: number) => {
+		let values = axisNames?.get(axisName) || [];
+		if (typeof values === 'boolean') {
+			values = values ? { start: 0, stop: max } : [];
+		}
+
+		if (!Array.isArray(values)) {
+			if (!isUndefined(values.stop)) values.stop = values.stop + 1;
+			values = [...Array(max).keys()].slice(values.start, values.stop);
+		}
+		return {
+			boolean: values.length === max,
+			number: values,
+			string: values.map((v) => v.toString())
+			// get obj(){
+			// 	if(numListIsRegular(values))return ["min","max"]
+			// }
+		};
+	};
+	const setValues = (an: string, v: AxisNamesOptions | string[]) => {
+		if (Array.isArray(v)) v = v.map((d) => Number(d));
+
+		const existing = axisNames?.get(an);
+		if (isUndefined(existing) || Array.isArray(existing) || typeof existing === 'boolean')
+			return axisNames?.set(an, v); // Complete replacement
+		if (Array.isArray(v) || typeof v === 'boolean') return axisNames?.set(an, v);
+		axisNames?.set(an, { ...existing, ...v });
+	};
 </script>
 
 <Table.Root class="table-auto border">
@@ -45,28 +76,45 @@
 				{/each}
 				<Table.Cell class="border text-center">
 					<DropdownMenu.Root>
-						<DropdownMenu.Trigger><EllipsisIcon /></DropdownMenu.Trigger>
+						<DropdownMenu.Trigger disabled={max < 2}><EllipsisIcon /></DropdownMenu.Trigger>
+
 						<DropdownMenu.Content>
-							<DropdownMenu.Group>
-								<DropdownMenu.Label>Range</DropdownMenu.Label>
-								<DropdownMenu.Item closeOnSelect={false}>
-									<Slider
-										type="multiple"
-										max={max - 1}
-										step={1}
-										value={[0, max]}
-										onValueChange={(v) => axisNames?.set(an, Array(max).slice(v[0], v[1]))}
-									/>
-								</DropdownMenu.Item>
-							</DropdownMenu.Group>
-							<DropdownMenu.CheckboxGroup onValueChange={(v) => axisNames?.set(an, v.map(Number))}>
-								<DropdownMenu.Label>Custom</DropdownMenu.Label>
-								{#each [...Array(max).keys()] as idx (idx)}
-									<DropdownMenu.CheckboxItem value={idx.toString()} checked
-										>idx:{idx}</DropdownMenu.CheckboxItem
+							<DropdownMenu.Item class="flex space-x-1">
+								Load All
+								<Switch bind:checked={() => getValues(an, max).boolean, (v) => setValues(an, v)} />
+							</DropdownMenu.Item>
+							<DropdownMenu.Sub>
+								<DropdownMenu.SubTrigger>Range</DropdownMenu.SubTrigger>
+								<DropdownMenu.SubContent>
+									<DropdownMenu.Item closeOnSelect={false}>
+										<Slider
+											{max}
+											bind:values={() => getValues(an, max).number, (v) => setValues(an, v)}
+											class="flex flex-col space-y-2"
+											resolver={(index) => resolver?.(an, index)}
+										></Slider>
+									</DropdownMenu.Item>
+								</DropdownMenu.SubContent>
+							</DropdownMenu.Sub>
+							<DropdownMenu.Sub>
+								<DropdownMenu.SubTrigger>Select</DropdownMenu.SubTrigger>
+								<DropdownMenu.SubContent>
+									<DropdownMenu.CheckboxGroup
+										bind:value={() => getValues(an, max).string, (v) => setValues(an, v)}
 									>
-								{/each}
-							</DropdownMenu.CheckboxGroup>
+										{#each { length: max }, idx (idx)}
+											<DropdownMenu.CheckboxItem value={idx.toString()}
+												>{@const val = resolver(an, idx)}
+												{#if val.dataType !== 'polygon'}
+													{val.value}
+												{:else}
+													Polygon {idx}
+												{/if}
+											</DropdownMenu.CheckboxItem>
+										{/each}
+									</DropdownMenu.CheckboxGroup>
+								</DropdownMenu.SubContent>
+							</DropdownMenu.Sub>
 						</DropdownMenu.Content>
 					</DropdownMenu.Root>
 				</Table.Cell>

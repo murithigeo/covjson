@@ -1,17 +1,24 @@
 import type {
 	Coverage,
 	DataRow,
+	Grid,
+	InferDomainClass,
 	OnIndicesChange,
 	Parameter,
 	Range,
 	RangeOptions,
 	RangeStatistics,
-	WithRequiredProperty
+	WithRequiredProperty,
+	Section,
+	MultiPoint,
+	MultiPolygon,
+	Trajectory,
+	Polygon
 } from '#lib/core/index.ts';
 import type { SvelteMap, SvelteSet } from 'svelte/reactivity';
 import type { ChartPropsWithoutHTML, HighlightPropsWithoutHTML } from 'layerchart';
-import type { Section, Polygon, Trajectory, MultiPoint, MultiPolygon } from 'coveragejson';
 import type { AxisNamesOptions, QueryOptions } from '#lib/core/types.js';
+import type { MultiPolygon } from '#lib/core/index.ts';
 
 type Props<D> = { data: D };
 
@@ -179,9 +186,12 @@ export type AxisResolver = (
 	axisName: Axis,
 	idx: number
 ) =>
-	| string
-	| number
-	| (Polygon | MultiPoint | Section | Trajectory)['axes']['composite']['values'][number];
+	| { value: string | number; dataType?: 'primitive' }
+	| {
+			value: (MultiPoint | Section | Trajectory)['axes']['composite']['values'][number];
+			dataType: 'tuple';
+	  }
+	| { value: Polygon['axes']['composite']['values'][number]; dataType: 'polygon' };
 
 export type AxisConfig = SvelteMap<ChartDimensions, Axis>;
 export type ChartDimensions = 'x' | 'fx' | 'fy' | 'y1';

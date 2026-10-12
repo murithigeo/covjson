@@ -55,4 +55,7 @@ interface QueryOptions {
 
 export type GetDataOptions = Exclude<QueryOptions, 'axisNames'>;
 
-export type AxisNamesOptions = number[] | Partial<Record<'start' | 'stop', number>>;
+/**
+ * In case of object, the values are inclusive
+ */
+export type AxisNamesOptions = boolean | number[] | Partial<Record<'start' | 'stop', number>>;

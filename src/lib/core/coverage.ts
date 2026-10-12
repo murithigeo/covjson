@@ -1,7 +1,7 @@
 import type { Coverage as CRG, Domain, NdArray, Position } from 'coveragejson';
 import { Base, type ReferenceArgument } from './base.js';
 import { Parameter, ParameterGroup } from './parameters.js';
-import { BaseDomain, getDomain, type GridType } from './domain/index.js';
+import { BaseDomain, getDomain, isUndefined, type GridType } from './domain/index.js';
 import { load } from './load.js';
 import type { InferDomainClass } from './domain/types.d.ts';
 import { Referencing } from './referencing.js';
@@ -249,12 +249,15 @@ export class Coverage<D extends Domain = Domain> extends Base<CRG<D>> {
 		options.axisNames = options.axisNames || {};
 		const consider = this.axesSize
 			.entries()
-			.filter(([axisName]) => options.axisNames!?.[axisName])
+			.filter(([axisName]) => options.axisNames!?.[axisName]) // If false, this will get filtered out
 			.map(([axisName, count]): [string, number[]] => {
 				let values = options.axisNames![axisName];
 
-				if (!Array.isArray(values))
+				if (!Array.isArray(values)) {
+					if (typeof values === 'boolean') values = { start: 0, stop: count };
+					else if (!isUndefined(values.stop)) values.stop = values.stop + 1;
 					values = [...Array(count).keys()].slice(values.start, values.stop);
+				}
 
 				return [axisName, values] as const;
 			})

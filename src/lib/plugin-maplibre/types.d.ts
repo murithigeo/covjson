@@ -27,7 +27,7 @@ interface BasicPluginOptions {
 	/**
 	 * Callback to execute when data is set or updated
 	 */
-	onLoad?: (data: CoverageCollection) => void;
+	onData?: (data: CoverageCollection) => void;
 	/**
 	 * Whether to reproject from the CoverageJSON's native CRS to OGC:CRS84
 	 * If you know that data is OGC:CRS84, then pass false

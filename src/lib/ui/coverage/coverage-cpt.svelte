@@ -41,9 +41,15 @@
 	let stats = $state(new SvelteMap<string, string | Range>());
 
 	const axisResolver: AxisResolver = (axisName, idx) => {
-		if (axisName === 'z' || axisName === 't') return coverage.domain[axisName][idx];
-		//@ts-expect-error type mismatch
-		return coverage.domain.axes[axisName]?.values[idx];
+		if (axisName === 'z' || axisName === 't') return { value: coverage[axisName][idx] };
+
+		//@ts-expect-error
+		const axis = coverage.domain.axes[axisName];
+
+		return {
+			value: axis.values[idx],
+			dataType: axis.dataType
+		};
 	};
 
 	/**
@@ -92,45 +98,12 @@
 			.map(([k]): [Axis, number] => [k as Axis, tooltip![k] as number]);
 		onIndicesChange?.(coverage, new Map(indices));
 	});
-	$inspect(axisNames);
 </script>
 
-<Card.Root>
+<Card.Root class="h-full">
 	<Card.Header>
 		<Card.Title><Badge variant="outline">{coverage.domain.domainType}</Badge></Card.Title>
-		<Card.Description class="flex justify-between">
-			<Tabs.Root bind:value={activeParam} orientation="horizontal">
-				<Tabs.List class="overflow-x-auto">
-					<Tabs.Trigger value="parameter-groups" disabled={!coverage.parameterGroups.length}
-						><BoxesIcon class="size-4" /></Tabs.Trigger
-					>
-					<Tabs.Trigger value="axes"><Move3DIcon class="size-4" /></Tabs.Trigger>
-					{#each new Set([...selected, ...parameters.map(([k]) => k)]) as value, i (i)}
-						<Tabs.Trigger {value}>
-							{value}
-						</Tabs.Trigger>
-					{/each}
-				</Tabs.List>
-			</Tabs.Root>
-			<Tabs.Root bind:value={tabValue}>
-				<Tabs.List>
-					<Tabs.Trigger value="chart" disabled={activeParam === 'parameter-groups'}
-						><ChartColumnIcon /></Tabs.Trigger
-					>
-					<Tabs.Trigger value="table" disabled={activeParam === 'parameter-groups'}
-						><TableIcon /></Tabs.Trigger
-					>
-					{#if show}
-						<Tabs.Trigger value="param-info" disabled={activeParam === 'parameter-groups'}
-							><VariableIcon /></Tabs.Trigger
-						>
-					{/if}
-					<Tabs.Trigger value="download" disabled={activeParam === 'parameter-groups'}
-						><DownloadIcon /></Tabs.Trigger
-					>
-				</Tabs.List>
-			</Tabs.Root>
-		</Card.Description>
+
 		{#if actions}
 			<Card.Action>
 				<ButtonGroup.Root>
@@ -184,4 +157,37 @@
 			{/each}
 		</Tabs.Root>
 	</Card.Content>
+	<Card.Footer class="flex justify-between">
+		<Tabs.Root bind:value={activeParam} orientation="horizontal">
+			<Tabs.List class="overflow-x-auto">
+				<Tabs.Trigger value="parameter-groups" disabled={!coverage.parameterGroups.length}
+					><BoxesIcon class="size-4" /></Tabs.Trigger
+				>
+				<Tabs.Trigger value="axes"><Move3DIcon class="size-4" /></Tabs.Trigger>
+				{#each new Set([...selected, ...parameters.map(([k]) => k)]) as value, i (i)}
+					<Tabs.Trigger {value}>
+						{value}
+					</Tabs.Trigger>
+				{/each}
+			</Tabs.List>
+		</Tabs.Root>
+		<Tabs.Root bind:value={tabValue}>
+			<Tabs.List>
+				<Tabs.Trigger value="chart" disabled={activeParam === 'parameter-groups'}
+					><ChartColumnIcon /></Tabs.Trigger
+				>
+				<Tabs.Trigger value="table" disabled={activeParam === 'parameter-groups'}
+					><TableIcon /></Tabs.Trigger
+				>
+				{#if show}
+					<Tabs.Trigger value="param-info" disabled={activeParam === 'parameter-groups'}
+						><VariableIcon /></Tabs.Trigger
+					>
+				{/if}
+				<Tabs.Trigger value="download" disabled={activeParam === 'parameter-groups'}
+					><DownloadIcon /></Tabs.Trigger
+				>
+			</Tabs.List>
+		</Tabs.Root>
+	</Card.Footer>
 </Card.Root>
