@@ -34,7 +34,7 @@
 		tooltip = $bindable(null),
 		color = $bindable(_color),
 		categoryColors = $bindable(),
-		axisResolver = (a, i) => i,
+		axisResolver = (a, i) => i.toString(),
 		axes = $bindable(range.axisNames.map((axisName, i) => [axisName as Axis, range.shape[i]]))
 	}: DataViewProps = $props();
 
@@ -84,18 +84,11 @@
 		setTooltip(context?.tooltip.data);
 	});
 
-	const resolveAxisIdxForChart = (field: ChartDimensions, row: DataRow) => {
-		const axisName = axesConfig?.get(field);
-		if (isUndefined(axisName)) return undefined;
-		const idx = row[axisName];
-		if (isUndefined(idx)) return undefined;
-		let value = axisResolver(axisName, idx as number);
-		if (Array.isArray(value)) {
-			if (typeof value[0] === 'string') value = value[0];
-			else value = idx;
-		}
-		if (typeof value === 'string') return new CustomDate(value);
-		return value;
+	const resolve = (dimension: ChartDimensions, dataRow: DataRow) => {
+		const axis = axesConfig?.get(dimension);
+		if (!axis) return undefined;
+		const idx = dataRow[axis] || 0;
+		return axisResolver(axis, idx, 'chart');
 	};
 </script>
 
@@ -118,9 +111,9 @@
 							bind:ref={chartRef}
 							{data}
 							series={Object.values(chartConfig)}
-							x={(d) => resolveAxisIdxForChart('x', d)}
-							fx={(d) => resolveAxisIdxForChart('fx', d)}
-							fy={(d) => resolveAxisIdxForChart('fy', d)}
+							x={(d) => resolve('x', d)}
+							fx={(d) => resolve('fx', d)}
+							fy={(d) => resolve('fy', d)}
 							facet={{
 								axis: { facetAll }
 							}}

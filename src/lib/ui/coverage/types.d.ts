@@ -13,7 +13,8 @@ import type {
 	MultiPoint,
 	MultiPolygon,
 	Trajectory,
-	Polygon
+	Polygon,
+	CustomDate
 } from '#lib/core/index.ts';
 import type { SvelteMap, SvelteSet } from 'svelte/reactivity';
 import type { ChartPropsWithoutHTML, HighlightPropsWithoutHTML } from 'layerchart';
@@ -184,14 +185,9 @@ interface DownloaderProps extends Props<DataRow[]> {
  */
 export type AxisResolver = (
 	axisName: Axis,
-	idx: number
-) =>
-	| { value: string | number; dataType?: 'primitive' }
-	| {
-			value: (MultiPoint | Section | Trajectory)['axes']['composite']['values'][number];
-			dataType: 'tuple';
-	  }
-	| { value: Polygon['axes']['composite']['values'][number]; dataType: 'polygon' };
+	idx: number,
+	mode?: 'chart'
+) => string | number | CustomDate;
 
 export type AxisConfig = SvelteMap<ChartDimensions, Axis>;
 export type ChartDimensions = 'x' | 'fx' | 'fy' | 'y1';
@@ -203,3 +199,11 @@ export interface AxisConfiguratorProps {
 	axisResolver?: AxisResolver;
 }
 export type Axis = 'x' | 'y' | 'composite' | 'z' | 't';
+
+export type AxisIndexValue =
+	| { value: string | number; dataType?: 'primitive' }
+	| {
+			value: (MultiPoint | Section | Trajectory)['axes']['composite']['values'][number];
+			dataType: 'tuple';
+	  }
+	| { value: Polygon['axes']['composite']['values'][number]; dataType: 'polygon' };

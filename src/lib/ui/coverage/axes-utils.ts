@@ -1,12 +1,12 @@
 import { type InferDomainClass } from '#lib/core/index.js';
-import type { Axis, AxisConfig, ChartDimensions } from './types';
+import type { Axis, AxisConfig, AxisIndexValue, ChartDimensions } from './types';
 
 export default function (domain: ReturnType<InferDomainClass['denormalize']> | InferDomainClass) {
 	const conf = new Map<ChartDimensions, Axis>([['x', 't']]);
 	switch (domain.domainType) {
 		case 'Grid':
 			if (domain.t.length) conf.set('y1', 'z');
-			conf.set('x', 'z').set('y1', 't');
+			else conf.set('x', 'z').set('y1', 't');
 			conf.set('fx', 'x').set('fy', 'y');
 			break;
 		case 'Section':

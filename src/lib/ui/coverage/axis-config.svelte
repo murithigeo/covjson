@@ -4,13 +4,13 @@
 	import * as Table from '#lib/components/ui/table/index.ts';
 	import { Switch } from '#lib/components/ui/switch/index.ts';
 	import { EllipsisIcon } from '@lucide/svelte';
-	import { isUndefined, numListIsRegular } from '#lib/core/index.ts';
+	import { isUndefined } from '#lib/core/index.ts';
 	import type { AxisNamesOptions } from '#lib/core/types.js';
 	import Slider from './slider.svelte';
 	let {
 		config = $bindable(),
 		axes,
-		axisResolver: resolver = (_, i) => ({ value: i }),
+		axisResolver: resolver = (_, i) => i.toString(),
 		axisNames = $bindable()
 	}: AxisConfiguratorProps = $props();
 
@@ -42,6 +42,8 @@
 		if (Array.isArray(v) || typeof v === 'boolean') return axisNames?.set(an, v);
 		axisNames?.set(an, { ...existing, ...v });
 	};
+
+	// todo more than one property access for the row
 </script>
 
 <Table.Root class="table-auto border">
@@ -66,7 +68,9 @@
 				{#each Array<ChartDimensions>('x', 'fx', 'fy', 'y1') as dimension (dimension)}
 					<Table.Cell class="border">
 						<Switch
-							disabled={max < 2}
+							// Works but enable for currently selected value
+							disabled={max < 2 ||
+								config.entries().some(([dim, axis]) => dim !== dimension && axis !== an)}
 							bind:checked={
 								() => config.get(dimension) === an,
 								(checked) => (checked ? config.set(dimension, an) : config.delete(dimension))
@@ -104,12 +108,7 @@
 									>
 										{#each { length: max }, idx (idx)}
 											<DropdownMenu.CheckboxItem value={idx.toString()}
-												>{@const val = resolver(an, idx)}
-												{#if val.dataType !== 'polygon'}
-													{val.value}
-												{:else}
-													Polygon {idx}
-												{/if}
+												>{resolver(an, idx)}
 											</DropdownMenu.CheckboxItem>
 										{/each}
 									</DropdownMenu.CheckboxGroup>
@@ -121,4 +120,21 @@
 			</Table.Row>
 		{/each}
 	</Table.Body>
+	<Table.Footer>
+		<Table.Row>
+			<Table.Cell></Table.Cell>
+			<Table.Cell class="border text-center">Horizontal Axis</Table.Cell>
+			<Table.Cell colspan={2} class="border text-center whitespace-normal">
+				<a href="https://www.layerchart.com/docs/guides/facets" rel="external"
+					>Faceting partitions the data into a grid of panels, one per distinct value</a
+				>
+			</Table.Cell>
+			<Table.Cell class="border text-center whitespace-normal"
+				>Render multiple splines if axes supports it</Table.Cell
+			>
+			<Table.Cell class="border text-center whitespace-normal"
+				>Specify which axis values get loaded/visualized</Table.Cell
+			>
+		</Table.Row>
+	</Table.Footer>
 </Table.Root>

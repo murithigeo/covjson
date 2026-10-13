@@ -1,5 +1,5 @@
 <script lang="ts" module>
-	import { type DataRow, Range, Parameter } from '#lib/core/index.ts';
+	import { type DataRow, Range, Parameter, CustomDate, isUndefined } from '#lib/core/index.ts';
 	import ParameterRender from './data-view.svelte';
 	import * as ButtonGroup from '#lib/components/ui/button-group/index.js';
 	import { Button } from '#lib/components/ui/button/index.js';
@@ -20,7 +20,7 @@
 	import * as Card from '#lib/components/ui/card/index.js';
 	import * as Tabs from '#lib/components/ui/tabs/index.js';
 	import ParameterGroup from '../metadata/parameter-group-cpt.svelte';
-	import type { Axis, AxisResolver, CoverageProps } from './types';
+	import type { Axis, AxisIndexValue, AxisResolver, CoverageProps } from './types';
 	import { SvelteMap, SvelteSet } from 'svelte/reactivity';
 	import { type AxisNamesOptions, type QueryOptions } from '#lib/core/types.js';
 </script>
@@ -40,33 +40,45 @@
 
 	let stats = $state(new SvelteMap<string, string | Range>());
 
-	const axisResolver: AxisResolver = (axisName, idx) => {
-		if (axisName === 'z' || axisName === 't') return { value: coverage[axisName][idx] };
+	const axisResolver: AxisResolver = (axisName, idx, mode) => {
+		let value: string | number | undefined;
 
-		//@ts-expect-error
-		const axis = coverage.domain.axes[axisName];
+		switch (coverage.domain.domainType) {
+			case 'Grid':
+			case 'Point':
+			case 'PointSeries':
+			case 'VerticalProfile':
+				if (axisName === 'x' || axisName === 'y' || axisName === 'z')
+					value = coverage.domain.axes[axisName]?.values[idx] || idx;
+				break;
+			case 'Trajectory':
+			case 'Section':
 
-		return {
-			value: axis.values[idx],
-			dataType: axis.dataType
-		};
+			case 'MultiPoint':
+			case 'MultiPointSeries':
+				if (axisName === 'composite')
+					value = `(${coverage.domain.axes.composite.values[idx].join(',')})`;
+				break;
+			default:
+				value = `polygon @ index ${idx}`;
+		}
+		if (axisName === 't') {
+			value = coverage.t[idx];
+			if (mode === 'chart') return new CustomDate(value);
+		}
+		if (isUndefined(value)) return `val @ index: ${idx}`;
+		return value;
 	};
-
-	/**
-	 * @todo Allow incremental updates by not rerendering entire card. i.e if coverage here, only update coverage indices
-	 */
 
 	let axesConfig = $state(new SvelteMap(dimensions(coverage.domain)));
 	let facetAll = $state(false);
 	let parameters = $derived<[string, Parameter][]>(coverage.parameters.entries().toArray());
+
+	// svelte-ignore state_referenced_locally
 	let activeParam = $state(parameters[0][0]);
 
 	let data = $state<DataRow[]>([]);
-
-	function dataFetcher(
-		selected: QueryOptions['ranges'],
-		axisNames: QueryOptions['axisNames']
-	): void {
+	function dataFetcher(selected: QueryOptions['ranges'], axisNames: QueryOptions['axisNames']) {
 		// Allow user to specify custom indices for custom values
 		coverage
 			.query(coverage.indices, {
@@ -79,9 +91,7 @@
 			.then((rows) => (data = rows));
 	}
 
-	let axes = $derived([
-		...coverage.axesSize.entries().map(([k, v]): [Axis, number] => [k as Axis, v])
-	]);
+	let axes = $derived(coverage.axesSize.entries().toArray() as [Axis, number][]);
 	let axisNames = $state(new SvelteMap<string, AxisNamesOptions>());
 
 	$effect(() => dataFetcher([...selected], Object.fromEntries(axisNames)));
@@ -124,7 +134,44 @@
 			</Card.Action>
 		{/if}
 	</Card.Header>
-	<Card.Content>
+	<Card.Content class="space-y-2">
+		<span class="flex w-full justify-between">
+			<Tabs.Root bind:value={activeParam} orientation="horizontal">
+				<Tabs.List class="overflow-x-auto">
+					<Tabs.Trigger value="parameter-groups" disabled={!coverage.parameterGroups.length}
+						><BoxesIcon class="size-4" /></Tabs.Trigger
+					>
+					<Tabs.Trigger value="axes"><Move3DIcon class="size-4" /></Tabs.Trigger>
+					{#each new Set([...selected, ...parameters.map(([k]) => k)]) as value, i (i)}
+						<Tabs.Trigger {value}>
+							{value}
+						</Tabs.Trigger>
+					{/each}
+				</Tabs.List>
+			</Tabs.Root>
+			<Tabs.Root bind:value={tabValue}>
+				<Tabs.List>
+					<Tabs.Trigger value="chart" disabled={['parameter-groups', 'axes'].includes(activeParam)}
+						><ChartColumnIcon /></Tabs.Trigger
+					>
+					<Tabs.Trigger value="table" disabled={['parameter-groups', 'axes'].includes(activeParam)}
+						><TableIcon /></Tabs.Trigger
+					>
+					{#if show}
+						<Tabs.Trigger
+							value="param-info"
+							disabled={['parameter-groups', 'axes'].includes(activeParam)}
+							><VariableIcon /></Tabs.Trigger
+						>
+					{/if}
+					<Tabs.Trigger
+						value="download"
+						disabled={['parameter-groups', 'axes'].includes(activeParam)}
+						><DownloadIcon /></Tabs.Trigger
+					>
+				</Tabs.List>
+			</Tabs.Root>
+		</span>
 		<Tabs.Root bind:value={activeParam} orientation="horizontal">
 			{#if show?.parameterGroups}
 				<Tabs.Content value="parameter-groups">
@@ -152,42 +199,10 @@
 						covId={coverage.id || cov.uuid}
 						{axisResolver}
 						{axes}
+						bind:axesConfig
 					/>
 				</Tabs.Content>
 			{/each}
 		</Tabs.Root>
 	</Card.Content>
-	<Card.Footer class="flex justify-between">
-		<Tabs.Root bind:value={activeParam} orientation="horizontal">
-			<Tabs.List class="overflow-x-auto">
-				<Tabs.Trigger value="parameter-groups" disabled={!coverage.parameterGroups.length}
-					><BoxesIcon class="size-4" /></Tabs.Trigger
-				>
-				<Tabs.Trigger value="axes"><Move3DIcon class="size-4" /></Tabs.Trigger>
-				{#each new Set([...selected, ...parameters.map(([k]) => k)]) as value, i (i)}
-					<Tabs.Trigger {value}>
-						{value}
-					</Tabs.Trigger>
-				{/each}
-			</Tabs.List>
-		</Tabs.Root>
-		<Tabs.Root bind:value={tabValue}>
-			<Tabs.List>
-				<Tabs.Trigger value="chart" disabled={activeParam === 'parameter-groups'}
-					><ChartColumnIcon /></Tabs.Trigger
-				>
-				<Tabs.Trigger value="table" disabled={activeParam === 'parameter-groups'}
-					><TableIcon /></Tabs.Trigger
-				>
-				{#if show}
-					<Tabs.Trigger value="param-info" disabled={activeParam === 'parameter-groups'}
-						><VariableIcon /></Tabs.Trigger
-					>
-				{/if}
-				<Tabs.Trigger value="download" disabled={activeParam === 'parameter-groups'}
-					><DownloadIcon /></Tabs.Trigger
-				>
-			</Tabs.List>
-		</Tabs.Root>
-	</Card.Footer>
 </Card.Root>

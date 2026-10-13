@@ -5,7 +5,7 @@ import type {
 } from 'coveragejson';
 import { Temporal } from '@js-temporal/polyfill';
 import { uriproj, load, toURI, proj4 } from '@murithigeo/uriproj';
-import { isUndefined } from './domain/utils.ts';
+import { isUndefined, toGeoJsonCoordinate } from './domain/utils.ts';
 
 const CRS84 = toURI('OGC:CRS84');
 
@@ -58,15 +58,12 @@ export class Referencing {
 		const converter = proj4(crs.from, crs.to);
 		pos = converter.forward(pos, true);
 		if (pos[2]) pos[2] = this.vrs(pos[2]);
+		for (let i = 0; i < 2; i++) {
+			pos[i] = toGeoJsonCoordinate(pos[i]);
+		}
 		if (proj4.defs(this.options.crs.to).axis === 'enu') return pos;
 		// If the `to` crs is not [lon,lat] force it to be
 		pos[1] = [pos[0], (pos[0] = pos[1])][0];
-		for (let i = 0; i < 2; i++) {
-			/// Source - https://stackoverflow.com/a/35965451
-			// Posted by MeestorHok
-			// Retrieved 2026-10-12, License - CC BY-SA 3.0
-			pos[i] = Math.trunc(pos[i] * Math.pow(10, 8)) / Math.pow(10, 8);
-		}
 
 		return pos;
 	}

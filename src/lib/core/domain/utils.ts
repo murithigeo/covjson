@@ -75,7 +75,7 @@ export function regularNumToValuesAxis(axis: RegularlySpacedAxis): { values: num
 	const step = (axis.stop - axis.start) / (axis.num - 1);
 	const values: number[] = [];
 	for (let i = 0; i < axis.num; i++) {
-		values[i] = axis.start + i * step;
+		values[i] = toGeoJsonCoordinate(axis.start + i * step);
 	}
 	return { values };
 }
@@ -416,4 +416,8 @@ export function calculateMedian<T extends string | number>(
 		.filter((v) => typeof v === 'number')
 		.reduce((l, r) => l + r, 0);
 	return (total / 2) as T;
+}
+
+export function toGeoJsonCoordinate(val: number): number {
+	return Math.trunc(val * Math.pow(10, 8)) / Math.pow(10, 8);
 }
