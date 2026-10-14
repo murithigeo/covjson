@@ -117,6 +117,7 @@
 							facet={{
 								axis: { facetAll }
 							}}
+							yPadding={[2, 10]}
 							highlight={{ lines: true, points: true, facetAll }}
 							padding={defaultChartPadding({ legend, right: 10 })}
 							transform={{ mode: 'domain', axis: 'both' }}

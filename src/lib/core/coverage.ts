@@ -249,10 +249,10 @@ export class Coverage<D extends Domain = Domain> extends Base<CRG<D>> {
 		options.axisNames = options.axisNames || {};
 		const consider = this.axesSize
 			.entries()
+			.filter(([, count]) => !!count)
 			.filter(([axisName]) => options.axisNames!?.[axisName]) // If false, this will get filtered out
 			.map(([axisName, count]): [string, number[]] => {
 				let values = options.axisNames![axisName];
-
 				if (!Array.isArray(values)) {
 					if (typeof values === 'boolean') values = { start: 0, stop: count };
 					else if (!isUndefined(values.stop)) values.stop = values.stop + 1;

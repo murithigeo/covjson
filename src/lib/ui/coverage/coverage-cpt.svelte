@@ -70,7 +70,13 @@
 		return value;
 	};
 
-	let axesConfig = $state(new SvelteMap(dimensions(coverage.domain)));
+	let axesConfig = $state(
+		new SvelteMap(
+			dimensions(coverage.domain)
+				.entries()
+				.filter(([an]) => an === 'x')
+		)
+	);
 	let facetAll = $state(false);
 	let parameters = $derived<[string, Parameter][]>(coverage.parameters.entries().toArray());
 
@@ -88,7 +94,9 @@
 				},
 				ranges: selected
 			})
-			.then((rows) => (data = rows));
+			.then((rows) => {
+				data = rows;
+			});
 	}
 
 	let axes = $derived(coverage.axesSize.entries().toArray() as [Axis, number][]);

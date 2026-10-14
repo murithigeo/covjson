@@ -68,12 +68,15 @@
 				{#each Array<ChartDimensions>('x', 'fx', 'fy', 'y1') as dimension (dimension)}
 					<Table.Cell class="border">
 						<Switch
-							// Works but enable for currently selected value
-							disabled={max < 2 ||
-								config.entries().some(([dim, axis]) => dim !== dimension && axis !== an)}
 							bind:checked={
 								() => config.get(dimension) === an,
-								(checked) => (checked ? config.set(dimension, an) : config.delete(dimension))
+								(checked) => {
+									if (!checked) return config.delete(dimension);
+									for (const [dim, axisName] of config) {
+										if (axisName === an && dim !== dimension) config.delete(dim);
+									}
+									config.set(dimension, an);
+								}
 							}
 						/>
 					</Table.Cell>
