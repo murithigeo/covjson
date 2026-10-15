@@ -95,7 +95,7 @@ export interface DataViewProps extends Props<DataRow[]> {
 	 * The currently active tab
 	 * For "string" parameters, this will default to table
 	 */
-	tabValue: 'chart' | 'table' | 'param-info' | 'download';
+	tabValue: 'chart' | 'table' | 'download';
 	/**
 	 * The currently highligted data row
 	 * Primarily powered by layerchart

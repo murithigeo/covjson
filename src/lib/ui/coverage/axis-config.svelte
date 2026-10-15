@@ -42,11 +42,10 @@
 		if (Array.isArray(v) || typeof v === 'boolean') return axisNames?.set(an, v);
 		axisNames?.set(an, { ...existing, ...v });
 	};
-
-	// todo more than one property access for the row
 </script>
 
 <Table.Root class="table-auto border">
+	<Table.Caption>Configuration what data is loaded and how it is visualized</Table.Caption>
 	<Table.Header>
 		<Table.Row
 			><Table.Head rowspan={2} class="border text-center">axisName</Table.Head>
@@ -63,10 +62,10 @@
 	<Table.Body>
 		{#each axes as [an, max], i (i)}
 			<Table.Row>
-				<Table.Cell class="border">{an}</Table.Cell>
+				<Table.Cell class="border whitespace-nowrap">{an}</Table.Cell>
 
 				{#each Array<ChartDimensions>('x', 'fx', 'fy', 'y1') as dimension (dimension)}
-					<Table.Cell class="border">
+					<Table.Cell class="border whitespace-nowrap">
 						<Switch
 							bind:checked={
 								() => config.get(dimension) === an,
@@ -129,15 +128,13 @@
 			<Table.Cell class="border text-center">Horizontal Axis</Table.Cell>
 			<Table.Cell colspan={2} class="border text-center whitespace-normal">
 				<a href="https://www.layerchart.com/docs/guides/facets" rel="external"
-					>Faceting partitions the data into a grid of panels, one per distinct value</a
+					>Partition the data into a grid of panels, one per distinct value</a
 				>
 			</Table.Cell>
 			<Table.Cell class="border text-center whitespace-normal"
-				>Render multiple splines if axes supports it</Table.Cell
+				>Render multiple axis values per facet</Table.Cell
 			>
-			<Table.Cell class="border text-center whitespace-normal"
-				>Specify which axis values get loaded/visualized</Table.Cell
-			>
+			<Table.Cell class="border text-center whitespace-normal">Load custom axis values</Table.Cell>
 		</Table.Row>
 	</Table.Footer>
 </Table.Root>

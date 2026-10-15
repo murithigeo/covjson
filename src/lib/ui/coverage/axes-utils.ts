@@ -1,49 +1,62 @@
-import { type InferDomainClass } from '#lib/core/index.js';
-import type { Axis, AxisConfig, AxisIndexValue, ChartDimensions } from './types';
+import { CustomDate, isUndefined, type InferDomainClass } from '#lib/core/index.js';
+import type { Grid, MultiPoint, MultiPolygon, Section, Trajectory } from 'coveragejson';
+import type { Axis, AxisConfig, AxisIndexValue, AxisResolver, ChartDimensions } from './types';
 
-export default function (domain: ReturnType<InferDomainClass['denormalize']> | InferDomainClass) {
-	const conf = new Map<ChartDimensions, Axis>([['x', 't']]);
+export default function (domain: ReturnType<InferDomainClass['denormalize']>): {
+	x: Axis;
+	resolver: AxisResolver;
+} {
+	let x: Axis;
 	switch (domain.domainType) {
 		case 'Grid':
-			if (domain.t.length) conf.set('y1', 'z');
-			else conf.set('x', 'z').set('y1', 't');
-			conf.set('fx', 'x').set('fy', 'y');
+			if (domain.t.length) x = 't';
+			else x = 'z';
 			break;
 		case 'Section':
-			conf.set('x', 'z').set('fx', 'composite');
-			break;
 		case 'Trajectory':
-			conf.set('x', 'composite');
+		case 'VerticalProfile':
+			if (domain.domainType === 'Trajectory') x = 'composite';
+			else x = 'z';
 			break;
 		case 'MultiPolygonSeries':
 		case 'PolygonSeries':
-			conf.set('fx', 'composite');
-			if (domain.axes.z) conf.set('y1', 'z');
-			break;
 		case 'MultiPointSeries':
-			conf.set('fx', 'composite');
+		case 'PointSeries':
+			x = 't';
 			break;
 		case 'MultiPolygon':
 		case 'Polygon':
-			if (domain.axes.t) conf.set('x', 't');
-			else if (domain.axes.z) conf.set('x', 'z');
-			else conf.set('x', 'composite');
-
-			let dx = conf.get('x');
-			if (dx === 't' && domain.axes.z) conf.set('y1', 'z');
-			else if (dx === 'z' && domain.axes.t) conf.set('y1', 't');
-			dx = conf.get('x');
-			if (dx !== 'composite') conf.set('fx', 'composite');
+			if (domain.axes.t) x = 't';
+			else if (domain.axes.z) x = 'z';
+			else x = 'composite';
 			break;
-		case 'VerticalProfile':
-			conf.set('x', 'z');
-			break;
-		// Better way to handle 1D values
 		case 'Point':
+			x = 't';
+			if (!domain.axes.t) x = 'z';
 			break;
-		case 'PointSeries':
-			conf.set('x', 't');
-			break;
+		case 'MultiPoint':
+			if (domain.axes.t) x = 't';
+			else x = 'composite';
 	}
-	return conf;
+
+	return {
+		x: x!,
+		resolver: (an, idx, mode) => {
+			const axis: undefined | any = domain.axes[an as keyof (typeof domain)['axes']];
+			if (!axis) return `NULL`;
+			let dataType = axis.dataType || 'primitive';
+			let value = axis.values[idx];
+
+			if (dataType === 'tuple') {
+				if (typeof value[0] === 'string' && mode === 'chart')
+					[dataType, value] = ['primitive', value[0]];
+				else return `(${value.join(',')})`;
+			}
+			if (dataType === 'primitive') {
+				if (typeof value === 'string' && mode === 'chart') return new CustomDate(value);
+				return value;
+			}
+			return `polygon @ index: ${idx}`;
+		}
+	};
 }

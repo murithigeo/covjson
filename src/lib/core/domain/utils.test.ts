@@ -9,7 +9,7 @@ import {
 	calcNumAxisBounds,
 	calcStrAxisBounds,
 	tIndicesOfNearest
-} from '../src/domain/utils.ts';
+} from './utils.ts';
 
 describe('#regularNumToValuesAxis', () => {
 	const { values } = regularNumToValuesAxis({ num: 1, start: 0, stop: 0 });
@@ -169,7 +169,7 @@ describe('axis bounds calculations', () => {
 describe('Date[time] detection', () => {
 	it('Returns Year for YYYY', () => {
 		expect(parseDateString('2021')).toStrictEqual({
-			format: 'Year',
+			resolution: 'Year',
 			year: 2021,
 			month: undefined,
 			day: undefined,
@@ -181,7 +181,7 @@ describe('Date[time] detection', () => {
 	});
 	it('Returns Year-Month for YYYY-MM', () => {
 		expect(parseDateString('2021-10')).toStrictEqual({
-			format: 'YearMonth',
+			resolution: 'YearMonth',
 			year: 2021,
 			month: 10,
 			day: undefined,
@@ -193,7 +193,7 @@ describe('Date[time] detection', () => {
 	});
 	it('Returns YYYY-MM-DD for YYYY-MM-DD', () => {
 		expect(parseDateString('2021-01-01')).toStrictEqual({
-			format: 'Date',
+			resolution: 'Date',
 			year: 2021,
 			month: 1,
 			day: 1,
@@ -205,7 +205,7 @@ describe('Date[time] detection', () => {
 	});
 	it('Returns TimeStamp for timestamps', () => {
 		expect(parseDateString('2021-01-10T13:13:27.78Z')).toStrictEqual({
-			format: 'Instant',
+			resolution: 'Instant',
 			year: 2021,
 			month: 1,
 			day: 10,
@@ -219,9 +219,9 @@ describe('Date[time] detection', () => {
 
 describe.skip('tIndicesOfNearest', () => {
 	it('Returns correct indices for values of inconsistent formats', () => {
-		expect(
-			tIndicesOfNearest(['2021-01-01', '2021-01-02',"2021-01-03"], '2021-01-01')
-		).toEqual([2, 2]);
+		expect(tIndicesOfNearest(['2021-01-01', '2021-01-02', '2021-01-03'], '2021-01-01')).toEqual([
+			2, 2
+		]);
 		expect(
 			tIndicesOfNearest(
 				['2021-01-01T03:00:00+03:00', '2021-01', '2021-01-01'],

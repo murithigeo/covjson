@@ -38,114 +38,15 @@
 		<Resizable.Handle withHandle />
 
 		<Resizable.Pane>
-			<div class="h-screen overflow-auto">
-				<Card.Root>
-					<Card.Content>
-						<Accordion.Root type="multiple" value={['parameters', 'coverages']}>
-							<Accordion.Item value="parameters">
-								<Accordion.Trigger>Parameters</Accordion.Trigger>
-								<Accordion.Content>
-									<div class="">
-										{#each parameters as [k, data] (k)}
-											<ParameterComponent
-												stats={stats.get(k)}
-												{data}
-												bind:checked={
-													() => selected.has(k),
-													(checked) => {
-														if (checked) selected.add(k);
-														else selected.delete(k);
-													}
-												}
-											/>
-										{/each}
-									</div>
-								</Accordion.Content>
-							</Accordion.Item>
-							<Accordion.Item value="parameterGroups">
-								<Accordion.Trigger>Parameter Groups</Accordion.Trigger>
-								<Accordion.Content></Accordion.Content>
-							</Accordion.Item>
-							<Accordion.Item value="coverages">
-								<Accordion.Trigger>Coverages</Accordion.Trigger>
-								<Accordion.Content>
-									<div class="">
-										{#each coverages as [uuid, coverage], i (i)}
-											<CoverageComponent
-												bind:selected
-												data={coverage}
-												bind:onIndicesChange
-												show={{ parameterGroups: true, parameters: true }}
-												bind:pinned={
-													() => pinned.has(coverage.uuid), () => pinned.set(uuid, coverage)
-												}
-											/>
-										{/each}
-									</div>
-								</Accordion.Content>
-							</Accordion.Item>
-						</Accordion.Root>
-					</Card.Content>
-				</Card.Root>
+			<div class="h-screen space-y-2 overflow-auto">
+				{#each coverages as [uuid, coverage], i (i)}
+					<CoverageComponent
+						data={coverage}
+						bind:onIndicesChange
+						bind:pinned={() => pinned.has(coverage.uuid), () => pinned.set(uuid, coverage)}
+					/>
+				{/each}
 			</div>
 		</Resizable.Pane>
 	</Resizable.PaneGroup>
 </div>
-<!-- 
-		<div class="h-full overflow-auto">
-			<Collapsible.Root
-				id="parameter-group-list"
-				open={!!ctx.parameterGroups.size}
-				disabled={!ctx.parameterGroups.size}
-			>
-				<Item.Root size="sm" variant="outline">
-					<Item.Media><GroupIcon class="size-5" /></Item.Media>
-					<Item.Content>
-						<Item.Title lang="en">Parameter Groups</Item.Title>
-					</Item.Content>
-					<Item.Actions>
-						<Collapsible.Trigger class={buttonVariants({ variant: 'ghost' })}
-							><ChevronsUpDown /></Collapsible.Trigger
-						>
-					</Item.Actions>
-				</Item.Root>
-				<Collapsible.Content class="ml-2">
-					{#each ctx.parameterGroups as group, i (i)}
-						<ParameterGroupComponent data={group} open={!i} />
-					{/each}
-				</Collapsible.Content>
-			</Collapsible.Root>
-			<Collapsible.Root id="parameter-list" open>
-				<Item.Root size="sm" variant="outline">
-					<Item.Media><GroupIcon class="size-5" /></Item.Media>
-					<Item.Content>
-						<Item.Title lang="en">Parameters</Item.Title>
-					</Item.Content>
-					<Item.Actions>
-						<Collapsible.Trigger class={buttonVariants({ variant: 'ghost' })}
-							><ChevronsUpDown /></Collapsible.Trigger
-						>
-					</Item.Actions>
-				</Item.Root>
-				<Collapsible.Content class="ml-2 ">
-					<div class="overflow-auto">
-						{#each ctx.parameters as [key, data], index (key)}
-							<ParameterComponent {data} open={!index} {key} />
-						{/each}
-					</div>
-				</Collapsible.Content>
-			</Collapsible.Root>
-		</div>
-	</Resizable.Pane>
-
-	<Resizable.Handle withHandle />
-	<Resizable.Pane>
-		<div class="h-full overflow-auto" id="charts">
-			{#each ctx.coverages as cov (cov[0])}
-				<div class="m-2">
-					<CoverageComponent coverage={cov[1]} bind:onIndicesChange />
-				</div>
-			{/each}
-		</div>
-	</Resizable.Pane>
-</Resizable.PaneGroup> -->

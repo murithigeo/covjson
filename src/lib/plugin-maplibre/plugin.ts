@@ -96,7 +96,7 @@ export class MaplibrePlugin extends GeoJSONSource {
 			return await data.reproject(this._referencing);
 		});
 		this.setData(this._coveragecollection.featurecollection);
-		this.covOptions?.onLoad?.(this._coveragecollection);
+		this.covOptions?.onData?.(this._coveragecollection);
 	}
 	/**
 	 * Adapted closely to GeoJSON's source
@@ -151,9 +151,10 @@ export class MaplibrePlugin extends GeoJSONSource {
 				}
 				if (update.addOrUpdate?.ranges) {
 					Object.entries(update.addOrUpdate.ranges).forEach(([k, v]) => {
-						if (typeof v !== 'string' && !(v instanceof Range)) {
-							v = new Range(v);
+						if (typeof v === 'string') {
+							return cov._ranges.set(k, v);
 						}
+						if (!(v instanceof Range)) v = new Range(v);
 						cov.ranges.set(k, v);
 					});
 					geojsonFeatureDiff.addOrUpdateProperties.push({
@@ -164,7 +165,7 @@ export class MaplibrePlugin extends GeoJSONSource {
 				this._coveragecollection.coverages[idx] = cov;
 			}
 			this.updateData(geojsonDiff);
-			this.covOptions.onLoad?.(this._coveragecollection);
+			this.covOptions.onData?.(this._coveragecollection);
 		}
 	}
 }

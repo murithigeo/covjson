@@ -15,7 +15,7 @@
 
 	let { max, values = $bindable(), resolver = (i) => i, class: className }: Props = $props();
 
-	// Currently swaps values if hovered. Maybe confirm button
+	// svelte-ignore state_referenced_locally
 	let value = $state([0, max - 1]);
 
 	let minMax = $derived(

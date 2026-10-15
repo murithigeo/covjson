@@ -1,5 +1,5 @@
 <script lang="ts" module>
-	import { type DataRow, Range, Parameter, CustomDate, isUndefined } from '#lib/core/index.ts';
+	import { type DataRow, Range, Parameter } from '#lib/core/index.ts';
 	import ParameterRender from './data-view.svelte';
 	import * as ButtonGroup from '#lib/components/ui/button-group/index.js';
 	import { Button } from '#lib/components/ui/button/index.js';
@@ -10,7 +10,6 @@
 		PinOffIcon,
 		ChartColumnIcon,
 		TableIcon,
-		VariableIcon,
 		DownloadIcon,
 		BoxesIcon,
 		Move3DIcon
@@ -20,9 +19,11 @@
 	import * as Card from '#lib/components/ui/card/index.js';
 	import * as Tabs from '#lib/components/ui/tabs/index.js';
 	import ParameterGroup from '../metadata/parameter-group-cpt.svelte';
-	import type { Axis, AxisIndexValue, AxisResolver, CoverageProps } from './types';
+	import type { ChartDimensions, Axis, CoverageProps } from './types';
 	import { SvelteMap, SvelteSet } from 'svelte/reactivity';
 	import { type AxisNamesOptions, type QueryOptions } from '#lib/core/types.js';
+	import * as Accordion from '#lib/components/ui/accordion/index.ts';
+	import ParameterCpt from '../metadata/parameter-cpt.svelte';
 </script>
 
 <script lang="ts">
@@ -31,52 +32,17 @@
 		data: cov = $bindable(),
 		onIndicesChange = $bindable(),
 		show,
-		selected = $bindable(new SvelteSet(cov.ranges.keys())),
+		selected = $bindable(new SvelteSet([...cov.ranges.keys(), ...cov._ranges.keys()])),
 		pinned = $bindable(),
 		onTrashCoverage
 	}: CoverageProps = $props();
 
 	const coverage = cov.denormalize();
 
+	const { x: initialX, resolver: axisResolver } = dimensions(coverage.domain);
 	let stats = $state(new SvelteMap<string, string | Range>());
 
-	const axisResolver: AxisResolver = (axisName, idx, mode) => {
-		let value: string | number | undefined;
-
-		switch (coverage.domain.domainType) {
-			case 'Grid':
-			case 'Point':
-			case 'PointSeries':
-			case 'VerticalProfile':
-				if (axisName === 'x' || axisName === 'y' || axisName === 'z')
-					value = coverage.domain.axes[axisName]?.values[idx] || idx;
-				break;
-			case 'Trajectory':
-			case 'Section':
-
-			case 'MultiPoint':
-			case 'MultiPointSeries':
-				if (axisName === 'composite')
-					value = `(${coverage.domain.axes.composite.values[idx].join(',')})`;
-				break;
-			default:
-				value = `polygon @ index ${idx}`;
-		}
-		if (axisName === 't') {
-			value = coverage.t[idx];
-			if (mode === 'chart') return new CustomDate(value);
-		}
-		if (isUndefined(value)) return `val @ index: ${idx}`;
-		return value;
-	};
-
-	let axesConfig = $state(
-		new SvelteMap(
-			dimensions(coverage.domain)
-				.entries()
-				.filter(([an]) => an === 'x')
-		)
-	);
+	let axesConfig = $state(new SvelteMap<ChartDimensions, Axis>([['x', initialX]]));
 	let facetAll = $state(false);
 	let parameters = $derived<[string, Parameter][]>(coverage.parameters.entries().toArray());
 
@@ -94,17 +60,14 @@
 				},
 				ranges: selected
 			})
-			.then((rows) => {
-				data = rows;
-			});
+			.then((rows) => (data = rows));
 	}
 
 	let axes = $derived(coverage.axesSize.entries().toArray() as [Axis, number][]);
-	let axisNames = $state(new SvelteMap<string, AxisNamesOptions>());
-
+	let axisNames = $state(new SvelteMap<string, AxisNamesOptions>([[initialX, true]]));
 	$effect(() => dataFetcher([...selected], Object.fromEntries(axisNames)));
 
-	let tabValue = $state<'table' | 'chart' | 'param-info' | 'download'>('chart');
+	let tabValue = $state<'table' | 'chart' | 'download'>('chart');
 	/**
 	 * If facetAll, display all values, else display for current value
 	 */
@@ -146,9 +109,7 @@
 		<span class="flex w-full justify-between">
 			<Tabs.Root bind:value={activeParam} orientation="horizontal">
 				<Tabs.List class="overflow-x-auto">
-					<Tabs.Trigger value="parameter-groups" disabled={!coverage.parameterGroups.length}
-						><BoxesIcon class="size-4" /></Tabs.Trigger
-					>
+					<Tabs.Trigger value="parameter-info"><BoxesIcon class="size-4" /></Tabs.Trigger>
 					<Tabs.Trigger value="axes"><Move3DIcon class="size-4" /></Tabs.Trigger>
 					{#each new Set([...selected, ...parameters.map(([k]) => k)]) as value, i (i)}
 						<Tabs.Trigger {value}>
@@ -159,37 +120,50 @@
 			</Tabs.Root>
 			<Tabs.Root bind:value={tabValue}>
 				<Tabs.List>
-					<Tabs.Trigger value="chart" disabled={['parameter-groups', 'axes'].includes(activeParam)}
+					<Tabs.Trigger value="chart" disabled={['parameter-info', 'axes'].includes(activeParam)}
 						><ChartColumnIcon /></Tabs.Trigger
 					>
-					<Tabs.Trigger value="table" disabled={['parameter-groups', 'axes'].includes(activeParam)}
+					<Tabs.Trigger value="table" disabled={['parameter-info', 'axes'].includes(activeParam)}
 						><TableIcon /></Tabs.Trigger
 					>
-					{#if show}
-						<Tabs.Trigger
-							value="param-info"
-							disabled={['parameter-groups', 'axes'].includes(activeParam)}
-							><VariableIcon /></Tabs.Trigger
-						>
-					{/if}
-					<Tabs.Trigger
-						value="download"
-						disabled={['parameter-groups', 'axes'].includes(activeParam)}
+
+					<Tabs.Trigger value="download" disabled={['parameter-info', 'axes'].includes(activeParam)}
 						><DownloadIcon /></Tabs.Trigger
 					>
 				</Tabs.List>
 			</Tabs.Root>
 		</span>
 		<Tabs.Root bind:value={activeParam} orientation="horizontal">
-			{#if show?.parameterGroups}
-				<Tabs.Content value="parameter-groups">
-					<div class="flex space-y-2">
-						{#each coverage.parameterGroups as pGroup, i (i)}
-							<ParameterGroup bind:selected data={pGroup} />
-						{/each}
-					</div>
-				</Tabs.Content>
-			{/if}
+			<Tabs.Content value="parameter-info">
+				<Accordion.Root type="multiple" value={['parameter-groups', 'parameters']}>
+					<Accordion.Item value="parameter-groups">
+						<Accordion.Trigger>Parameter Groups</Accordion.Trigger>
+						<Accordion.Content>
+							{#each coverage.parameterGroups as pGroup, i (i)}
+								<ParameterGroup bind:selected data={pGroup} />
+							{/each}
+						</Accordion.Content>
+					</Accordion.Item>
+					<Accordion.Item value="parameters">
+						<Accordion.Trigger value="parameters">Parameters</Accordion.Trigger>
+						<Accordion.Content
+							>{#each parameters as [key, param] (key)}
+								<ParameterCpt
+									data={param}
+									checkable
+									bind:checked={
+										() => selected.has(key),
+										(checked) => {
+											if (checked) selected.add(key);
+											else selected.delete(key);
+										}
+									}
+								/>
+							{/each}</Accordion.Content
+						>
+					</Accordion.Item>
+				</Accordion.Root>
+			</Tabs.Content>
 			<Tabs.Content value="axes">
 				<AxisConfigurer bind:config={axesConfig} {axes} {axisResolver} bind:axisNames />
 			</Tabs.Content>

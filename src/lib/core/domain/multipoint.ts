@@ -69,7 +69,7 @@ abstract class Base<T extends MpD | MpsD> extends BaseDomain<T> {
 		return this;
 	}
 	queryIndices(ref: Position | string | number): Map<keyof T['axes'], number> {
-		const indices = new Map().set('composite', 0).set('z', 0);
+		const indices = new Map().set('composite', 0).set('t', 0);
 
 		let composite = 0;
 		let zRef = typeof ref === 'number' ? ref : undefined;
@@ -81,7 +81,6 @@ abstract class Base<T extends MpD | MpsD> extends BaseDomain<T> {
 		}
 
 		if (typeof ref === 'string') composite = this.tIndex(ref);
-		if (!isUndefined(zRef)) indices.set('z', this.zIndex(zRef));
 		return indices.set('composite', composite);
 	}
 }

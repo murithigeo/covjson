@@ -23,7 +23,6 @@ export default defineConfig({
 			extensions: ['.svelte', '.svx', '.md']
 		})
 	],
-	optimizeDeps: { exclude: ['svelte-chartjs'] },
 	test: {
 		expect: { requireAssertions: true },
 		projects: [
@@ -44,7 +43,6 @@ export default defineConfig({
 			{
 				extends: './vite.config.ts',
 				test: {
-					setupFiles: ['./vitest.setup.ts'],
 					name: 'server',
 					environment: 'node',
 					include: ['src/**/*.{test,spec}.{js,ts}'],

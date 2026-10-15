@@ -35,9 +35,15 @@ export class I18N extends Map<string, string> {
 		if (!value) return 'und';
 		return this.entries().find((x) => x[1] === value)?.[0] || 'und';
 	}
+	/**
+	 * Return the primary tag of locale tag
+	 */
 	getPrimaryTag(tag: string) {
 		return tag.split('-')[0];
 	}
+	/**
+	 * Get language of tag
+	 */
 	getTagName(tag: string) {
 		const name = new Intl.DisplayNames(this.language, { type: 'language' }).of(tag);
 		if (name === 'root') return 'Undetermined';
@@ -83,9 +89,14 @@ export class Parameter extends Metadata<PR> {
 				: undefined
 		};
 	}
-	getCategory(int: number): Category | undefined {
-		if (!this.categoryEncoding) return undefined;
-		const id = this.categoryEncoding.entries().find(([, values]) => values.includes(int))?.[0];
+	/**
+	 *
+	 * @param val {string|number} so as not to keep doing val as number
+	 * @returns
+	 */
+	getCategory(val: number | string): Category | undefined {
+		if (typeof val !== 'number' || !this.categoryEncoding) return undefined;
+		const id = this.categoryEncoding.entries().find(([, values]) => values.includes(val))?.[0];
 		if (!id) return undefined;
 		return this.observedProperty.categories?.find((cat) => cat.id === id);
 	}

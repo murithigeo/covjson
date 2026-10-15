@@ -56,8 +56,11 @@
 	<TresDashboard bind:data={coverages}>
 		<Maplibre>
 			{#snippet children()}
-				<CovJsonSource bind:data onData={(data) => (coverages = data.coverages)}>
-					<CovJsonSymbolLayer></CovJsonSymbolLayer>
+				<CovJsonSource bind:data onData={(data) => (coverages = data.coverages)} id="sample-data">
+					<CovJsonSymbolLayer
+						paint={{ 'icon-color': 'blue' }}
+						layout={{ 'icon-image': 'bulldozer' }}
+					></CovJsonSymbolLayer>
 				</CovJsonSource>
 			{/snippet}
 		</Maplibre>

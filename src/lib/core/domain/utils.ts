@@ -390,6 +390,7 @@ export function calculateMedian<T extends string | number>(
 	data: (T | null)[],
 	stringy?: boolean
 ): T | null {
+	data = [...data];
 	if (data.length < 1) return null;
 
 	stringy = stringy ?? !!data.find((d) => typeof d === 'string');
@@ -418,6 +419,12 @@ export function calculateMedian<T extends string | number>(
 	return (total / 2) as T;
 }
 
-export function toGeoJsonCoordinate(val: number): number {
+export function geojsonCompliantPosition(pos: Position): Position {
+	for (let i = 0; i < 2; i++) pos[i] = toGeoJsonCoordinate(pos[i]);
+
+	return pos;
+}
+
+export function toGeoJsonCoordinate(val: number) {
 	return Math.trunc(val * Math.pow(10, 8)) / Math.pow(10, 8);
 }

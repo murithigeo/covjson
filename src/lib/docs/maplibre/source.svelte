@@ -23,7 +23,7 @@
 		if (!map || !loaded) return;
 		source = map.getSource<MaplibrePlugin>(id);
 		if (source) return;
-		map?.addSource(id, { type: 'coveragejson', ...props });
+		map?.addSource(id, { type: 'coveragejson', ...props, data });
 		source = map.getSource(id);
 	});
 

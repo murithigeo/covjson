@@ -1,15 +1,29 @@
-import { describe, it, expect } from "vitest";
-import type { Coverage, MultiPoint as MP } from "../src/coveragejson.d.ts";
-import { load, MultiPoint } from "../src/index.ts";
+import { describe, it, expect } from 'vitest';
+import type { Coverage, MultiPoint as MP } from 'coveragejson';
+import { MultiPoint } from './multipoint.ts';
+import { load } from '../load.ts';
 
-const multipoint = await load<Coverage<MP>>(
-  "https://covjson.org/playground/coverages/multipoint.covjson",
-).then((cov) => new MultiPoint(cov.domain));
-describe("MultiPoint tests", async () => {
-  describe(".queryIndices", () => {
-    it("Returns the composite index of the point closest", () => {
-      expect(multipoint.queryIndices([-5.1, -40.2])).toEqual({ composite: 0 });
-    });
-  });
-  describe.skip(".collect tests");
+const multipoint = new MultiPoint({
+	type: 'Domain',
+	domainType: 'MultiPoint',
+	axes: {
+		composite: {
+			values: [
+				[36, 1, 0],
+				[0, 0, 0]
+			],
+			dataType: 'tuple',
+			coordinates: ['x', 'y', 'z']
+		}
+	}
+});
+describe('MultiPoint tests', async () => {
+	describe('.queryIndices', () => {
+		it('Returns the composite index of the point closest', () => {
+			expect(Object.fromEntries(multipoint.queryIndices([-5.1, -40.2]))).toMatchObject({
+				composite: 1
+			});
+		});
+	});
+	describe.skip('.collect tests');
 });

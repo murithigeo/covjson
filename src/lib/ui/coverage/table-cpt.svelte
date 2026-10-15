@@ -2,9 +2,10 @@
 	import * as Table from '#lib/components/ui/table/index.ts';
 	import type { DataRow } from '#lib/core/coverage.ts';
 	import { isNull, isUndefined } from '#lib/core/index.ts';
-	import type { Axis, TableProps } from './types';
+	import type { Axis, TableProps } from './types.d.ts';
 
 	let { axisResolver, data = $bindable(), key, axes, categoric }: TableProps = $props();
+	let _axes = $derived(axes.filter(([, size]) => !!size));
 </script>
 
 <Table.Root class="table-auto">
@@ -12,7 +13,7 @@
 
 	<Table.Header>
 		<Table.Row>
-			{#each axes as [axisName] (axisName)}
+			{#each _axes as [axisName] (axisName)}
 				<Table.Head class="border">{axisName}</Table.Head>
 			{/each}
 			<Table.Head class="border">value</Table.Head>
@@ -39,7 +40,7 @@
 	<Table.Footer>
 		{#if data.length}
 			<Table.Row>
-				{#each axes as [axisName] (axisName)}
+				{#each _axes as [axisName] (axisName)}
 					<Table.Head class="border">{axisName}</Table.Head>
 				{/each}
 				<Table.Head class="border">value</Table.Head>
@@ -71,8 +72,8 @@
 		axisName: Axis;
 	}[];
 })}
-	{@const [axisName, max] = axes[depth]}
-	{@const isLastAxis = depth === axes.length - 1}
+	{@const [axisName, max] = _axes[depth]}
+	{@const isLastAxis = depth === _axes.length - 1}
 
 	<!-- Only iterate over indices ('ani') that actually exist in the remaining data -->
 	{@const validIndices = [...Array(max).keys()].filter((ani) =>

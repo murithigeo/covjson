@@ -12,9 +12,7 @@
 	} from 'layerchart';
 	import * as Chart from '#lib/components/ui/chart/index.js';
 	import { scaleOrdinal } from 'd3-scale';
-	import ParameterComponent from '../metadata/parameter-cpt.svelte';
 	import { getRandomColor } from '#lib/utils.ts';
-	import Stats from '../metadata/parameter/stats.svelte';
 	import Downloader from './downloader.svelte';
 	import type { Axis, ChartDimensions, DataViewProps } from './types';
 	import TableCpt from './table-cpt.svelte';
@@ -25,7 +23,6 @@
 	let {
 		data: rows = $bindable([]),
 		covId,
-		show,
 		parameter,
 		range = $bindable(),
 		axesConfig = $bindable(),
@@ -101,7 +98,7 @@
 			}
 		>
 			<Tabs.Content value="table">
-				<TableCpt bind:data {axes} {key} {axisResolver} />
+				<TableCpt bind:data {axes} {key} {axisResolver} {categoric} />
 			</Tabs.Content>
 			<Tabs.Content value="chart">
 				{#if !stringy}
@@ -118,6 +115,7 @@
 								axis: { facetAll }
 							}}
 							yPadding={[2, 10]}
+							xPadding={[2, 3]}
 							highlight={{ lines: true, points: true, facetAll }}
 							padding={defaultChartPadding({ legend, right: 10 })}
 							transform={{ mode: 'domain', axis: 'both' }}
@@ -134,7 +132,6 @@
 									/// Add labels dependent on axis label
 								}
 							}}
-							onTooltipClick={(e, { data }) => console.log({ e, data })}
 						>
 							{#snippet tooltip()}
 								<Chart.Tooltip
@@ -188,22 +185,7 @@
 					</Chart.Container>
 				{/if}
 			</Tabs.Content>
-			<Tabs.Content value="param-info">
-				{#if show?.parameters && _parameter}
-					<ParameterComponent
-						data={_parameter}
-						stats={range}
-						checkable={false}
-						{color}
-						onColorChange={(_, col, catId) => {
-							if (!catId) return (color = col);
-							categoryColors?.set(catId, color);
-						}}
-					/>
-				{:else}
-					<Stats {...range} class="grid grid-cols-2 gap-1" />
-				{/if}
-			</Tabs.Content>
+
 			<Tabs.Content value="download">
 				<Downloader
 					bind:ref={chartRef}

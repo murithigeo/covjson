@@ -32,9 +32,10 @@ export interface CoverageOptions {
 }
 export class Coverage<D extends Domain = Domain> extends Base<CRG<D>> {
 	/**
-	 * Ranges to be loaded when their values are first fetched
+	 * Remote NdArrays.
+	 * Resolved when their keys are first fetched
 	 */
-	_ranges: Record<string, string>;
+	_ranges: Map<string, string>;
 	get t() {
 		return this.domain.t;
 	}
@@ -70,11 +71,11 @@ export class Coverage<D extends Domain = Domain> extends Base<CRG<D>> {
 		this.domainType = this.domain.domainType || domainType;
 
 		this.ranges = new Map();
-		this._ranges = {};
+		this._ranges = new Map();
 		for (let id in ranges) {
 			const value = ranges[id];
 			id = id.toUpperCase();
-			if (typeof value === 'string') this._ranges[id] = value;
+			if (typeof value === 'string') this._ranges.set(id, value);
 			else this.ranges.set(id, new Range(value, options.ranges));
 		}
 		this.parameters = new Map();
@@ -211,15 +212,15 @@ export class Coverage<D extends Domain = Domain> extends Base<CRG<D>> {
 
 		const values = options.ranges
 			.map((id) => id.toUpperCase())
-			.filter((id) => this.ranges.has(id) || !!this._ranges[id])
+			.filter((id) => this.ranges.has(id) || this._ranges.has(id))
 			.map(async (id) => {
 				let range = this.ranges.get(id);
 				if (!range) {
-					range = await load<NdArray>(this._ranges[id]).then(
+					range = await load<NdArray>(this._ranges.get(id)!).then(
 						(obj) => new Range(obj, this.options.ranges)
 					);
 					this.ranges.set(id, range!);
-					delete this._ranges[id];
+					this._ranges.delete(id);
 				}
 				return [id, await (range as Range).get(ref, (range) => options?.cb?.(id, range))] as const;
 			});
@@ -245,7 +246,7 @@ export class Coverage<D extends Domain = Domain> extends Base<CRG<D>> {
 	 * @param ref The reference. Can be a Map of computed indices or a Position
 	 * @returns
 	 */
-	query(ref: ReferenceArgument, options: QueryOptions) {
+	query(ref: ReferenceArgument, options: QueryOptions): Promise<DataRow[]> {
 		options.axisNames = options.axisNames || {};
 		const consider = this.axesSize
 			.entries()
@@ -270,7 +271,7 @@ export class Coverage<D extends Domain = Domain> extends Base<CRG<D>> {
 		if (!(ref instanceof Map)) ref = this.queryIndices(ref);
 		const rows = prod
 			.map((indices) => new Map([...ref, ...indices]))
-			.map(async (indices) => this.getData(indices, options));
+			.map((indices) => this.getData(indices, options));
 		return Promise.all(rows);
 	}
 }
