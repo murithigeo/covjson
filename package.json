@@ -1,5 +1,5 @@
 {
-	"name": "#lib/core/index.ts-ui",
+	"name": "coveragejson-suite",
 	"version": "0.0.1",
 	"scripts": {
 		"dev": "vite dev",
