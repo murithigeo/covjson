@@ -19,3 +19,7 @@ The Plugin that allows loading CoverageJSON documents directly into MapLibre. Ex
 ### UI
 
 Svelte-written logic to deliver an interactive experience using Charts and axes configurations (powered by [LayerChart](https://layerchart.com/))
+
+### Converters
+
+Plugins to convert to and from formats such as NetCDF is also in the works
