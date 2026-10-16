@@ -1,15 +1,15 @@
 import type { Coverage as CRG, Domain, NdArray, Position } from 'coveragejson';
-import { Base, type ReferenceArgument } from './base.js';
-import { Parameter, ParameterGroup } from './parameters.js';
-import { BaseDomain, getDomain, isUndefined, type GridType } from './domain/index.js';
-import { load } from './load.js';
+import { Base, type ReferenceArgument } from './base.ts';
+import { Parameter, ParameterGroup } from './parameters.ts';
+import { BaseDomain, getDomain, isUndefined } from './domain/index.ts';
+import { load } from './load.ts';
 import type { InferDomainClass } from './domain/types.d.ts';
-import { Referencing } from './referencing.js';
-import { Range, type RangeOptions } from './ranges.js';
+import { Referencing } from './referencing.ts';
+import { Range, type RangeOptions } from './ranges.ts';
 import { nanoid } from 'nanoid';
-import { cartesianProduct } from './utils.js';
+import { cartesianProduct } from './utils.ts';
 import type { Feature } from 'geojson';
-import type { CoverageProperties, GetDataOptions, QueryOptions } from './types';
+import type { CoverageProperties, GetDataOptions, QueryOptions } from './types.d.ts';
 
 /**
  * Add a function to forcibly set each ranges minMax externally
@@ -24,11 +24,6 @@ export interface CoverageOptions {
 	 * @see {I18N} for more details
 	 */
 	language?: string;
-	/**
-	 * @link https://en.wikipedia.org/wiki/Arakawa_grids
-	 * @default C
-	 */
-	gridType?: GridType;
 }
 export class Coverage<D extends Domain = Domain> extends Base<CRG<D>> {
 	/**
@@ -67,7 +62,7 @@ export class Coverage<D extends Domain = Domain> extends Base<CRG<D>> {
 		} = coverage;
 		this.type = type;
 		this.id = id;
-		this.domain = domain instanceof BaseDomain ? domain : getDomain<D>(domain, options);
+		this.domain = domain instanceof BaseDomain ? domain : getDomain<D>(domain);
 		this.domainType = this.domain.domainType || domainType;
 
 		this.ranges = new Map();
@@ -171,6 +166,14 @@ export class Coverage<D extends Domain = Domain> extends Base<CRG<D>> {
 	calculateIndices(ref: Position | string | number): this {
 		this.indices = this.queryIndices(ref);
 		return this;
+	}
+	clone(reuseUuid = false): this {
+		const val = super.clone();
+		if (reuseUuid) {
+			val.uuid = this.uuid;
+			val.indices = this.indices;
+		}
+		return val;
 	}
 	/**
 	 * @todo add explicit types that it returns {ranges:Record<string,NdArray>}

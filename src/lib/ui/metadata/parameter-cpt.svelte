@@ -135,6 +135,7 @@
 							data={parameter.observedProperty.categories}
 							onColorChange={(catId, color) => onColorChange?.(parameter, color, catId)}
 							stats={stats?.frequency}
+							{color}
 						/>
 					{/if}
 				</Accordion.Content>

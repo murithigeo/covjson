@@ -50,13 +50,17 @@ export default function (domain: ReturnType<InferDomainClass['denormalize']>): {
 			if (dataType === 'tuple') {
 				if (typeof value[0] === 'string' && mode === 'chart')
 					[dataType, value] = ['primitive', value[0]];
-				else return `(${value.join(',')})`;
 			}
 			if (dataType === 'primitive') {
 				if (typeof value === 'string' && mode === 'chart') return new CustomDate(value);
 				return value;
 			}
-			return `polygon @ index: ${idx}`;
+			if (mode === 'chart') {
+				if (dataType === 'polygon') return `polygon @ index: ${idx}`;
+				return `(${value.join(',')})`;
+			}
+
+			return JSON.stringify(value, null, 2);
 		}
 	};
 }

@@ -40,18 +40,14 @@ export function inferDomainType(domain: Domain): NonNullable<DomainTypes> {
 }
 
 /**
- * @param [bounds=false] Whether to calculate bounds. Enabled by default for select domains
- * @todo implement bounds calc
+ * Convert a {@link RegularlySpacedAxis} to a values axis
  */
-export function denormalizeNumAxis(
-	axis: RegularlySpacedAxis | { values: number[] },
-	bounds = false
-) {
+export function denormalizeNumAxis(axis: RegularlySpacedAxis | { values: number[] }) {
 	if ('values' in axis) return axis;
 	return regularNumToValuesAxis(axis);
 }
 /**
- * Converts an axis to a regular one provided that it is regularly spaced
+ * Convert a values axis object to a {@link RegularlySpacedAxis}
  */
 export function normalizeNumAxis(axis: { values: number[] } | RegularlySpacedAxis) {
 	if ('values' in axis) {

@@ -14,20 +14,9 @@ import {
 import bboxPolygon from '@turf/bbox-polygon';
 import { indexOfNearest } from '../utils.ts';
 
-/**
- * center: (Default) Values denote center of grid cell. Maps to Arakawa C-Grid
- * top-left: Values denote the top-left corner of cell
- * bottom-left: Values denote the bottom-left corner
- * top-right: Values denote top-right corner
- * bottom-right: Values denote bottom-right
- * mid: Values denote midpoints of the cells
- */
-export type GridType = 'center' | `${'top' | 'bottom'}-${'left' | 'right'}` | 'mid';
 export class Grid extends BaseDomain<GridDomain> {
-	gridType: GridType;
-	constructor(domain: GridDomain, gridType: GridType = 'center') {
+	constructor(domain: GridDomain) {
 		super(domain);
-		this.gridType = gridType;
 	}
 	/**
 	 * Normalize axes individually

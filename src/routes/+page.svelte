@@ -13,17 +13,15 @@
 	import { SymbolLayer, LineLayer, FillLayer, type LayerClickInfo } from 'svelte-maplibre';
 	import type { MaplibrePlugin, MaplibrePluginOptions } from '#lib/plugin-maplibre/index.ts';
 	// Add support https://www.npmjs.com/package/netcdfjs
-	let data = $state<MaplibrePluginOptions['data']>(
-		'http://localhost:5173/sample-data/grid-multi-z-t.covjson'
-	);
+	let data = $state<MaplibrePluginOptions['data']>('/sample-data/grid-multi-z-t.covjson');
 	let coverages = $state<Coverage[]>([]);
 	const handleLayerEvent = (e: LayerClickInfo, source: MaplibrePlugin) => {
-		const covs = source.getCoveragesFromFeatureList(e.features, e.event.lngLat);
-
-		coverages = [...covs];
+		coverages = source
+			.getCoveragesFromFeatureList(e.features, e.event.lngLat)
+			.map((c) => c.clone(true));
 		return {
 			...e,
-			coverages: [...covs]
+			coverages
 		};
 	};
 </script>
@@ -68,7 +66,12 @@
 		<Maplibre>
 			{#snippet children()}
 				{@const source = 'sample-data'}
-				<CovJsonSource bind:data onData={(data) => (coverages = data.coverages)} id="sample-data">
+				<CovJsonSource
+					bind:data
+					onData={(data) => (coverages = data.coverages)}
+					id="sample-data"
+					buffer={10}
+				>
 					{#snippet children({ source: plugin })}
 						<FillLayer
 							{source}

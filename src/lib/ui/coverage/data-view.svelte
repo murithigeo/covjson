@@ -5,16 +5,15 @@
 	import {
 		LineChart,
 		LinearGradient,
+		Points,
 		Spline,
 		defaultChartPadding,
 		type ChartState,
-		type ColorProp,
 		type LineChartProps,
 		type SeriesData
 	} from 'layerchart';
 	import * as Chart from '#lib/components/ui/chart/index.js';
 	import { scaleOrdinal } from 'd3-scale';
-	import { getRandomColor } from '#lib/utils.ts';
 	import Downloader from './downloader.svelte';
 	import type { Axis, ChartDimensions, DataViewProps } from './types';
 	import TableCpt from './table-cpt.svelte';
@@ -227,7 +226,9 @@
 									series
 								}
 							})}
-								{#if categories}
+								{#if data.length === 1}
+									<Points r={4} fill={color} />
+								{:else if categories}
 									{@const getOffset = (v: number) => yScale(v) / (height + top + bottom)}
 									<LinearGradient
 										vertical
@@ -238,13 +239,13 @@
 										])}
 										>{#snippet children({ gradient })}
 											{#each series.visibleSeries as serie (serie.key)}
-												{@render spline({ ...serie, stroke: gradient, color: gradient })}
+												{@render spline({ ...serie, stroke: gradient })}
 											{/each}
 										{/snippet}
 									</LinearGradient>
 								{:else}
 									{#each series.visibleSeries as serie (serie.key)}
-										{@render spline({ ...serie, color })}
+										{@render spline({ ...serie, stroke: color })}
 									{/each}
 								{/if}
 							{/snippet}
@@ -267,10 +268,11 @@
 	</Card.Content>
 </Card.Root>
 
-{#snippet spline(data: SeriesData<any, any> & { stroke?: ColorProp })}
+{#snippet spline(data: SeriesData<any, any> & { stroke?: string })}
 	<Spline
 		class={(d) => (isNull(d) ? 'stroke-2 [stroke-dasharray:4_4]' : 'stroke-2')}
 		{...data}
-		markerMid={{ type: 'circle', size: 6 }}
+		// markerMid={{ type: 'circle', size: 6 }}
 	/>
+	<Points r={4} fill={data.stroke} />
 {/snippet}

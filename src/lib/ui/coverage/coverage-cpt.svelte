@@ -46,7 +46,7 @@
 	const coverage = cov.denormalize();
 
 	const { x: initialX, resolver: axisResolver } = dimensions(coverage.domain);
-	let stats = $state(new SvelteMap<string, string | Range>());
+	let stats = $state(new SvelteMap<string, Range>());
 
 	let axesConfig = $state(new SvelteMap<ChartDimensions, Axis>([['x', initialX]]));
 	let facetAll = $state(false);
@@ -164,6 +164,7 @@
 										bind:checked={
 											() => selected.has(key), (b) => (b ? selected.add(key) : selected.delete(key))
 										}
+										stats={stats.get(key)}
 									/>
 								{:else}
 									<Item.Root variant="outline" class="w-full">
@@ -188,7 +189,7 @@
 						</Accordion.Content>
 					</Accordion.Item>
 					<Accordion.Item value="axes-config" class="border-b last:border-b-0">
-						<Accordion.Trigger>Axes Configuration/Customization</Accordion.Trigger>
+						<Accordion.Trigger>Axes Configuration</Accordion.Trigger>
 						<Accordion.Content>
 							<AxisConfigurer bind:config={axesConfig} {axes} {axisResolver} bind:axisNames />
 						</Accordion.Content>

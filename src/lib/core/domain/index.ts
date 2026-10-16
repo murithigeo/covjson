@@ -16,40 +16,35 @@ export * from './grid.ts';
 export * from './utils.ts';
 export type * from './types.d.ts';
 
-export function getDomain<D extends Domain = Domain>(
-  domain: D,
-  options?: Options
-): InferDomainClass<D>;
-export function getDomain<D extends Domain = Domain>(domain: D, options?: Options) {
-  domain.domainType = domain.domainType || inferDomainType(domain);
-  switch (domain.domainType) {
-    case 'Grid':
-      return new Grid(domain, options?.gridType);
-    case 'Trajectory':
-      return new Trajectory(domain);
-    case 'Point':
-      return new Point(domain);
-    case 'PointSeries':
-      return new PointSeries(domain);
-    case 'MultiPoint':
-      return new MultiPoint(domain);
-    case 'MultiPointSeries':
-      return new MultiPointSeries(domain);
-    case 'Polygon':
-      return new Polygon(domain);
-    case 'PolygonSeries':
-      return new PolygonSeries(domain);
-    case 'MultiPolygon':
-      return new MultiPolygon(domain);
-    case 'MultiPolygonSeries':
-      return new MultiPolygonSeries(domain);
-    case 'VerticalProfile':
-      return new VerticalProfile(domain);
-    case 'Section':
-      return new Section(domain);
-    default:
-      throw Error(`Does not custom domain:${domain}`);
-  }
+export function getDomain<D extends Domain = Domain>(domain: D): InferDomainClass<D>;
+export function getDomain<D extends Domain = Domain>(domain: D) {
+	domain.domainType = domain.domainType || inferDomainType(domain);
+	switch (domain.domainType) {
+		case 'Grid':
+			return new Grid(domain);
+		case 'Trajectory':
+			return new Trajectory(domain);
+		case 'Point':
+			return new Point(domain);
+		case 'PointSeries':
+			return new PointSeries(domain);
+		case 'MultiPoint':
+			return new MultiPoint(domain);
+		case 'MultiPointSeries':
+			return new MultiPointSeries(domain);
+		case 'Polygon':
+			return new Polygon(domain);
+		case 'PolygonSeries':
+			return new PolygonSeries(domain);
+		case 'MultiPolygon':
+			return new MultiPolygon(domain);
+		case 'MultiPolygonSeries':
+			return new MultiPolygonSeries(domain);
+		case 'VerticalProfile':
+			return new VerticalProfile(domain);
+		case 'Section':
+			return new Section(domain);
+		default:
+			throw Error(`Does not custom domain:${domain}`);
+	}
 }
-
-type Options = Pick<CoverageOptions, 'gridType'>;

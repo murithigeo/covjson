@@ -44,13 +44,16 @@
 	};
 </script>
 
-<Table.Root class="table-auto border">
-	<Table.Caption>Configuration what data is loaded and how it is visualized</Table.Caption>
+<Table.Root class="w-full table-fixed">
+	<Table.Caption>Configure what data is loaded and how it is visualized</Table.Caption>
 	<Table.Header>
 		<Table.Row
-			><Table.Head rowspan={2} class="border text-center">axisName</Table.Head>
+			><Table.Head rowspan={2} class="border text-left align-bottom md:text-center"
+				>axisName</Table.Head
+			>
 			<Table.Head colspan={4} class="border text-center">Chart Accessor</Table.Head>
-			<Table.Head rowspan={2} class="border text-center">Options</Table.Head></Table.Row
+			<Table.Head rowspan={2} class="border text-center align-bottom">Options</Table.Head
+			></Table.Row
 		>
 		<Table.Row>
 			<Table.Head class="border">x</Table.Head>
@@ -132,16 +135,19 @@
 	<Table.Footer>
 		<Table.Row>
 			<Table.Cell></Table.Cell>
-			<Table.Cell class="border text-center">Horizontal Axis</Table.Cell>
-			<Table.Cell colspan={2} class="border text-center whitespace-normal">
+			<Table.Cell class="border text-center break-all whitespace-normal">Horizontal Axis</Table.Cell
+			>
+			<Table.Cell colspan={2} class="border text-center break-all whitespace-normal">
 				<a href="https://www.layerchart.com/docs/guides/facets" rel="external"
 					>Partition the data into a grid of panels, one per distinct value</a
 				>
 			</Table.Cell>
-			<Table.Cell class="border text-center whitespace-normal"
+			<Table.Cell class="border text-center break-all whitespace-normal"
 				>Render multiple axis values per facet</Table.Cell
 			>
-			<Table.Cell class="border text-center whitespace-normal">Load custom axis values</Table.Cell>
+			<Table.Cell class="border text-center break-all whitespace-normal"
+				>Load custom axis values</Table.Cell
+			>
 		</Table.Row>
 	</Table.Footer>
 </Table.Root>

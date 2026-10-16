@@ -9,6 +9,9 @@
 
 	interface Props extends MetadataRenderProps<Category[]> {
 		onColorChange: (catId: string, color: string) => void;
+		/**
+		 * The initial color
+		 */
 		color?: string;
 		/**
 		 * The count of each category
@@ -18,7 +21,7 @@
 	let {
 		data: categories = $bindable(),
 		onColorChange,
-		color: hex = $bindable(),
+		color: hex,
 		stats = $bindable()
 	}: Props = $props();
 

@@ -9,11 +9,11 @@
 <Dialog.Root>
 	<Dialog.Trigger
 		><div
-			style="background-color:{hex}; border-color:{hex};"
-			class="size-4 shrink-0 rounded-xs"
+			style="background-color:{hex};"
+			class="size-4 shrink-0 rounded-xs border-black dark:border-white"
 		></div></Dialog.Trigger
 	>
 	<Dialog.Content>
-		<ColorPicker {...props} bind:hex isDialog={false} /></Dialog.Content
+		<ColorPicker bind:hex isDialog={false} label="" {...props} /></Dialog.Content
 	>
 </Dialog.Root>

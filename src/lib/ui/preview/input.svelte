@@ -11,11 +11,12 @@
 	import * as ButtonGroup from '#lib/components/ui/button-group/index.js';
 	import { SvelteMap } from 'svelte/reactivity';
 	import { isUndefined } from '#lib/core/index.ts';
+	import type { MaplibrePluginOptions } from '#lib/plugin-maplibre/index.ts';
 	const ajv = new Ajv();
 	const validator = ajv.compile(v1);
 
 	interface Props {
-		data?: object;
+		data?: MaplibrePluginOptions['data'];
 		type: 'url' | 'file' | 'text';
 	}
 
@@ -28,17 +29,6 @@
 	let errors = $state<Partial<Record<'message', string>>[]>([]);
 
 	let invalid = $derived(errors.length > 0);
-
-	onMount(() => {
-		if (type === 'url') {
-			if (!data) {
-				name = 'Grid Tiled';
-				value = covjsonOrgData['Grid Tiled'];
-				return onclick(false);
-			}
-			// Try to prefill
-		}
-	});
 	async function onclick(validate = true) {
 		try {
 			let txt: string | undefined;
@@ -113,7 +103,7 @@
 	</Field.Field>
 	<Field.Field>
 		<ButtonGroup.Root class="flex flex-wrap">
-			{const variant = 'outline'}
+			{@const variant = 'outline'}
 			{#each urlCache as [k, v] (k)}
 				<ButtonGroup.Root>
 					<Button

@@ -4,8 +4,14 @@
 	import { isNull, isUndefined } from '#lib/core/index.ts';
 	import type { Axis, TableProps } from './types.d.ts';
 
-	let { axisResolver, data = $bindable(), key, axes, categoric }: TableProps = $props();
-	let _axes = $derived(axes.filter(([, size]) => !!size));
+	let {
+		axisResolver = (a, i) => `${a} @ index: ${i}`,
+		data = $bindable(),
+		key,
+		axes,
+		categoric
+	}: TableProps = $props();
+	let _axes = $derived(axes.filter(([, size]) => size > 0));
 </script>
 
 <Table.Root class="table-auto">
@@ -102,23 +108,18 @@
 								rowspan={cell.rowspan}
 								class="border align-middle break-all whitespace-normal"
 							>
-								{@const value = axisResolver?.(cell.axisName, cell.index)}
-								{#if Array.isArray(value)}
-									{JSON.stringify(value, null, 1)}
-								{:else}
-									{value}
-								{/if}
+								{axisResolver?.(cell.axisName, cell.index)}
 							</Table.Cell>
 						{/each}
 					{/if}
 
-					{@const { value } = row}
+					{@const { value, category } = row}
 					<!-- Render the leaf row values -->
 					<Table.Cell class="border break-all whitespace-normal"
 						>{isNull(value) ? 'null' : isUndefined(value) ? 'undefined' : value}</Table.Cell
 					>
 					{#if categoric}
-						<Table.Cell class="border break-all whitespace-normal">{row.category}</Table.Cell>
+						<Table.Cell class="border break-all whitespace-normal">{category}</Table.Cell>
 					{/if}
 				</Table.Row>
 			{/each}
