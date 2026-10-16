@@ -10,11 +10,22 @@
 	import ModeWatcher from '#lib/mode-watcher.svelte';
 	import Maplibre from '#lib/ui/preview/maplibre.svelte';
 	import CovJsonSource from '#lib/docs/maplibre/source.svelte';
-	import CovJsonSymbolLayer from '#lib/docs/maplibre/symbol.svelte';
-	import gridtiled from '#lib/ui/json/data/grid-tiled.json' with { type: 'json' };
+	import { SymbolLayer, LineLayer, FillLayer, type LayerClickInfo } from 'svelte-maplibre';
+	import type { MaplibrePlugin, MaplibrePluginOptions } from '#lib/plugin-maplibre/index.ts';
 	// Add support https://www.npmjs.com/package/netcdfjs
-	let data = $state<Exclude<CoverageJSON.CoverageJSON, CoverageJSON.NdArray>>(gridtiled);
+	let data = $state<MaplibrePluginOptions['data']>(
+		'http://localhost:5173/sample-data/grid-multi-z-t.covjson'
+	);
 	let coverages = $state<Coverage[]>([]);
+	const handleLayerEvent = (e: LayerClickInfo, source: MaplibrePlugin) => {
+		const covs = source.getCoveragesFromFeatureList(e.features, e.event.lngLat);
+
+		coverages = [...covs];
+		return {
+			...e,
+			coverages: [...covs]
+		};
+	};
 </script>
 
 <div class="h-screen">
@@ -56,11 +67,52 @@
 	<TresDashboard bind:data={coverages}>
 		<Maplibre>
 			{#snippet children()}
+				{@const source = 'sample-data'}
 				<CovJsonSource bind:data onData={(data) => (coverages = data.coverages)} id="sample-data">
-					<CovJsonSymbolLayer
-						paint={{ 'icon-color': 'blue' }}
-						layout={{ 'icon-image': 'bulldozer' }}
-					></CovJsonSymbolLayer>
+					{#snippet children({ source: plugin })}
+						<FillLayer
+							{source}
+							filter={[
+								'in',
+								['get', 'domainType'],
+								[
+									'literal',
+									['Grid', 'MultiPolygon', 'MultiPolygonSeries', 'PolygonSeries', 'Polygon']
+								]
+							]}
+							paint={{ 'fill-color': 'grey', 'fill-opacity': 0.5 }}
+							onclick={(e) => handleLayerEvent(e, plugin)}
+						></FillLayer>
+						<!-- Draw lines between Grid cells and Trajectory-based nodes -->
+						<LineLayer
+							{source}
+							filter={['in', ['get', 'domainType'], ['literal', ['Grid', 'Section', 'Trajectory']]]}
+							paint={{ 'line-color': 'red', 'line-width': 0.4 }}
+						></LineLayer>
+						<SymbolLayer
+							id="point-based-coverages"
+							// Pass explicit source coz Custom Source
+							{source}
+							layout={{ 'icon-image': 'bulldozer' }}
+							filter={[
+								'in',
+								['get', 'domainType'],
+								[
+									'literal',
+									[
+										'Point',
+										'PointSeries',
+										'VerticalProfile',
+										'Section',
+										'Trajectory',
+										'MultiPoint',
+										'MultiPointSeries'
+									]
+								]
+							]}
+							onclick={(e) => handleLayerEvent(e, plugin)}
+						></SymbolLayer>
+					{/snippet}
 				</CovJsonSource>
 			{/snippet}
 		</Maplibre>

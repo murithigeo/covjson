@@ -118,7 +118,7 @@ export interface DataViewProps extends Props<DataRow[]> {
 	/**
 	 * The current of the parameter
 	 */
-	color?: string;
+	color: string;
 	/**
 	 * The colors of the categories if any
 	 */

@@ -1,6 +1,6 @@
 <script lang="ts" module>
 	import { type DataRow, Range, Parameter } from '#lib/core/index.ts';
-	import ParameterRender from './data-view.svelte';
+	import DataView from './data-view.svelte';
 	import * as ButtonGroup from '#lib/components/ui/button-group/index.js';
 	import { Button } from '#lib/components/ui/button/index.js';
 	import AxisConfigurer from './axis-config.svelte';
@@ -11,19 +11,22 @@
 		ChartColumnIcon,
 		TableIcon,
 		DownloadIcon,
-		BoxesIcon,
-		Move3DIcon
+		SettingsIcon
 	} from '@lucide/svelte';
 	import dimensions from './axes-utils.ts';
-	import { Badge } from '#lib/components/ui/badge/index.js';
-	import * as Card from '#lib/components/ui/card/index.js';
-	import * as Tabs from '#lib/components/ui/tabs/index.js';
+	import { Badge } from '#lib/components/ui/badge/index.ts';
+	import * as Card from '#lib/components/ui/card/index.ts';
+	import * as Tabs from '#lib/components/ui/tabs/index.ts';
 	import ParameterGroup from '../metadata/parameter-group-cpt.svelte';
-	import type { ChartDimensions, Axis, CoverageProps } from './types';
+	import type { ChartDimensions, Axis, CoverageProps } from './types.d.ts';
 	import { SvelteMap, SvelteSet } from 'svelte/reactivity';
-	import { type AxisNamesOptions, type QueryOptions } from '#lib/core/types.js';
+	import { type AxisNamesOptions, type QueryOptions } from '#lib/core/index.ts';
 	import * as Accordion from '#lib/components/ui/accordion/index.ts';
 	import ParameterCpt from '../metadata/parameter-cpt.svelte';
+	import * as Item from '#lib/components/ui/item/index.ts';
+	import ColorPicker from '#lib/ui/metadata/parameter/color-picker.svelte';
+	import { Checkbox } from '#lib/components/ui/checkbox/index.ts';
+	import { getRandomColor } from '#lib/utils.ts';
 </script>
 
 <script lang="ts">
@@ -34,6 +37,9 @@
 		show,
 		selected = $bindable(new SvelteSet([...cov.ranges.keys(), ...cov._ranges.keys()])),
 		pinned = $bindable(),
+		color = $bindable(
+			new SvelteMap([...cov.ranges.keys(), ...cov.ranges.keys()].map((k) => [k, getRandomColor()]))
+		),
 		onTrashCoverage
 	}: CoverageProps = $props();
 
@@ -44,10 +50,12 @@
 
 	let axesConfig = $state(new SvelteMap<ChartDimensions, Axis>([['x', initialX]]));
 	let facetAll = $state(false);
-	let parameters = $derived<[string, Parameter][]>(coverage.parameters.entries().toArray());
 
+	let parameterKeys = $derived(
+		new Set([...selected, ...coverage.ranges.keys(), ...coverage._ranges.keys()])
+	);
 	// svelte-ignore state_referenced_locally
-	let activeParam = $state(parameters[0][0]);
+	let activeParam = $state(selected.size ? [...selected][0] : 'configurator');
 
 	let data = $state<DataRow[]>([]);
 	function dataFetcher(selected: QueryOptions['ranges'], axisNames: QueryOptions['axisNames']) {
@@ -81,37 +89,34 @@
 	});
 </script>
 
-<Card.Root class="h-full">
+<Card.Root>
 	<Card.Header>
 		<Card.Title><Badge variant="outline">{coverage.domain.domainType}</Badge></Card.Title>
 
-		{#if actions}
-			<Card.Action>
-				<ButtonGroup.Root>
-					{#if actions.pinnable}
-						<Button size="icon-sm" variant="outline" onclick={() => (pinned = !pinned)}
-							>{#if pinned}
-								<PinOffIcon />{:else}<PinIcon />
-							{/if}</Button
-						>
-					{/if}
+		<Card.Action>
+			<ButtonGroup.Root>
+				{#if actions?.pinnable}
+					<Button size="icon-sm" variant="outline" onclick={() => (pinned = !pinned)}
+						>{#if pinned}
+							<PinOffIcon />{:else}<PinIcon />
+						{/if}</Button
+					>
+				{/if}
 
-					{#if actions.trashable}
-						<Button size="icon-sm" variant="outline" onclick={() => onTrashCoverage?.(cov)}
-							><TrashIcon /></Button
-						>
-					{/if}
-				</ButtonGroup.Root>
-			</Card.Action>
-		{/if}
+				{#if actions?.trashable}
+					<Button size="icon-sm" variant="outline" onclick={() => onTrashCoverage?.(cov)}
+						><TrashIcon /></Button
+					>
+				{/if}
+			</ButtonGroup.Root>
+		</Card.Action>
 	</Card.Header>
 	<Card.Content class="space-y-2">
 		<span class="flex w-full justify-between">
 			<Tabs.Root bind:value={activeParam} orientation="horizontal">
 				<Tabs.List class="overflow-x-auto">
-					<Tabs.Trigger value="parameter-info"><BoxesIcon class="size-4" /></Tabs.Trigger>
-					<Tabs.Trigger value="axes"><Move3DIcon class="size-4" /></Tabs.Trigger>
-					{#each new Set([...selected, ...parameters.map(([k]) => k)]) as value, i (i)}
+					<Tabs.Trigger value="configurator"><SettingsIcon class="size-4" /></Tabs.Trigger>
+					{#each parameterKeys as value, i (i)}
 						<Tabs.Trigger {value}>
 							{value}
 						</Tabs.Trigger>
@@ -120,22 +125,22 @@
 			</Tabs.Root>
 			<Tabs.Root bind:value={tabValue}>
 				<Tabs.List>
-					<Tabs.Trigger value="chart" disabled={['parameter-info', 'axes'].includes(activeParam)}
+					<Tabs.Trigger value="chart" disabled={activeParam === 'configurator'}
 						><ChartColumnIcon /></Tabs.Trigger
 					>
-					<Tabs.Trigger value="table" disabled={['parameter-info', 'axes'].includes(activeParam)}
+					<Tabs.Trigger value="table" disabled={activeParam === 'configurator'}
 						><TableIcon /></Tabs.Trigger
 					>
 
-					<Tabs.Trigger value="download" disabled={['parameter-info', 'axes'].includes(activeParam)}
+					<Tabs.Trigger value="download" disabled={activeParam === 'configurator'}
 						><DownloadIcon /></Tabs.Trigger
 					>
 				</Tabs.List>
 			</Tabs.Root>
 		</span>
 		<Tabs.Root bind:value={activeParam} orientation="horizontal">
-			<Tabs.Content value="parameter-info">
-				<Accordion.Root type="multiple" value={['parameter-groups', 'parameters']}>
+			<Tabs.Content value="configurator">
+				<Accordion.Root type="multiple" value={['axes-config', 'parameters']}>
 					<Accordion.Item value="parameter-groups">
 						<Accordion.Trigger>Parameter Groups</Accordion.Trigger>
 						<Accordion.Content>
@@ -144,44 +149,68 @@
 							{/each}
 						</Accordion.Content>
 					</Accordion.Item>
-					<Accordion.Item value="parameters">
+					<Accordion.Item value="parameters" class="border-b last:border-b-0">
 						<Accordion.Trigger value="parameters">Parameters</Accordion.Trigger>
 						<Accordion.Content
-							>{#each parameters as [key, param] (key)}
-								<ParameterCpt
-									data={param}
-									checkable
-									bind:checked={
-										() => selected.has(key),
-										(checked) => {
-											if (checked) selected.add(key);
-											else selected.delete(key);
+							>{#each parameterKeys as key (key)}
+								{@const data = coverage.parameters.get(key)}
+								{#if data}
+									<ParameterCpt
+										{data}
+										{key}
+										checkable
+										bind:color={() => color.get(key), (v) => (v ? color.set(key, v) : undefined)}
+										onColorChange={(p, c) => color?.set(p.key, c)}
+										bind:checked={
+											() => selected.has(key), (b) => (b ? selected.add(key) : selected.delete(key))
 										}
-									}
-								/>
-							{/each}</Accordion.Content
-						>
+									/>
+								{:else}
+									<Item.Root variant="outline" class="w-full">
+										<Item.Content>
+											<Item.Title>{key}</Item.Title>
+											<Item.Description>No Parameter Object Found</Item.Description>
+										</Item.Content>
+										<Item.Actions>
+											<ColorPicker
+												bind:hex={() => color.get(key), (v) => (v ? color.set(key, v) : undefined)}
+											/>
+											<Checkbox
+												bind:checked={
+													() => selected.has(key),
+													(b) => (b ? selected.add(key) : selected.delete(key))
+												}
+											/>
+										</Item.Actions>
+									</Item.Root>
+								{/if}
+							{/each}
+						</Accordion.Content>
+					</Accordion.Item>
+					<Accordion.Item value="axes-config" class="border-b last:border-b-0">
+						<Accordion.Trigger>Axes Configuration/Customization</Accordion.Trigger>
+						<Accordion.Content>
+							<AxisConfigurer bind:config={axesConfig} {axes} {axisResolver} bind:axisNames />
+						</Accordion.Content>
 					</Accordion.Item>
 				</Accordion.Root>
 			</Tabs.Content>
-			<Tabs.Content value="axes">
-				<AxisConfigurer bind:config={axesConfig} {axes} {axisResolver} bind:axisNames />
-			</Tabs.Content>
 
-			{#each parameters as [key, parameter], i (i)}
+			{#each parameterKeys as key (key)}
 				<Tabs.Content value={key}>
-					<ParameterRender
+					<DataView
 						bind:data
 						bind:facetAll
 						bind:tabValue
 						bind:tooltip
 						{show}
 						range={coverage.ranges.get(key)!}
-						{parameter}
+						parameter={coverage.parameters.get(key) || key}
 						covId={coverage.id || cov.uuid}
 						{axisResolver}
 						{axes}
 						bind:axesConfig
+						color={color?.get(key)!}
 					/>
 				</Tabs.Content>
 			{/each}

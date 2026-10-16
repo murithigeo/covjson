@@ -5,7 +5,8 @@ import {
 	GeoJSONSource,
 	type MapGeoJSONFeature,
 	type GeoJSONSourceDiff,
-	type GeoJSONFeatureDiff
+	type GeoJSONFeatureDiff,
+	LngLat
 } from 'maplibre-gl';
 import {
 	CoverageCollection,
@@ -15,11 +16,13 @@ import {
 	getDomain,
 	isNdArray,
 	load,
-	Parameter
+	Parameter,
+	isNull
 } from '#lib/core/index.js';
 import type { BasicPluginOptions, PluginOptions } from './types.js';
 import type { Domain, NdArray, Position } from 'coveragejson';
 import { Coverage } from '#lib/core/coverage.js';
+import type { Feature } from 'geojson';
 export class MaplibrePlugin extends GeoJSONSource {
 	_coveragecollection: CoverageCollection;
 	covOptions: BasicPluginOptions;
@@ -37,7 +40,6 @@ export class MaplibrePlugin extends GeoJSONSource {
 			eventedParent
 		);
 		this.covOptions = options;
-		this.covOptions.events = this.covOptions.events || {};
 		this._coveragecollection = new CoverageCollection({
 			type: 'CoverageCollection',
 			coverages: []
@@ -46,25 +48,11 @@ export class MaplibrePlugin extends GeoJSONSource {
 		Referencing.load({ crsId: 'OGC:CRS84' }).then((d) => (this._referencing = d));
 	}
 
-	onAdd(map: MapInstance): void {
-		super.onAdd(map);
-		for (const layerId in this.covOptions.events) {
-			if (!this.map.getLayer(layerId)) continue;
-			for (const event of this.covOptions.events[layerId]) {
-				map.on(event, layerId, (e) => {
-					const features = this.map.queryRenderedFeatures(e.point, {
-						layers: [layerId]
-					});
-					const point = e.lngLat.wrap().toArray();
-					//@ts-expect-error patching the event object
-					e.coverages = this.getCoveragesFromFeatureList(features, point);
-				});
-			}
-		}
-	}
-
-	getCoveragesFromFeatureList(features: MapGeoJSONFeature[], point: Position) {
-		const featureIds = features.map(({ properties }) => properties.uuid as string);
+	getCoveragesFromFeatureList(features: (MapGeoJSONFeature | Feature)[], point: Position | LngLat) {
+		const featureIds = features
+			.filter((d) => !isNull(d.properties))
+			.map(({ properties }) => properties!.uuid as string);
+		if (point instanceof LngLat) point = point.wrap().toArray();
 		return this._coveragecollection.coverages
 			.filter((cov) => featureIds.includes(cov.uuid))
 			.map((cov) => cov.calculateIndices(point));
@@ -91,10 +79,26 @@ export class MaplibrePlugin extends GeoJSONSource {
 		}
 	}
 	async setCovData(data: PluginOptions['data']) {
+		this._coveragecollection = new CoverageCollection({
+			type: 'CoverageCollection',
+			coverages: []
+		});
 		this._coveragecollection = await this.loadCovData(data).then(async (data) => {
+			for (let i = 0; i < data.coverages.length; i++) {
+				const cov = data.coverages[i];
+				[...cov._ranges.keys(), ...cov.ranges.keys()]
+					.filter((k) => !cov.parameters.has(k))
+					.forEach((k) => {
+						const param = data.parameters.get(k);
+						if (!param) return;
+						cov.parameters.set(k, param);
+					});
+				data.coverages[i] = cov;
+			}
 			if (!this.covOptions.reproject || !this._referencing) return data;
 			return await data.reproject(this._referencing);
 		});
+
 		this.setData(this._coveragecollection.featurecollection);
 		this.covOptions?.onData?.(this._coveragecollection);
 	}

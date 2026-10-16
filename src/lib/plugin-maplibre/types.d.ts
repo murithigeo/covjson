@@ -18,11 +18,6 @@ interface BasicPluginOptions {
 		| Coverage
 		| InferDomainClass;
 	type: 'coveragejson';
-	/**
-	 * Keys are layerIds and the values are the events to listen to
-	 * Appends the "coverages" member to the event object
-	 */
-	events?: Record<string, (keyof MapLayerEventType)[]>;
 
 	/**
 	 * Callback to execute when data is set or updated

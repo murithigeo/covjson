@@ -67,14 +67,21 @@
 				{#each Array<ChartDimensions>('x', 'fx', 'fy', 'y1') as dimension (dimension)}
 					<Table.Cell class="border whitespace-nowrap">
 						<Switch
+							disabled={!max}
+							aria-disabled={!max}
 							bind:checked={
 								() => config.get(dimension) === an,
 								(checked) => {
-									if (!checked) return config.delete(dimension);
+									if (!checked) {
+										config.delete(dimension);
+										axisNames?.set(an, false);
+										return;
+									}
 									for (const [dim, axisName] of config) {
 										if (axisName === an && dim !== dimension) config.delete(dim);
 									}
 									config.set(dimension, an);
+									axisNames?.set(an, true);
 								}
 							}
 						/>
@@ -82,7 +89,7 @@
 				{/each}
 				<Table.Cell class="border text-center">
 					<DropdownMenu.Root>
-						<DropdownMenu.Trigger disabled={max < 2}><EllipsisIcon /></DropdownMenu.Trigger>
+						<DropdownMenu.Trigger><EllipsisIcon /></DropdownMenu.Trigger>
 
 						<DropdownMenu.Content>
 							<DropdownMenu.Item class="flex space-x-1">

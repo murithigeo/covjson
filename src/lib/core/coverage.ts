@@ -169,7 +169,7 @@ export class Coverage<D extends Domain = Domain> extends Base<CRG<D>> {
 	 * Is used in the maplibre and leaflet extensions
 	 */
 	calculateIndices(ref: Position | string | number): this {
-		this.indices = new Map(this.queryIndices(ref).entries());
+		this.indices = this.queryIndices(ref);
 		return this;
 	}
 	/**
