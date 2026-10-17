@@ -59,7 +59,7 @@
 			<Table.Head class="border">x</Table.Head>
 			<Table.Head class="border">fx</Table.Head>
 			<Table.Head class="border">fy</Table.Head>
-			<Table.Head class="border">y1</Table.Head>
+			<Table.Head class="border">series</Table.Head>
 		</Table.Row>
 	</Table.Header>
 	<Table.Body>
@@ -67,7 +67,7 @@
 			<Table.Row>
 				<Table.Cell class="border whitespace-nowrap">{an}</Table.Cell>
 
-				{#each Array<ChartDimensions>('x', 'fx', 'fy', 'y1') as dimension (dimension)}
+				{#each Array<ChartDimensions>('x', 'fx', 'fy', 'series') as dimension (dimension)}
 					<Table.Cell class="border whitespace-nowrap">
 						<Switch
 							disabled={!max}

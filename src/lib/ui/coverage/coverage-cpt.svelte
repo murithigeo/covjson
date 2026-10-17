@@ -1,5 +1,5 @@
 <script lang="ts" module>
-	import { type DataRow, Range, Parameter } from '#lib/core/index.ts';
+	import { type DataRow, Range } from '#lib/core/index.ts';
 	import DataView from './data-view.svelte';
 	import * as ButtonGroup from '#lib/components/ui/button-group/index.js';
 	import { Button } from '#lib/components/ui/button/index.js';
@@ -27,6 +27,7 @@
 	import ColorPicker from '#lib/ui/metadata/parameter/color-picker.svelte';
 	import { Checkbox } from '#lib/components/ui/checkbox/index.ts';
 	import { getRandomColor } from '#lib/utils.ts';
+	import Tooltip from './tooltip.svelte';
 </script>
 
 <script lang="ts">
@@ -38,30 +39,33 @@
 		selected = $bindable(new SvelteSet([...cov.ranges.keys(), ...cov._ranges.keys()])),
 		pinned = $bindable(),
 		color = $bindable(
-			new SvelteMap([...cov.ranges.keys(), ...cov.ranges.keys()].map((k) => [k, getRandomColor()]))
+			[...cov.ranges.keys(), ...cov._ranges.keys()].reduce(
+				(l, r) => ({ ...l, [r]: { default: getRandomColor() } }),
+				{}
+			)
 		),
+		indices = $bindable(cov.indices),
 		onTrashCoverage
 	}: CoverageProps = $props();
 
 	const coverage = cov.denormalize();
 
 	const { x: initialX, resolver: axisResolver } = dimensions(coverage.domain);
-	let stats = $state(new SvelteMap<string, Range>());
+	let stats = new SvelteMap<string, Range>();
 
-	let axesConfig = $state(new SvelteMap<ChartDimensions, Axis>([['x', initialX]]));
-	let facetAll = $state(false);
+	// svelte-ignore non_reactive_update
+	let axesConfig = new SvelteMap<ChartDimensions, Axis>([['x', initialX]]);
 
 	let parameterKeys = $derived(
 		new Set([...selected, ...coverage.ranges.keys(), ...coverage._ranges.keys()])
 	);
-	// svelte-ignore state_referenced_locally
 	let activeParam = $state(selected.size ? [...selected][0] : 'configurator');
 
 	let data = $state<DataRow[]>([]);
 	function dataFetcher(selected: QueryOptions['ranges'], axisNames: QueryOptions['axisNames']) {
 		// Allow user to specify custom indices for custom values
 		coverage
-			.query(coverage.indices, {
+			.query(indices, {
 				axisNames,
 				cb(name, range) {
 					stats.set(name, range);
@@ -72,7 +76,8 @@
 	}
 
 	let axes = $derived(coverage.axesSize.entries().toArray() as [Axis, number][]);
-	let axisNames = $state(new SvelteMap<string, AxisNamesOptions>([[initialX, true]]));
+	// svelte-ignore non_reactive_update
+	let axisNames = new SvelteMap<string, AxisNamesOptions>([[initialX, true]]);
 	$effect(() => dataFetcher([...selected], Object.fromEntries(axisNames)));
 
 	let tabValue = $state<'table' | 'chart' | 'download'>('chart');
@@ -140,7 +145,7 @@
 		</span>
 		<Tabs.Root bind:value={activeParam} orientation="horizontal">
 			<Tabs.Content value="configurator">
-				<Accordion.Root type="multiple" value={['axes-config', 'parameters']}>
+				<Accordion.Root type="multiple" value={[]}>
 					<Accordion.Item value="parameter-groups">
 						<Accordion.Trigger>Parameter Groups</Accordion.Trigger>
 						<Accordion.Content>
@@ -159,8 +164,10 @@
 										{data}
 										{key}
 										checkable
-										bind:color={() => color.get(key), (v) => (v ? color.set(key, v) : undefined)}
-										onColorChange={(p, c) => color?.set(p.key, c)}
+										bind:color={
+											() => color[key]?.default || '#555',
+											(v) => (v ? (color[key].default = v) : undefined)
+										}
 										bind:checked={
 											() => selected.has(key), (b) => (b ? selected.add(key) : selected.delete(key))
 										}
@@ -174,7 +181,10 @@
 										</Item.Content>
 										<Item.Actions>
 											<ColorPicker
-												bind:hex={() => color.get(key), (v) => (v ? color.set(key, v) : undefined)}
+												bind:hex={
+													() => color[key].default,
+													(v) => (v ? (color[key].default = v) : undefined)
+												}
 											/>
 											<Checkbox
 												bind:checked={
@@ -201,7 +211,6 @@
 				<Tabs.Content value={key}>
 					<DataView
 						bind:data
-						bind:facetAll
 						bind:tabValue
 						bind:tooltip
 						{show}
@@ -211,10 +220,13 @@
 						{axisResolver}
 						{axes}
 						bind:axesConfig
-						color={color?.get(key)!}
+						color={color[key]}
 					/>
 				</Tabs.Content>
 			{/each}
 		</Tabs.Root>
 	</Card.Content>
+	<Card.Footer class="flex flex-col items-center">
+		<Tooltip {axesConfig} {tooltip} {data} />
+	</Card.Footer>
 </Card.Root>

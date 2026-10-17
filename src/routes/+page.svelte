@@ -1,6 +1,5 @@
 <script lang="ts">
 	import type { Coverage } from '#lib/core/index.ts';
-	import TresDashboard from '#lib/ui/dashboards/tres-dashboard-cpt.svelte';
 	import * as Sheet from '#lib/components/ui/sheet/index.js';
 	import { Label } from '#lib/components/ui/label/index.js';
 	import * as Tabs from '#lib/components/ui/tabs/index.js';
@@ -12,18 +11,35 @@
 	import CovJsonSource from '#lib/docs/maplibre/source.svelte';
 	import { SymbolLayer, LineLayer, FillLayer, type LayerClickInfo } from 'svelte-maplibre';
 	import type { MaplibrePlugin, MaplibrePluginOptions } from '#lib/plugin-maplibre/index.ts';
-	// Add support https://www.npmjs.com/package/netcdfjs
+	import type { Colors } from '#lib/ui/coverage/types.js';
+	import CoverageCpt from '#lib/ui/coverage/coverage-cpt.svelte';
+	import { getRandomColor } from '#lib/utils.ts';
+
 	let data = $state<MaplibrePluginOptions['data']>('/sample-data/grid-multi-z-t.covjson');
 	let coverages = $state<Coverage[]>([]);
 	const handleLayerEvent = (e: LayerClickInfo, source: MaplibrePlugin) => {
-		coverages = source
-			.getCoveragesFromFeatureList(e.features, e.event.lngLat)
-			.map((c) => c.clone(true));
+		const covs = source.getCoveragesFromFeatureList(e.features, e.event.lngLat);
+		updateCoverages(covs);
 		return {
 			...e,
-			coverages
+			coverages: covs
 		};
 	};
+	function updateCoverages(covs: Coverage[], replaceAll?: boolean) {
+		if (replaceAll) coverages = covs;
+		else {
+			for (const cov of covs) {
+				let idx = coverages.findIndex((c) => cov.uuid === c.uuid);
+				if (idx >= 0) coverages.splice(idx, 1);
+				coverages.push(cov);
+			}
+		}
+		for (const k of covs.flatMap((c) => [...c.ranges.keys(), ...c._ranges.keys()])) {
+			if (color[k]) continue;
+			color[k] = { default: getRandomColor() };
+		}
+	}
+	let color = $state<Colors>({});
 </script>
 
 <div class="h-screen">
@@ -62,13 +78,15 @@
 		</Sheet.Root>
 		<Label>! In Alpha</Label>
 	</div>
-	<TresDashboard bind:data={coverages}>
-		<Maplibre>
-			{#snippet children()}
+	<div class="h-screen w-full md:grid md:grid-cols-2">
+		<div class="h-75 md:h-full">
+			<Maplibre>
 				{@const source = 'sample-data'}
 				<CovJsonSource
 					bind:data
-					onData={(data) => (coverages = data.coverages)}
+					onData={(data) => {
+						updateCoverages(data.coverages, true);
+					}}
 					id="sample-data"
 					buffer={10}
 				>
@@ -117,7 +135,12 @@
 						></SymbolLayer>
 					{/snippet}
 				</CovJsonSource>
-			{/snippet}
-		</Maplibre>
-	</TresDashboard>
+			</Maplibre>
+		</div>
+		<div class="space-y-2 overflow-y-auto">
+			{#each coverages as data (data.uuid)}
+				<CoverageCpt {data} bind:color indices={data.indices} />
+			{/each}
+		</div>
+	</div>
 </div>

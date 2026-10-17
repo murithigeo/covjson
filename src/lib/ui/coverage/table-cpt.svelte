@@ -15,7 +15,7 @@
 </script>
 
 <Table.Root class="table-auto">
-	<Table.Caption>Tabulated {key} data</Table.Caption>
+	<Table.Caption>Tabulated {key} data. If value is null, parameter may not be loaded</Table.Caption>
 
 	<Table.Header>
 		<Table.Row>
@@ -116,7 +116,7 @@
 					{@const { value, category } = row}
 					<!-- Render the leaf row values -->
 					<Table.Cell class="border break-all whitespace-normal"
-						>{isNull(value) ? 'null' : isUndefined(value) ? 'undefined' : value}</Table.Cell
+						>{isNull(value) ? 'null' : isUndefined(value) ? 'null' : value}</Table.Cell
 					>
 					{#if categoric}
 						<Table.Cell class="border break-all whitespace-normal">{category}</Table.Cell>

@@ -10,13 +10,15 @@
 		defaultChartPadding,
 		type ChartState,
 		type LineChartProps,
-		type SeriesData
+		Highlight,
+		Text
 	} from 'layerchart';
 	import * as Chart from '#lib/components/ui/chart/index.js';
 	import { scaleOrdinal } from 'd3-scale';
 	import Downloader from './downloader.svelte';
 	import type { Axis, ChartDimensions, DataViewProps } from './types';
 	import TableCpt from './table-cpt.svelte';
+	import { flattenByDimension } from './axes-utils';
 </script>
 
 <script lang="ts">
@@ -26,15 +28,13 @@
 		parameter,
 		range = $bindable(),
 		axesConfig = $bindable(),
-		facetAll = $bindable(),
 		tabValue = $bindable(),
+		// eslint-disable-next-line @typescript-eslint/no-unused-vars, no-useless-assignment
 		tooltip = $bindable(null),
 		color = $bindable(),
-		categoryColors = $bindable(),
 		axisResolver = (a, i) => i.toString(),
 		axes = $bindable(range.axisNames.map((axisName, i) => [axisName as Axis, range.shape[i]]))
 	}: DataViewProps = $props();
-
 	let _parameter = $derived(typeof parameter === 'string' ? undefined : parameter);
 	let key = $derived(typeof parameter === 'string' ? parameter : parameter.key);
 	let chartRef = $state<HTMLElement>();
@@ -71,16 +71,13 @@
 			fx: (d) => resolve('fx', d),
 			fy: (d) => resolve('fy', d),
 			y: 'value',
-			facet: { axis: { facetAll } },
 			data, // Maybe move into series,
 			yPadding: [2, 10],
 			xPadding: [2, 3],
-			highlight: { lines: true, points: true, facetAll },
 			padding,
 			transform: { mode: 'domain', axis: 'both' },
 			brush: true, // Bind all charts
 			props: {
-				tooltip: { root: { facetAll } },
 				yAxis: {
 					format: {
 						type: 'metric',
@@ -132,13 +129,13 @@
 			props.c = 'category';
 			props.cScale = scaleOrdinal();
 			props.cRange = [
-				...categories.map(({ id }) => categoryColors?.get(id) || color),
-				color
+				...categories.map(({ id }) => color[id] || color.default),
+				color.default
 			].filter((v) => !isUndefined(v));
 			props.cDomain = [...categories.map(({ id }) => id), ''];
 			stops = categories
 				.flatMap(({ id, values }) =>
-					values.map((int): [number, string] => [int, categoryColors?.get(id) || color])
+					values.map((int): [number, string] => [int, color[id] || color.default])
 				)
 				.sort(([a], [b]) => b - a);
 		}
@@ -148,19 +145,23 @@
 				label: typeof parameter === 'string' ? parameter : parameter.label.query()?.value
 			}
 		];
-		const y1 = axesConfig?.get('y1');
+		const y1 = axesConfig?.get('series');
 		if (y1) {
-			const groups = Object.groupBy(data, (item) => item[y1]!);
-			props.series = Object.entries(groups).map(([idx, data]) => {
-				let val = axisResolver(y1, Number(idx)).toString();
-				if (y1 === 'z') val += 'm';
+			props.data = flattenByDimension(
+				data,
+				axes.map(([an]) => an),
+				y1
+			);
+			const uniquey1 = [...new Set(data.map((d) => d[y1]).filter((d) => !isUndefined(d)))];
+			props.series = uniquey1.map((key) => {
+				let label = axisResolver(y1, key, 'chart').toString();
+				if (y1 === 'z') label += 'm';
 				return {
-					label: val,
-					key: `y1-${idx}`, //Not really needed
-					data
+					key: key.toString(),
+					label
 				};
 			});
-			delete props.data;
+			props.y = undefined;
 		}
 		// console.log(props);
 		return { props, stops };
@@ -168,10 +169,10 @@
 
 	const getColor = (v: number | undefined): string => {
 		if (typeof parameter === 'string' || !parameter.observedProperty.categories || isUndefined(v))
-			return color;
+			return color.default;
 		const catId = parameter.getCategory(v)?.id;
-		if (!catId) return color;
-		return categoryColors?.get(catId) || color;
+		if (!catId) return color.default;
+		return color[catId] || color.default;
 	};
 	let context = $state<ChartState<DataRow>>();
 	const setTooltip = (data: undefined | null | DataRow): void => {
@@ -183,9 +184,7 @@
 		tooltip = match || null;
 	};
 
-	$effect(() => {
-		setTooltip(context?.tooltip.data);
-	});
+	$effect(() => setTooltip(context?.tooltip.data));
 
 	const resolve = (dimension: ChartDimensions, dataRow: DataRow) => {
 		const axis = axesConfig?.get(dimension);
@@ -193,6 +192,8 @@
 		const idx = dataRow[axis] || 0;
 		return axisResolver(axis, idx, 'chart');
 	};
+	const dashNull = (d: DataRow) =>
+		isNull(d.value) ? 'stroke-2 [stroke-dasharray:4_4]' : 'stroke-2';
 </script>
 
 <Card.Root>
@@ -213,7 +214,6 @@
 							{#snippet tooltip({ context: { tooltip } })}
 								<Chart.Tooltip
 									labelFormatter={(d) => (d instanceof CustomDate ? d.value : d)}
-									{facetAll}
 									color={getColor(tooltip.data.value)}
 								/>
 							{/snippet}
@@ -227,7 +227,7 @@
 								}
 							})}
 								{#if data.length === 1}
-									<Points r={4} fill={color} />
+									<Points r={4} fill={color.default} />
 								{:else if categories}
 									{@const getOffset = (v: number) => yScale(v) / (height + top + bottom)}
 									<LinearGradient
@@ -239,13 +239,37 @@
 										])}
 										>{#snippet children({ gradient })}
 											{#each series.visibleSeries as serie (serie.key)}
-												{@render spline({ ...serie, stroke: gradient })}
+												<Spline
+													{...serie}
+													stroke={gradient}
+													class={dashNull}
+													seriesKey={serie.key}
+												/>
+												<Points r={4} fill={gradient} seriesKey={serie.key} />
+												<Highlight y={serie.key} points={{ r: 6, fill: gradient }} />
 											{/each}
 										{/snippet}
 									</LinearGradient>
 								{:else}
 									{#each series.visibleSeries as serie (serie.key)}
-										{@render spline({ ...serie, stroke: color })}
+										<Spline
+											{...serie}
+											stroke={color.default}
+											class={dashNull}
+											seriesKey={serie.key}
+										>
+											{#snippet endContent({ point })}
+												<Text
+													x={point.x + 6}
+													y={point.y}
+													value={serie.label}
+													verticalAnchor="middle"
+													class="fill-current text-xs"
+												/>
+											{/snippet}
+										</Spline>
+										<Points r={4} fill={color.default} seriesKey={serie.key} />
+										<Highlight y={serie.key} points={{ r: 6, fill: color.default }} />
 									{/each}
 								{/if}
 							{/snippet}
@@ -267,12 +291,3 @@
 		</Tabs.Root>
 	</Card.Content>
 </Card.Root>
-
-{#snippet spline(data: SeriesData<any, any> & { stroke?: string })}
-	<Spline
-		class={(d) => (isNull(d) ? 'stroke-2 [stroke-dasharray:4_4]' : 'stroke-2')}
-		{...data}
-		// markerMid={{ type: 'circle', size: 6 }}
-	/>
-	<Points r={4} fill={data.stroke} />
-{/snippet}

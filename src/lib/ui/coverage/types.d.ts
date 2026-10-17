@@ -1,25 +1,18 @@
 import type {
 	Coverage,
 	DataRow,
-	Grid,
-	InferDomainClass,
 	OnIndicesChange,
 	Parameter,
 	Range,
 	RangeOptions,
-	RangeStatistics,
-	WithRequiredProperty,
 	Section,
 	MultiPoint,
-	MultiPolygon,
 	Trajectory,
 	Polygon,
 	CustomDate
 } from '#lib/core/index.ts';
 import type { SvelteMap, SvelteSet } from 'svelte/reactivity';
-import type { ChartPropsWithoutHTML, HighlightPropsWithoutHTML } from 'layerchart';
-import type { AxisNamesOptions, QueryOptions } from '#lib/core/types.js';
-import type { MultiPolygon } from '#lib/core/index.ts';
+import type { AxisNamesOptions } from '#lib/core/types.js';
 
 type Props<D> = { data: D };
 
@@ -56,17 +49,15 @@ interface ActionOptions {
 interface CoverageOptions {
 	show?: ShowOptions;
 	actions?: ActionOptions;
-	/**
-	 * Parameter Keys and their default colors
-	 */
-	color?: SvelteMap<string, string>;
-	/**
-	 * Parameter Categories and their colors
-	 */
-	categoryColor?: SvelteMap<string, SvelteMap<string, string>>;
+	color?: Colors;
 }
 
 export interface CoverageProps extends CoverageOptions, Props<Coverage> {
+	/**
+	 * Workaround since {@link Coverage.indices} is nested thus unreactive
+	 * Defaults to the Coverage's indices
+	 */
+	indices: Map<string, number>;
 	/**
 	 * Function to call when the Trash icon is clicked
 	 */
@@ -118,11 +109,8 @@ export interface DataViewProps extends Props<DataRow[]> {
 	/**
 	 * The current of the parameter
 	 */
-	color: string;
-	/**
-	 * The colors of the categories if any
-	 */
-	categoryColors?: SvelteMap<string, string>;
+	color: ParameterColor;
+
 	/**
 	 * The coverage's identifier
 	 */
@@ -190,7 +178,7 @@ export type AxisResolver = (
 ) => string | number | CustomDate;
 
 export type AxisConfig = SvelteMap<ChartDimensions, Axis>;
-export type ChartDimensions = 'x' | 'fx' | 'fy' | 'y1';
+export type ChartDimensions = 'x' | 'fx' | 'fy' | 'series';
 
 export interface AxisConfiguratorProps {
 	config: AxisConfig;
@@ -207,3 +195,24 @@ export type AxisIndexValue =
 			dataType: 'tuple';
 	  }
 	| { value: Polygon['axes']['composite']['values'][number]; dataType: 'polygon' };
+
+/**
+ * An object to customize the color of chart splines
+ */
+export type Colors = Record<string, ParameterColor>;
+
+interface ParameterColor {
+	/**
+	 * The default color
+	 * If the parameter is categorical, it will be used as fallback
+	 */
+	default: string;
+	[x: string]: string;
+}
+
+export interface TooltipProps extends Props<DataRow[]> {
+	axisResolver?: AxisResolver;
+	axesConfig: AxisConfig;
+	axisNames?: DataViewProps['axisNames'];
+	tooltip: null | DataRow;
+}

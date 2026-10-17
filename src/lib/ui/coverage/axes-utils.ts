@@ -1,6 +1,5 @@
-import { CustomDate, isUndefined, type InferDomainClass } from '#lib/core/index.js';
-import type { Grid, MultiPoint, MultiPolygon, Section, Trajectory } from 'coveragejson';
-import type { Axis, AxisConfig, AxisIndexValue, AxisResolver, ChartDimensions } from './types';
+import { CustomDate, type DataRow, type InferDomainClass } from '#lib/core/index.ts';
+import type { Axis, AxisResolver } from './types.d.ts';
 
 export default function (domain: ReturnType<InferDomainClass['denormalize']>): {
 	x: Axis;
@@ -63,4 +62,22 @@ export default function (domain: ReturnType<InferDomainClass['denormalize']>): {
 			return JSON.stringify(value, null, 2);
 		}
 	};
+}
+
+export function flattenByDimension(rows: DataRow[], axes: Axis[], flattenBy: Axis) {
+	const groupAxes = axes.filter((an) => an !== flattenBy);
+	const groups = new Map<string, DataRow>();
+
+	for (const r of rows) {
+		const key = groupAxes.map((an) => r[an]).join(';');
+		let g = groups.get(key);
+		if (!g) {
+			g = {} as DataRow;
+			for (const an of groupAxes) g[an] = r[an];
+			groups.set(key, g);
+		}
+		g[r[flattenBy]!.toString()] = r.value;
+	}
+
+	return [...groups.values()];
 }

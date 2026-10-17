@@ -122,7 +122,7 @@ export class Coverage<D extends Domain = Domain> extends Base<CRG<D>> {
 		domain: ReturnType<InferDomainClass<D>['denormalize']>;
 	} {
 		this.domain.denormalize();
-		//@ts-expect-error
+		//@ts-expect-error doesnt agree with a denormalized
 		return this;
 	}
 
@@ -167,14 +167,7 @@ export class Coverage<D extends Domain = Domain> extends Base<CRG<D>> {
 		this.indices = this.queryIndices(ref);
 		return this;
 	}
-	clone(reuseUuid = false): this {
-		const val = super.clone();
-		if (reuseUuid) {
-			val.uuid = this.uuid;
-			val.indices = this.indices;
-		}
-		return val;
-	}
+
 	/**
 	 * @todo add explicit types that it returns {ranges:Record<string,NdArray>}
 	 */
@@ -254,7 +247,7 @@ export class Coverage<D extends Domain = Domain> extends Base<CRG<D>> {
 		const consider = this.axesSize
 			.entries()
 			.filter(([, count]) => !!count)
-			.filter(([axisName]) => options.axisNames!?.[axisName]) // If false, this will get filtered out
+			.filter(([axisName]) => options.axisNames?.[axisName]) // If false, this will get filtered out
 			.map(([axisName, count]): [string, number[]] => {
 				let values = options.axisNames![axisName];
 				if (!Array.isArray(values)) {
