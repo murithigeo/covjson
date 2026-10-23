@@ -2,16 +2,18 @@
 	import * as Table from '#lib/components/ui/table/index.ts';
 	import type { DataRow } from '#lib/core/coverage.ts';
 	import { isNull, isUndefined } from '#lib/core/index.ts';
+	import { getCovContext } from './ctx.svelte.ts';
 	import type { Axis, TableProps } from './types.d.ts';
 
-	let {
-		axisResolver = (a, i) => `${a} @ index: ${i}`,
-		data = $bindable(),
-		key,
-		axes,
-		categoric
-	}: TableProps = $props();
-	let _axes = $derived(axes.filter(([, size]) => size > 0));
+	let { data, key, categoric }: TableProps = $props();
+	const ctx = getCovContext();
+	const axes = $derived(ctx.axesSize);
+	let _axes = $derived(
+		axes
+			.entries()
+			.filter(([, size]) => size > 0)
+			.toArray()
+	);
 </script>
 
 <Table.Root class="table-auto">
@@ -108,12 +110,12 @@
 								rowspan={cell.rowspan}
 								class="border align-middle break-all whitespace-normal"
 							>
-								{axisResolver?.(cell.axisName, cell.index)}
+								{ctx.resolve?.(cell.axisName, cell.index)}
 							</Table.Cell>
 						{/each}
 					{/if}
 
-					{@const { value, category } = row}
+					{@const { [key]: value, [key + ':cat']: category } = row}
 					<!-- Render the leaf row values -->
 					<Table.Cell class="border break-all whitespace-normal"
 						>{isNull(value) ? 'null' : isUndefined(value) ? 'null' : value}</Table.Cell

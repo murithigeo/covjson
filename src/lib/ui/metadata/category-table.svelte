@@ -1,29 +1,20 @@
 <script lang="ts">
-	import * as Table from '#lib/components/ui/table/index.js';
+	import * as Table from '#lib/components/ui/table/index.ts';
 	import type { MetadataRenderProps } from './types.d.ts';
-	import { cn } from '#lib/utils.js';
-	import ColorPicker from './parameter/color-picker.svelte';
+	import { cn } from '#lib/utils.ts';
 	import type { Category } from '#lib/core/parameters.ts';
 	import type { RangeStatistics } from '#lib/core/ranges.ts';
-	import { isNull } from '#lib/core/index.ts';
+	import Color from './parameter/colour.svelte';
+	import type { ParameterColor } from '../coverage/types';
 
 	interface Props extends MetadataRenderProps<Category[]> {
-		onColorChange: (catId: string, color: string) => void;
-		/**
-		 * The initial color
-		 */
-		color?: string;
+		colors?: ParameterColor;
 		/**
 		 * The count of each category
 		 */
 		stats?: RangeStatistics['frequency'];
 	}
-	let {
-		data: categories = $bindable(),
-		onColorChange,
-		color: hex,
-		stats = $bindable()
-	}: Props = $props();
+	let { data: categories, colors, stats }: Props = $props();
 
 	const cellStyle = 'border break-all whitespace-normal';
 </script>
@@ -48,14 +39,7 @@
 					<Table.Row>
 						{#if i === 0}
 							<Table.Cell {rowspan} class={cn(cellStyle, 'rounded-full')}
-								><ColorPicker
-									{hex}
-									onInput={({ hex }) => {
-										if (isNull(hex)) return;
-										onColorChange?.(id, hex);
-									}}
-									label=""
-								/></Table.Cell
+								><Color color={colors?.[id] ?? colors?.default} /></Table.Cell
 							>
 							<Table.Cell {rowspan} class={cn(cellStyle, '')}>{id}</Table.Cell>
 							<Table.Cell {rowspan} class={cn(cellStyle)}>{stats?.get(id) || 0}</Table.Cell>

@@ -1,29 +1,17 @@
 <script lang="ts">
 	import * as DropdownMenu from '#lib/components/ui/dropdown-menu/index.ts';
-	import type { AxisConfiguratorProps, ChartDimensions } from './types';
+	import type { Axis, ChartDimensions } from './types';
 	import * as Table from '#lib/components/ui/table/index.ts';
 	import { Switch } from '#lib/components/ui/switch/index.ts';
 	import { EllipsisIcon } from '@lucide/svelte';
-	import { isUndefined } from '#lib/core/index.ts';
+	import { axisOptionsToList, isUndefined } from '#lib/core/index.ts';
 	import type { AxisNamesOptions } from '#lib/core/types.js';
 	import Slider from './slider.svelte';
-	let {
-		config = $bindable(),
-		axes,
-		axisResolver: resolver = (_, i) => i.toString(),
-		axisNames = $bindable()
-	}: AxisConfiguratorProps = $props();
+	import { getCovContext } from './ctx.svelte.ts';
 
-	const getValues = (axisName: string, max: number) => {
-		let values = axisNames?.get(axisName) || [];
-		if (typeof values === 'boolean') {
-			values = values ? { start: 0, stop: max } : [];
-		}
-
-		if (!Array.isArray(values)) {
-			if (!isUndefined(values.stop)) values.stop = values.stop + 1;
-			values = [...Array(max).keys()].slice(values.start, values.stop);
-		}
+	let ctx = $derived(getCovContext());
+	const getValues = (an: Axis, max: number) => {
+		const values = axisOptionsToList(ctx.axesSize.get(an), ctx.axisNames.get(an));
 		return {
 			boolean: values.length === max,
 			number: values,
@@ -33,14 +21,14 @@
 			// }
 		};
 	};
-	const setValues = (an: string, v: AxisNamesOptions | string[]) => {
+	const setValues = (an: Axis, v: AxisNamesOptions | string[]) => {
 		if (Array.isArray(v)) v = v.map((d) => Number(d));
 
-		const existing = axisNames?.get(an);
+		const existing = ctx.axisNames.get(an);
 		if (isUndefined(existing) || Array.isArray(existing) || typeof existing === 'boolean')
-			return axisNames?.set(an, v); // Complete replacement
-		if (Array.isArray(v) || typeof v === 'boolean') return axisNames?.set(an, v);
-		axisNames?.set(an, { ...existing, ...v });
+			return ctx.axisNames?.set(an, v); // Complete replacement
+		if (Array.isArray(v) || typeof v === 'boolean') return ctx.axisNames.set(an, v);
+		ctx.axisNames.set(an, { ...existing, ...v });
 	};
 </script>
 
@@ -63,7 +51,7 @@
 		</Table.Row>
 	</Table.Header>
 	<Table.Body>
-		{#each axes as [an, max], i (i)}
+		{#each ctx.axesSize as [an, max], i (i)}
 			<Table.Row>
 				<Table.Cell class="border whitespace-nowrap">{an}</Table.Cell>
 
@@ -73,18 +61,18 @@
 							disabled={!max}
 							aria-disabled={!max}
 							bind:checked={
-								() => config.get(dimension) === an,
+								() => ctx.config.get(dimension) === an,
 								(checked) => {
 									if (!checked) {
-										config.delete(dimension);
-										axisNames?.set(an, false);
+										ctx.config.delete(dimension);
+										ctx.axisNames.set(an, false);
 										return;
 									}
-									for (const [dim, axisName] of config) {
-										if (axisName === an && dim !== dimension) config.delete(dim);
+									for (const [dim, axisName] of ctx.config) {
+										if (axisName === an && dim !== dimension) ctx.config.delete(dim);
 									}
-									config.set(dimension, an);
-									axisNames?.set(an, true);
+									ctx.config.set(dimension, an);
+									ctx.axisNames.set(an, true);
 								}
 							}
 						/>
@@ -92,7 +80,7 @@
 				{/each}
 				<Table.Cell class="border text-center">
 					<DropdownMenu.Root>
-						<DropdownMenu.Trigger><EllipsisIcon /></DropdownMenu.Trigger>
+						<DropdownMenu.Trigger disabled={!max}><EllipsisIcon /></DropdownMenu.Trigger>
 
 						<DropdownMenu.Content>
 							<DropdownMenu.Item class="flex space-x-1">
@@ -107,8 +95,8 @@
 											{max}
 											bind:values={() => getValues(an, max).number, (v) => setValues(an, v)}
 											class="flex flex-col space-y-2"
-											resolver={(index) => resolver?.(an, index)}
-										></Slider>
+											resolver={(index) => ctx.resolve(an, index)}
+										/>
 									</DropdownMenu.Item>
 								</DropdownMenu.SubContent>
 							</DropdownMenu.Sub>
@@ -120,7 +108,7 @@
 									>
 										{#each { length: max }, idx (idx)}
 											<DropdownMenu.CheckboxItem value={idx.toString()}
-												>{resolver(an, idx)}
+												>{ctx.resolve(an, idx)}
 											</DropdownMenu.CheckboxItem>
 										{/each}
 									</DropdownMenu.CheckboxGroup>
@@ -138,16 +126,10 @@
 			<Table.Cell class="border text-center break-all whitespace-normal">Horizontal Axis</Table.Cell
 			>
 			<Table.Cell colspan={2} class="border text-center break-all whitespace-normal">
-				<a href="https://www.layerchart.com/docs/guides/facets" rel="external"
-					>Partition the data into a grid of panels, one per distinct value</a
-				>
+				Partition the data into a grid of panels, one per distinct value
 			</Table.Cell>
-			<Table.Cell class="border text-center break-all whitespace-normal"
-				>Render multiple axis values per facet</Table.Cell
-			>
-			<Table.Cell class="border text-center break-all whitespace-normal"
-				>Load custom axis values</Table.Cell
-			>
+			<Table.Cell class="border text-center break-all whitespace-normal">Group by</Table.Cell>
+			<Table.Cell class="border text-center break-all whitespace-normal">Constrain</Table.Cell>
 		</Table.Row>
 	</Table.Footer>
 </Table.Root>

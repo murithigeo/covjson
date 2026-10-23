@@ -1,7 +1,5 @@
-<svelte:options customElement="covjson-parameter" />
-
 <script lang="ts">
-	import { isNull, Parameter, type RangeStatistics } from '#lib/core/index.ts';
+	import { Parameter, type RangeStatistics } from '#lib/core/index.ts';
 	import LocaleTable from './locale-table.svelte';
 	import ObservedProperty from './observed-property.svelte';
 	import * as Accordion from '#lib/components/ui/accordion/index.js';
@@ -10,62 +8,47 @@
 	import { Checkbox } from '#lib/components/ui/checkbox/index.js';
 	import { Badge, type BadgeVariant } from '#lib/components/ui/badge/index.js';
 	import { Label } from '#lib/components/ui/label/index.js';
-	import type { MetadataRenderProps, OnColorChange } from './types';
-	import ColorPicker from './parameter/color-picker.svelte';
+	import type { MetadataRenderProps } from './types';
 	import CategoryTable from './category-table.svelte';
 	import Stats from './parameter/stats.svelte';
 	import * as Card from '#lib/components/ui/card/index.ts';
-	import { getRandomColor } from '#lib/utils.ts';
+	import type { ParameterColor } from '../coverage/types';
+	import Colour from './parameter/colour.svelte';
 
 	interface Props extends MetadataRenderProps<Parameter> {
 		stats?: RangeStatistics;
-		color?: string;
-		onColorChange?: OnColorChange;
-		key?: string;
 		checked?: boolean;
-		checkable?: boolean;
+		colors?: ParameterColor;
+		onCheckedChange?: (checked: boolean) => void;
 	}
 
 	let {
-		data: parameter = $bindable(),
-		stats = $bindable(),
-		color = $bindable(getRandomColor()),
-		checkable = $bindable(true),
-		key: pKey,
+		data: parameter,
+		stats,
 		checked = $bindable(true),
-		onColorChange
+		colors,
+		onCheckedChange
 	}: Props = $props();
-
-	let key = $derived(pKey || parameter.key);
 
 	const variant: BadgeVariant = 'outline';
 </script>
 
-<Card.Root>
+<Card.Root id="parameter-{parameter.key}">
 	<Card.Header>
 		<Card.Title class="flex flex-row space-x-2">
-			<Label>{key}</Label>
+			<Label>{parameter.key}</Label>
 			{#if stats?.dataType}
 				<Badge {variant}>{stats.dataType}</Badge>
 			{/if}
 			{#if parameter.unit?.symbol?.value}
 				<Badge {variant}>{parameter.unit.symbol.value}</Badge>
 			{/if}
+			<Colour color={colors?.default} />
 		</Card.Title>
 
 		<Card.Action>
 			<ButtonGroup.Root class="space-x-2">
-				<ColorPicker
-					bind:hex={color}
-					onInput={({ hex }) => {
-						if (isNull(hex)) return;
-						onColorChange?.(parameter, hex);
-					}}
-					label=""
-				/>
-				{#if checkable}
-					<Checkbox bind:checked disabled={!checkable} />
-				{/if}
+				<Checkbox bind:checked {onCheckedChange} />
 			</ButtonGroup.Root>
 		</Card.Action>
 	</Card.Header>
@@ -132,10 +115,9 @@
 				<Accordion.Content>
 					{#if parameter.observedProperty.categories}
 						<CategoryTable
+							{colors}
 							data={parameter.observedProperty.categories}
-							onColorChange={(catId, color) => onColorChange?.(parameter, color, catId)}
 							stats={stats?.frequency}
-							{color}
 						/>
 					{/if}
 				</Accordion.Content>

@@ -31,6 +31,8 @@ abstract class Base<D extends PointD | PSeriesD | VertProfDomain> extends BaseDo
 		]);
 		if (this.axes.z) {
 			if (numAxisIsNormalized(this.axes.z)) {
+				this.axes.z.start = referencing.vrs(this.axes.z.start);
+				this.axes.z.stop = referencing.vrs(this.axes.z.stop);
 			} else this.axes.z.values = this.axes.z.values.map((v) => referencing.vrs(v));
 		}
 		if (this.axes.t) this.axes.t.values = this.axes.t.values.map(referencing.trs.bind(referencing));
@@ -55,13 +57,13 @@ abstract class Base<D extends PointD | PSeriesD | VertProfDomain> extends BaseDo
 	}
 	queryIndices(ref: Position | string | number): Map<keyof D['axes'], number> {
 		const indices = new Map().set('x', 0).set('y', 0).set('z', 0).set('t', 0);
-		let zRef = typeof ref === 'number' ? ref : Array.isArray(ref) ? ref[2] : undefined;
+		const zRef = typeof ref === 'number' ? ref : Array.isArray(ref) ? ref[2] : undefined;
 		if (!isUndefined(zRef)) indices.set('z', this.zIndex(zRef));
 		if (typeof ref === 'string') indices.set('t', this.tIndex(ref));
 		return indices;
 	}
 	get axesSize(): Map<keyof D['axes'], number> {
-		return new Map().set('x', 0).set('y', 0).set('t', this.t.length).set('z', this.z.length);
+		return new Map().set('x', 1).set('y', 1).set('t', this.t.length).set('z', this.z.length);
 	}
 }
 
