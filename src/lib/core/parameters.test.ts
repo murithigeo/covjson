@@ -1,13 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import {
-	Symbol,
-	Unit,
-	Parameter,
-	ParameterGroup,
-	Category,
-	I18N,
-	ObservedProperty
-} from './parameters.ts';
+import { Symbol, Unit, Parameter, ParameterGroup, Category, I18N } from './parameters.ts';
 
 describe('I18N', () => {
 	describe('.query', () => {
@@ -74,7 +66,11 @@ describe('Symbol', () => {
 });
 
 describe('Unit', () => {
-	const unit = new Unit({ id: 'Celsius', label: { en: 'tw' } });
+	const unit = new Unit({
+		id: 'Celsius',
+		label: { en: 'tw' },
+		symbol: { type: 'UCUM', value: '°C' }
+	});
 	it('has prop id', () => {
 		expect(unit.id).toBe('Celsius');
 	});
@@ -83,6 +79,9 @@ describe('Unit', () => {
 	});
 	it('symbol undefined if not specified', () => {
 		expect(unit.symbol).toBeUndefined();
+	});
+	it('formats values properly', () => {
+		expect(unit.format(21)).toBe('21°C');
 	});
 });
 
