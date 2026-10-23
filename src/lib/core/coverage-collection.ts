@@ -8,10 +8,9 @@ import type {
 import { Parameter, ParameterGroup } from './parameters.ts';
 import { Coverage, type CoverageOptions } from './coverage.ts';
 import { Referencing, type UserReferencingOptions } from './referencing.ts';
-import { Base, type MapIndices, type ReferenceArgument } from './base.ts';
+import { Base, type ReferenceArgument, type Indices } from './base.ts';
 import type { FeatureCollection } from 'geojson';
 import type { InferDomainClass } from './domain/types.d.ts';
-import { type WithRequiredProperty } from './utils.ts';
 import type { CoverageProperties, GetDataOptions, QueryOptions } from './types';
 
 export class CoverageCollection<
@@ -25,7 +24,7 @@ export class CoverageCollection<
 	parameters: Map<string, Parameter>;
 	parameterGroups: ParameterGroup[];
 	properties: Record<string, unknown>;
-	options: WithRequiredProperty<CoverageOptions, 'ranges'>;
+	options: CoverageOptions;
 	constructor(doc: CoverageCollectionArg<D>, options?: CoverageOptions) {
 		super();
 		const {
@@ -157,7 +156,7 @@ export class CoverageCollection<
 	 * Simple function to retrieve a list of data values.
 	 * For eagerLoading data, see @see {query}
 	 */
-	async getData(ref: Exclude<ReferenceArgument, MapIndices>, options?: GetDataOptions) {
+	async getData(ref: Exclude<ReferenceArgument, Indices>, options?: GetDataOptions) {
 		const data = await Promise.all(this.coverages.map((cov) => cov.getData(ref, options)));
 
 		return data;
@@ -165,7 +164,7 @@ export class CoverageCollection<
 	/**
 	 * @param axisNames Axis names to preload data for
 	 */
-	query(ref: Exclude<ReferenceArgument, MapIndices>, options: QueryOptions) {
+	query(ref: Exclude<ReferenceArgument, Indices>, options: QueryOptions) {
 		return this.coverages.map((cov) => cov.query(ref, options));
 	}
 

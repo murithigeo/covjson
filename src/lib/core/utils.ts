@@ -3,6 +3,8 @@
  * @author letmaik
  */
 
+import type { AxisNamesOptions } from './types';
+
 /**
  * Copyright (c) 2016 The University of Reading
  * All rights reserved.
@@ -32,7 +34,7 @@
 
 export type MinMax = [number, number];
 export function minMax(arr: (number | null)[]): MinMax {
-  return [Math.min(...(arr as number[])), Math.max(...(arr as number[]))];
+	return [Math.min(...(arr as number[])), Math.max(...(arr as number[]))];
 }
 
 /**
@@ -45,37 +47,37 @@ export function minMax(arr: (number | null)[]): MinMax {
  *   If `x` is greater (lower if descending) than the last value, both neighbors point to the last index.
  */
 export function indicesOfNearest(a: number[], x: number): [number, number] {
-  if (a.length === 0) {
-    throw new Error('Array must have at least one element');
-  }
-  let lo = -1;
-  let hi = a.length;
-  const ascending = a.length === 1 || a[0] < a[1];
-  // we have two separate code paths to help the runtime optimize the loop
-  if (ascending) {
-    while (hi - lo > 1) {
-      const mid = Math.round((lo + hi) / 2);
-      if (a[mid] <= x) {
-        lo = mid;
-      } else {
-        hi = mid;
-      }
-    }
-  } else {
-    while (hi - lo > 1) {
-      const mid = Math.round((lo + hi) / 2);
-      if (a[mid] >= x) {
-        // here's the difference
-        lo = mid;
-      } else {
-        hi = mid;
-      }
-    }
-  }
-  if (a[lo] === x) hi = lo;
-  if (lo === -1) lo = hi;
-  if (hi === a.length) hi = lo;
-  return [lo, hi];
+	if (a.length === 0) {
+		throw new Error('Array must have at least one element');
+	}
+	let lo = -1;
+	let hi = a.length;
+	const ascending = a.length === 1 || a[0] < a[1];
+	// we have two separate code paths to help the runtime optimize the loop
+	if (ascending) {
+		while (hi - lo > 1) {
+			const mid = Math.round((lo + hi) / 2);
+			if (a[mid] <= x) {
+				lo = mid;
+			} else {
+				hi = mid;
+			}
+		}
+	} else {
+		while (hi - lo > 1) {
+			const mid = Math.round((lo + hi) / 2);
+			if (a[mid] >= x) {
+				// here's the difference
+				lo = mid;
+			} else {
+				hi = mid;
+			}
+		}
+	}
+	if (a[lo] === x) hi = lo;
+	if (lo === -1) lo = hi;
+	if (hi === a.length) hi = lo;
+	return [lo, hi];
 }
 
 /**
@@ -86,23 +88,32 @@ export function indicesOfNearest(a: number[], x: number): [number, number] {
  *   If `x` happens to be exactly between two values, then the lower index is returned.
  */
 export function indexOfNearest(a: number[], x: number): number {
-  const i = indicesOfNearest(a, x);
-  const lo = i[0];
-  const hi = i[1];
-  if (Math.abs(x - a[lo]) <= Math.abs(x - a[hi])) {
-    return lo;
-  } else {
-    return hi;
-  }
+	const i = indicesOfNearest(a, x);
+	const lo = i[0];
+	const hi = i[1];
+	if (Math.abs(x - a[lo]) <= Math.abs(x - a[hi])) {
+		return lo;
+	} else {
+		return hi;
+	}
 }
 
 export function cartesianProduct<T>(...args: T[][]): T[][] {
-  return args.reduce<T[][]>((a, b) => a.flatMap((d) => b.map((e) => [...d, e])), [[]]);
+	return args.reduce<T[][]>((a, b) => a.flatMap((d) => b.map((e) => [...d, e])), [[]]);
 }
 
 /**
  * https://github.com/bobbyhadz/typescript-make-property-required/blob/main/src/index.ts
  */
 export type WithRequiredProperty<Type, Key extends keyof Type> = Type & {
-  [Property in Key]-?: Type[Property];
+	[Property in Key]-?: Type[Property];
 };
+
+export function axisOptionsToList(size?: number, opts?: AxisNamesOptions): number[] {
+	if (!opts) return [];
+	if (opts === true) return [...Array(size).keys()];
+	if (Array.isArray(opts)) return opts;
+	const stop = opts.stop ?? size ?? 0;
+	const start = opts.start ?? 0;
+	return Array.from({ length: (stop - start) / 2 }, (_, index) => start + index * 1);
+}

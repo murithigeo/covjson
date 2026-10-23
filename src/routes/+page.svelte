@@ -1,8 +1,6 @@
 <script lang="ts">
 	import type { Coverage } from '#lib/core/index.ts';
-	import TresDashboard from '#lib/ui/dashboards/tres-dashboard-cpt.svelte';
 	import * as Sheet from '#lib/components/ui/sheet/index.js';
-	import { Label } from '#lib/components/ui/label/index.js';
 	import * as Tabs from '#lib/components/ui/tabs/index.js';
 	import DataInput from '#lib/ui/preview/input.svelte';
 	import { buttonVariants } from '#lib/components/ui/button/index.js';
@@ -12,22 +10,114 @@
 	import CovJsonSource from '#lib/docs/maplibre/source.svelte';
 	import { SymbolLayer, LineLayer, FillLayer, type LayerClickInfo } from 'svelte-maplibre';
 	import type { MaplibrePlugin, MaplibrePluginOptions } from '#lib/plugin-maplibre/index.ts';
-	// Add support https://www.npmjs.com/package/netcdfjs
+	import type { Colors } from '#lib/ui/coverage/types.d.ts';
+	import CoverageCpt from '#lib/ui/coverage/coverage-cpt.svelte';
+	import { makeCoverageIndicesReactive } from '#lib/ui/coverage/ctx.svelte.ts';
+
 	let data = $state<MaplibrePluginOptions['data']>('/sample-data/grid-multi-z-t.covjson');
 	let coverages = $state<Coverage[]>([]);
+
 	const handleLayerEvent = (e: LayerClickInfo, source: MaplibrePlugin) => {
-		coverages = source
-			.getCoveragesFromFeatureList(e.features, e.event.lngLat)
-			.map((c) => c.clone(true));
+		const covs = source.getCoveragesFromFeatureList(e.features, e.event.lngLat);
+		updateCoverages(covs);
 		return {
 			...e,
-			coverages
+			coverages: covs
 		};
 	};
+
+	// Source - https://stackoverflow.com/a/1484514
+	// Posted by Anatoliy, modified by community. See post 'Timeline' for change history
+	// Retrieved 2026-08-20, License - CC BY-SA 3.0
+
+	function getRandomColor() {
+		const letters = '0123456789ABCDEF';
+		let color = '#';
+		for (var i = 0; i < 6; i++) {
+			color += letters[Math.floor(Math.random() * 16)];
+		}
+		return color;
+	}
+
+	function updateCoverages(covs: Coverage[], replaceAll?: boolean) {
+		if (replaceAll) coverages = covs.map((cov) => makeCoverageIndicesReactive(cov));
+		else {
+			for (const cov of covs) {
+				let idx = coverages.findIndex((c) => cov.uuid === c.uuid);
+				if (idx >= 0) {
+					cov.indices.forEach((v, k) => coverages[idx].indices.set(k, v));
+				} else coverages.push(cov);
+			}
+		}
+		for (const k of covs.flatMap((c) => [...c.ranges.keys(), ...c._ranges.keys()])) {
+			if (colors[k]) continue;
+			colors[k] = { default: getRandomColor() };
+		}
+	}
+	let colors = $state<Colors>({});
 </script>
 
-<div class="h-screen">
-	<div class="flex flex-row">
+<div class="h-screen w-full md:grid md:grid-cols-2">
+	<div class="h-75 md:h-full">
+		<Maplibre>
+			{@const source = 'sample-data'}
+			<CovJsonSource
+				bind:data
+				onData={(data) => {
+					updateCoverages(data.coverages, true);
+				}}
+				id="sample-data"
+				buffer={10}
+			>
+				{#snippet children({ source: plugin })}
+					<FillLayer
+						{source}
+						filter={[
+							'in',
+							['get', 'domainType'],
+							[
+								'literal',
+								['Grid', 'MultiPolygon', 'MultiPolygonSeries', 'PolygonSeries', 'Polygon']
+							]
+						]}
+						paint={{ 'fill-color': 'grey', 'fill-opacity': 0.5 }}
+						onclick={(e) => handleLayerEvent(e, plugin)}
+					></FillLayer>
+					<!-- Draw lines between Grid cells and Trajectory-based nodes -->
+					<LineLayer
+						{source}
+						filter={['in', ['get', 'domainType'], ['literal', ['Grid', 'Section', 'Trajectory']]]}
+						paint={{ 'line-color': 'red', 'line-width': 0.4 }}
+					></LineLayer>
+					<SymbolLayer
+						id="point-based-coverages"
+						// Pass explicit source coz Custom Source
+						{source}
+						layout={{ 'icon-image': 'bulldozer' }}
+						filter={[
+							'in',
+							['get', 'domainType'],
+							[
+								'literal',
+								[
+									'Point',
+									'PointSeries',
+									'VerticalProfile',
+									'Section',
+									'Trajectory',
+									'MultiPoint',
+									'MultiPointSeries'
+								]
+							]
+						]}
+						onclick={(e) => handleLayerEvent(e, plugin)}
+					></SymbolLayer>
+				{/snippet}
+			</CovJsonSource>
+		</Maplibre>
+	</div>
+
+	<div class="space-y-2 overflow-y-auto">
 		<Sheet.Root>
 			<Sheet.Trigger class={buttonVariants({ variant: 'outline' })}>Load Data</Sheet.Trigger>
 			<Sheet.Content class="gap-2 "
@@ -60,64 +150,8 @@
 				</div>
 			</Sheet.Content>
 		</Sheet.Root>
-		<Label>! In Alpha</Label>
+		{#each coverages as coverage (coverage.uuid)}
+			<CoverageCpt {coverage} {colors} />
+		{/each}
 	</div>
-	<TresDashboard bind:data={coverages}>
-		<Maplibre>
-			{#snippet children()}
-				{@const source = 'sample-data'}
-				<CovJsonSource
-					bind:data
-					onData={(data) => (coverages = data.coverages)}
-					id="sample-data"
-					buffer={10}
-				>
-					{#snippet children({ source: plugin })}
-						<FillLayer
-							{source}
-							filter={[
-								'in',
-								['get', 'domainType'],
-								[
-									'literal',
-									['Grid', 'MultiPolygon', 'MultiPolygonSeries', 'PolygonSeries', 'Polygon']
-								]
-							]}
-							paint={{ 'fill-color': 'grey', 'fill-opacity': 0.5 }}
-							onclick={(e) => handleLayerEvent(e, plugin)}
-						></FillLayer>
-						<!-- Draw lines between Grid cells and Trajectory-based nodes -->
-						<LineLayer
-							{source}
-							filter={['in', ['get', 'domainType'], ['literal', ['Grid', 'Section', 'Trajectory']]]}
-							paint={{ 'line-color': 'red', 'line-width': 0.4 }}
-						></LineLayer>
-						<SymbolLayer
-							id="point-based-coverages"
-							// Pass explicit source coz Custom Source
-							{source}
-							layout={{ 'icon-image': 'bulldozer' }}
-							filter={[
-								'in',
-								['get', 'domainType'],
-								[
-									'literal',
-									[
-										'Point',
-										'PointSeries',
-										'VerticalProfile',
-										'Section',
-										'Trajectory',
-										'MultiPoint',
-										'MultiPointSeries'
-									]
-								]
-							]}
-							onclick={(e) => handleLayerEvent(e, plugin)}
-						></SymbolLayer>
-					{/snippet}
-				</CovJsonSource>
-			{/snippet}
-		</Maplibre>
-	</TresDashboard>
 </div>

@@ -1,7 +1,7 @@
 <script lang="ts">
-	import { Map, addSourceType } from 'maplibre-gl';
+	import { addSourceType } from 'maplibre-gl';
 	import { MaplibrePlugin } from '#lib/plugin-maplibre/plugin.ts';
-	import { getMapContext, GeoJSON } from 'svelte-maplibre';
+	import { getMapContext } from 'svelte-maplibre';
 	import { dev } from '$app/env';
 	import type { MaplibrePluginOptions } from '#lib/plugin-maplibre/index.ts';
 	import { type Snippet } from 'svelte';
@@ -13,10 +13,10 @@
 	let { id, data = $bindable(), children, ...props }: Props = $props();
 	let { map, loaded } = $derived(getMapContext());
 
-	//@ts-expect-error
+	//@ts-expect-error SourceClass conflict
 	addSourceType('coveragejson', MaplibrePlugin)
 		.then(() => (dev ? console.log('CoverageJSON Plugin Registered') : null))
-		.catch((err) => (dev ? console.log(`CoverageJSON Plugin already registered`) : null));
+		.catch(() => (dev ? console.log(`CoverageJSON Plugin already registered`) : null));
 
 	let source = $state<MaplibrePlugin>();
 
@@ -27,18 +27,16 @@
 			source.setCovData(data);
 			return;
 		}
-		map?.addSource(id, {
-			type: 'coveragejson',
-			data,
-			...props
-		});
-		source = map.getSource(id);
-	});
+		map.on('load', () => {
+			map?.addSource(id, {
+				type: 'coveragejson',
+				data,
+				...props
+			});
 
-	// $effect(() => {
-	// 	source?.setCovData(data).then(() => console.log('loadeed'));
-	// });
-	/// Add logic for updated data
+			source = map.getSource(id);
+		});
+	});
 </script>
 
 {#if source}

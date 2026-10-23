@@ -1,3 +1,5 @@
+<svelte:options customElement="covjson-parametergroup" />
+
 <script lang="ts">
 	import { Checkbox } from '#lib/components/ui/checkbox/index.js';
 	import ObservedProperty from './observed-property.svelte';
@@ -11,9 +13,8 @@
 
 	interface Props extends MetadataRenderProps<ParameterGroup> {
 		selected?: Set<string>;
-		checkable?: boolean;
 	}
-	let { data = $bindable(), selected = $bindable(), checkable = $bindable() }: Props = $props();
+	let { data, selected = $bindable() }: Props = $props();
 
 	let checked = $derived(data.members.every((member) => selected?.has(member)));
 	let indeterminate = $derived(!checked && data.members.some((member) => selected?.has(member)));
@@ -22,16 +23,14 @@
 <Card.Root class="w-full">
 	<Card.Header>
 		<Card.Title>{data.id || data.label.query()?.value || 'No Id Available'}</Card.Title>
-		{#if checkable}
-			<Card.Action>
-				<Checkbox
-					bind:checked
-					bind:indeterminate
-					onCheckedChange={(checked) =>
-						data.members.forEach((id) => (checked ? selected?.add(id) : selected?.delete(id)))}
-				/>
-			</Card.Action>
-		{/if}
+		<Card.Action>
+			<Checkbox
+				bind:checked
+				bind:indeterminate
+				onCheckedChange={(checked) =>
+					data.members.forEach((id) => (checked ? selected?.add(id) : selected?.delete(id)))}
+			/>
+		</Card.Action>
 	</Card.Header>
 	<Card.Content>
 		<Accordion.Root type="multiple" value={['members']}>
@@ -60,9 +59,9 @@
 									size="xs"
 									variant="outline"
 									onclick={() => {
-										document
-											.getElementById(`parameter-${member}`)
-											?.scrollIntoView({ block: 'center', behavior: 'smooth' });
+										const el = document.getElementById(`parameter-${member}`);
+										console.log(el);
+										el?.scrollIntoView({ block: 'center', behavior: 'smooth' });
 									}}>{member}</Button
 								>
 								<Checkbox

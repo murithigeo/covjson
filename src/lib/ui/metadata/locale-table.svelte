@@ -6,7 +6,7 @@
 
 	type Props = MetadataRenderProps<Record<string, I18N>>;
 
-	let { data = $bindable() }: Props = $props();
+	let { data }: Props = $props();
 	const cellStyle = 'border break-all whitespace-normal';
 </script>
 

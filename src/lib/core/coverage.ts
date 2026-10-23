@@ -1,13 +1,13 @@
 import type { Coverage as CRG, Domain, NdArray, Position } from 'coveragejson';
 import { Base, type ReferenceArgument } from './base.ts';
 import { Parameter, ParameterGroup } from './parameters.ts';
-import { BaseDomain, getDomain, isUndefined } from './domain/index.ts';
+import { BaseDomain, getDomain } from './domain/index.ts';
 import { load } from './load.ts';
 import type { InferDomainClass } from './domain/types.d.ts';
 import { Referencing } from './referencing.ts';
 import { Range, type RangeOptions } from './ranges.ts';
 import { nanoid } from 'nanoid';
-import { cartesianProduct } from './utils.ts';
+import { axisOptionsToList, cartesianProduct } from './utils.ts';
 import type { Feature } from 'geojson';
 import type { CoverageProperties, GetDataOptions, QueryOptions } from './types.d.ts';
 
@@ -31,6 +31,11 @@ export class Coverage<D extends Domain = Domain> extends Base<CRG<D>> {
 	 * Resolved when their keys are first fetched
 	 */
 	_ranges: Map<string, string>;
+	/**
+	 * All keys in ranges & _ranges
+	 */
+	rangeIds: string[];
+
 	get t() {
 		return this.domain.t;
 	}
@@ -67,11 +72,13 @@ export class Coverage<D extends Domain = Domain> extends Base<CRG<D>> {
 
 		this.ranges = new Map();
 		this._ranges = new Map();
+		this.rangeIds = [];
 		for (let id in ranges) {
 			const value = ranges[id];
 			id = id.toUpperCase();
 			if (typeof value === 'string') this._ranges.set(id, value);
 			else this.ranges.set(id, new Range(value, options.ranges));
+			this.rangeIds.push(id);
 		}
 		this.parameters = new Map();
 		for (const id in parameters)
@@ -122,7 +129,7 @@ export class Coverage<D extends Domain = Domain> extends Base<CRG<D>> {
 		domain: ReturnType<InferDomainClass<D>['denormalize']>;
 	} {
 		this.domain.denormalize();
-		//@ts-expect-error
+		//@ts-expect-error doesnt agree with a denormalized
 		return this;
 	}
 
@@ -167,14 +174,7 @@ export class Coverage<D extends Domain = Domain> extends Base<CRG<D>> {
 		this.indices = this.queryIndices(ref);
 		return this;
 	}
-	clone(reuseUuid = false): this {
-		const val = super.clone();
-		if (reuseUuid) {
-			val.uuid = this.uuid;
-			val.indices = this.indices;
-		}
-		return val;
-	}
+
 	/**
 	 * @todo add explicit types that it returns {ranges:Record<string,NdArray>}
 	 */
@@ -254,17 +254,8 @@ export class Coverage<D extends Domain = Domain> extends Base<CRG<D>> {
 		const consider = this.axesSize
 			.entries()
 			.filter(([, count]) => !!count)
-			.filter(([axisName]) => options.axisNames!?.[axisName]) // If false, this will get filtered out
-			.map(([axisName, count]): [string, number[]] => {
-				let values = options.axisNames![axisName];
-				if (!Array.isArray(values)) {
-					if (typeof values === 'boolean') values = { start: 0, stop: count };
-					else if (!isUndefined(values.stop)) values.stop = values.stop + 1;
-					values = [...Array(count).keys()].slice(values.start, values.stop);
-				}
-
-				return [axisName, values] as const;
-			})
+			.filter(([an]) => !!options.axisNames?.[an])
+			.map(([an, count]) => [an, axisOptionsToList(count, options.axisNames?.[an])] as const)
 			.toArray();
 		const axisIndices = consider.map(([, indices]) => [...indices]);
 		const prod = cartesianProduct<number>(...axisIndices).map(

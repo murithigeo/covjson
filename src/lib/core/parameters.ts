@@ -7,7 +7,7 @@ import type {
 	Unit as U,
 	CategoryEncoding as CatEncoding
 } from 'coveragejson';
-import { isUndefined } from './domain/utils.ts';
+import { isNull, isUndefined } from './domain/utils.ts';
 
 abstract class Metadata<T> {
 	abstract toPlain(): T;
@@ -156,7 +156,8 @@ export class Unit extends Metadata<U> {
 		return unit;
 	}
 
-	format(value: number): string {
+	format(value: number | string | null): string {
+		if (isNull(value)) return 'NULL';
 		if (!this.symbol?.value) return value.toString();
 		return value + this.symbol.value;
 	}
@@ -232,7 +233,7 @@ export class Category extends Metadata<Cat> {
 		this.label = new I18N(obj.label);
 		this.description = new I18N(obj.description || {});
 		this.id = obj.id;
-		this.values = [];
+		this.values = values;
 	}
 	toPlain(): Cat {
 		return {

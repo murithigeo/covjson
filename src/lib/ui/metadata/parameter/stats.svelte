@@ -7,10 +7,10 @@
 	import type { ClassValue } from 'clsx';
 
 	let {
-		min = $bindable(),
-		max = $bindable(),
-		median = $bindable(),
-		mean = $bindable(),
+		min,
+		max,
+		median,
+		mean,
 		dataType,
 		class: className
 	}: RangeStatistics & { class?: ClassValue } = $props();
