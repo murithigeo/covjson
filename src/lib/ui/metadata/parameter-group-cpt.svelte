@@ -1,4 +1,4 @@
-<svelte:options customElement="coveragejson-parametergroup" />
+<svelte:options customElement="covjson-parametergroup" />
 
 <script lang="ts">
 	import { Checkbox } from '#lib/components/ui/checkbox/index.js';

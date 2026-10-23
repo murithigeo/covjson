@@ -66,7 +66,7 @@
 				header,
 				rows: ctx.rangeIds.map((key) => ({
 					key,
-					value: row[key],
+					value: ctx.coverage?.parameters.get(key)?.unit?.format(row[key]) ?? row[key],
 					category: row[`${key}:cat`],
 					get color() {
 						if (!this.category) return colors[key].default;

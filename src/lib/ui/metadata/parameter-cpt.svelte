@@ -1,3 +1,5 @@
+<svelte:options customElement="covjson-parameter" />
+
 <script lang="ts">
 	import { Parameter, type RangeStatistics } from '#lib/core/index.ts';
 	import LocaleTable from './locale-table.svelte';

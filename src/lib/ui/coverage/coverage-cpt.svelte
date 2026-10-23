@@ -1,4 +1,4 @@
-<svelte:options customElement="coveragejson-coverage" />
+<svelte:options customElement="covjson-coverage" />
 
 <script lang="ts" module>
 	import DataView from './data-view.svelte';

@@ -16,7 +16,7 @@
 	} from 'layerchart';
 	import * as Chart from '#lib/components/ui/chart/index.ts';
 	import type { ChartDimensions, Colors } from './types.d.ts';
-	import TableCpt from './table-cpt.svelte';
+	import TableCpt from './table.svelte';
 	import Tooltip from './tooltip.svelte';
 	import { getCovContext } from './ctx.svelte.ts';
 	import { scaleOrdinal } from 'd3-scale';

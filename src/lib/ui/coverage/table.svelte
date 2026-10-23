@@ -3,9 +3,9 @@
 	import type { DataRow } from '#lib/core/coverage.ts';
 	import { isNull, isUndefined } from '#lib/core/index.ts';
 	import { getCovContext } from './ctx.svelte.ts';
-	import type { Axis, TableProps } from './types.d.ts';
+	import type { Axis } from './types';
 
-	let { data, key, categoric }: TableProps = $props();
+	let { data, key, categoric }: { data: DataRow[]; categoric?: boolean; key: string } = $props();
 	const ctx = getCovContext();
 	const axes = $derived(ctx.axesSize);
 	let _axes = $derived(
@@ -17,7 +17,7 @@
 </script>
 
 <Table.Root class="table-auto">
-	<Table.Caption>Tabulated {key} data. If value is null, parameter may not be loaded</Table.Caption>
+	<Table.Caption>Tabulated {key} data.</Table.Caption>
 
 	<Table.Header>
 		<Table.Row>
