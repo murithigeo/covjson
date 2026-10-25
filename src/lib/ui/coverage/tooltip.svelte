@@ -13,6 +13,11 @@
 	let { colors, series, current, context }: Props = $props();
 	let data = $derived<DataRow | null>(context.tooltip.data);
 	let ctx = getCovContext();
+	let visibleSeries = $derived(
+		context.series.highlightKey
+			? [context.series.highlightKey]
+			: context.series.visibleSeries.map((d) => Number(d.key))
+	);
 	let tooltip = $derived.by(() => {
 		if (!data) return [];
 		if (!series) {
@@ -26,7 +31,7 @@
 		return ctx.data
 			.filter((d) => {
 				if (!series) return true;
-				return context.series.visibleSeries.map((d) => Number(d.key)).includes(d[series]!);
+				return visibleSeries.map((d) => Number(d)).includes(d[series]!);
 			})
 			.filter((d) => indices.every(([k, i]) => d[k] === i));
 	});

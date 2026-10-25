@@ -1,14 +1,14 @@
 <svelte:options customElement="covjson-parametergroup" />
 
 <script lang="ts">
-	import { Checkbox } from '#lib/components/ui/checkbox/index.js';
+	import { Checkbox } from '#lib/components/ui/checkbox/index.ts';
 	import ObservedProperty from './observed-property.svelte';
 	import LocaleTable from './locale-table.svelte';
-	import * as Accordion from '#lib/components/ui/accordion/index.js';
+	import * as Accordion from '#lib/components/ui/accordion/index.ts';
 	import { ParameterGroup } from '#lib/core/index.ts';
-	import { Button } from '#lib/components/ui/button/index.js';
-	import * as ButtonGroup from '#lib/components/ui/button-group/index.js';
-	import * as Card from '#lib/components/ui/card/index.js';
+	import { Button } from '#lib/components/ui/button/index.ts';
+	import * as ButtonGroup from '#lib/components/ui/button-group/index.ts';
+	import * as Card from '#lib/components/ui/card/index.ts';
 	import type { MetadataRenderProps } from './types';
 
 	interface Props extends MetadataRenderProps<ParameterGroup> {

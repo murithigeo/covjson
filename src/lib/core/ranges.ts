@@ -10,10 +10,10 @@ import ndarray, { type NdArray as NdArr } from 'ndarray';
 import { parseTemplate } from 'url-template';
 import { load } from './load.ts';
 import ops from 'ndarray-ops';
-import { cartesianProduct, minMax } from './utils.ts';
+import { cartesianProduct } from './utils.ts';
 import { TilesetNotFound } from './error.ts';
-import { calculateMedian, isUndefined } from './domain/utils.ts';
-import type { MapIndices } from './base.ts';
+import { isUndefined } from './domain/utils.ts';
+import type { Indices } from './base.ts';
 
 export interface RangeOptions {
 	/**
@@ -25,21 +25,14 @@ export interface RangeOptions {
 
 type DataValue = string | number;
 
-export class Range<
-	T extends DataValue = DataValue,
-	Nd extends NdArray = NdArray
-> implements RangeStatistics {
+export class Range<T extends DataValue = DataValue, Nd extends NdArray = NdArray> {
 	dataType: 'string' | 'float' | 'integer';
 	type: 'NdArray' | 'TiledNdArray';
 	shape: number[];
 	axisNames: string[];
 	totalSize: number;
 	_ndarr: NdArr<[T | null, ...(T | null)[]]>;
-	min: number | null;
-	max: number | null;
-	mean: number | null;
-	median: T | null;
-	frequency: Map<string, number> | null;
+
 	options: RangeOptions;
 	tileSets?: TiledNdArray['tileSets'];
 	constructor(ndarr: Nd, options: RangeOptions = {}) {
@@ -47,11 +40,6 @@ export class Range<
 		this.axisNames = ndarr.axisNames || [];
 		this.type = ndarr.type;
 		this.shape = ndarr.shape || [1];
-		this.max = null;
-		this.min = null;
-		this.median = null;
-		this.mean = null;
-		this.frequency = null;
 		this.options = options;
 
 		this.totalSize = this.computeTotalSize(this.shape);
@@ -84,7 +72,7 @@ export class Range<
 			.map((name) => indices.get(name) ?? 0)
 			.map((v, i) => (v < 0 ? 0 : v >= this.shape[i] ? this.shape[i] - 1 : v));
 	}
-	nameNormalizedIndices(indices: number[]): MapIndices {
+	nameNormalizedIndices(indices: number[]): Exclude<Indices, number[]> {
 		return new Map(this.axisNames.map((an, i) => [an, indices[i]]));
 	}
 
@@ -104,9 +92,6 @@ export class Range<
 			this._ndarr.lo(...offsets).hi(...(range.shape || this.shape)),
 			ndarray(range.values, range.shape)
 		);
-		this.computeMean();
-		this.computeMedian();
-		this.computeMinMax(range);
 	}
 	/**
 	 * Get the tile which best matches the indices
@@ -158,7 +143,7 @@ export class Range<
 			this.axisNames.map((_, i) => combo[i])
 		);
 	}
-	async get(indices: MapIndices | number[], cb?: (range: Range) => void): Promise<T | null> {
+	async get(indices: Indices, cb?: (range: Range) => void): Promise<T | null> {
 		if (!Array.isArray(indices)) indices = this.normalizeNamedIndices(indices);
 		let value = this._ndarr.get(...indices);
 		if (isUndefined(value) && this.type === 'TiledNdArray') {
@@ -169,23 +154,6 @@ export class Range<
 		return value;
 	}
 
-	/**
-	 * Use a new range to reduce going through all values again
-	 */
-	computeMinMax(range: StringNdArray | NumberNdArray | ValuesNdArray<T>): void {
-		if (this.dataType === 'string') return;
-		[this.min, this.max] = minMax([...(range.values as number[]), this.min, this.max]);
-	}
-
-	computeMean() {
-		if (this.dataType === 'string') return;
-		const values = this._ndarr.data.filter((v) => typeof v === 'number');
-		const total = values.reduce((l, r) => l + r, 0);
-		this.mean = total / this.totalSize;
-	}
-	computeMedian() {
-		this.median = calculateMedian(this.values);
-	}
 	toPlain(resolve = false): Nd {
 		if (this.type === 'NdArray' || resolve) {
 			//@ts-expect-error conflict
@@ -207,18 +175,7 @@ export class Range<
 			tileSets: this.tileSets
 		} as TiledNdArray;
 	}
-	calculateFrequencies() {
-		if (!this.options.categoryEncoding || this.dataType === 'string') return;
-		for (const [id, values] of this.options.categoryEncoding) {
-			const count = this._ndarr.data
-				.filter((v) => typeof v === 'number')
-				.filter((v) => values.includes(v));
-			this.frequency?.set(id, count.length);
-		}
-	}
 }
-
-type TileSetWoNulls = Omit<TileSet, 'tileShape'> & { tileShape: number[] };
 
 export interface RangeStatistics {
 	dataType?: 'string' | 'float' | 'integer';

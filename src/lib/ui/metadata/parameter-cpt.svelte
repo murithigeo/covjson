@@ -4,12 +4,12 @@
 	import { Parameter, type RangeStatistics } from '#lib/core/index.ts';
 	import LocaleTable from './locale-table.svelte';
 	import ObservedProperty from './observed-property.svelte';
-	import * as Accordion from '#lib/components/ui/accordion/index.js';
-	import * as ButtonGroup from '#lib/components/ui/button-group/index.js';
-	import * as Item from '#lib/components/ui/item/index.js';
-	import { Checkbox } from '#lib/components/ui/checkbox/index.js';
-	import { Badge, type BadgeVariant } from '#lib/components/ui/badge/index.js';
-	import { Label } from '#lib/components/ui/label/index.js';
+	import * as Accordion from '#lib/components/ui/accordion/index.ts';
+	import * as ButtonGroup from '#lib/components/ui/button-group/index.ts';
+	import * as Item from '#lib/components/ui/item/index.ts';
+	import { Checkbox } from '#lib/components/ui/checkbox/index.ts';
+	import { Badge, type BadgeVariant } from '#lib/components/ui/badge/index.ts';
+	import { Label } from '#lib/components/ui/label/index.ts';
 	import type { MetadataRenderProps } from './types';
 	import CategoryTable from './category-table.svelte';
 	import Stats from './parameter/stats.svelte';
