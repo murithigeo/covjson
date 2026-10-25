@@ -1,7 +1,7 @@
 <script lang="ts">
-	import * as Table from '#lib/components/ui/table/index.js';
+	import * as Table from '#lib/components/ui/table/index.ts';
 	import { I18N } from '#lib/core/index.ts';
-	import { cn } from '#lib/utils.js';
+	import { cn } from '#lib/utils.ts';
 	import type { MetadataRenderProps } from './types.d.ts';
 
 	type Props = MetadataRenderProps<Record<string, I18N>>;

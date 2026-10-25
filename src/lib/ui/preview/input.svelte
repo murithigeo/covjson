@@ -4,11 +4,11 @@
 	import v1 from '#lib/ui/json/schemas/1_0.json' with { type: 'json' };
 	import covjsonOrgData from './data.ts';
 	import { TrashIcon } from '@lucide/svelte';
-	import { Button } from '#lib/components/ui/button/index.js';
-	import { Label } from '#lib/components/ui/label/index.js';
-	import { Input } from '#lib/components/ui/input/index.js';
-	import * as Field from '#lib/components/ui/field/index.js';
-	import * as ButtonGroup from '#lib/components/ui/button-group/index.js';
+	import { Button } from '#lib/components/ui/button/index.ts';
+	import { Label } from '#lib/components/ui/label/index.ts';
+	import { Input } from '#lib/components/ui/input/index.ts';
+	import * as Field from '#lib/components/ui/field/index.ts';
+	import * as ButtonGroup from '#lib/components/ui/button-group/index.ts';
 	import { SvelteMap } from 'svelte/reactivity';
 	import { isUndefined } from '#lib/core/index.ts';
 	import type { MaplibrePluginOptions } from '#lib/plugin-maplibre/index.ts';

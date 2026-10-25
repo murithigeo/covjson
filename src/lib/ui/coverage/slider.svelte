@@ -2,7 +2,7 @@
 	import { Button } from '#lib/components/ui/button/index.ts';
 	import { Slider } from '#lib/components/ui/slider/index.ts';
 	import { CustomDate } from '#lib/core/index.ts';
-	import type { AxisNamesOptions } from '#lib/core/types.js';
+	import type { AxisNamesOptions } from '#lib/core/types.ts';
 	import { cn } from '#lib/utils.ts';
 	import type { ClassValue } from 'clsx';
 

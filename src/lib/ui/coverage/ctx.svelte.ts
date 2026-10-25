@@ -58,9 +58,6 @@ export class CoverageContext {
 			coverage
 				.query(coverage.indices, {
 					axisNames: Object.fromEntries(this.axisNames),
-					cb: (name, range) => {
-						this.stats.set(name, range);
-					},
 					ranges: [...this.selected].filter((k) => this.rangeIds.includes(k))
 				})
 				.then((rows) => this.updateData(rows));

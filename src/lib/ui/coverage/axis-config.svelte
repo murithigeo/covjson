@@ -5,7 +5,7 @@
 	import { Switch } from '#lib/components/ui/switch/index.ts';
 	import { EllipsisIcon } from '@lucide/svelte';
 	import { axisOptionsToList, isUndefined } from '#lib/core/index.ts';
-	import type { AxisNamesOptions } from '#lib/core/types.js';
+	import type { AxisNamesOptions } from '#lib/core/types.d.ts';
 	import Slider from './slider.svelte';
 	import { getCovContext } from './ctx.svelte.ts';
 
@@ -16,9 +16,6 @@
 			boolean: values.length === max,
 			number: values,
 			string: values.map((v) => v.toString())
-			// get obj(){
-			// 	if(numListIsRegular(values))return ["min","max"]
-			// }
 		};
 	};
 	const setValues = (an: Axis, v: AxisNamesOptions | string[]) => {

@@ -3,9 +3,16 @@
 	import type { DataRow } from '#lib/core/coverage.ts';
 	import { isNull, isUndefined } from '#lib/core/index.ts';
 	import { getCovContext } from './ctx.svelte.ts';
-	import type { Axis } from './types';
+	import type { Axis } from './types.d.ts';
 
-	let { data, key, categoric }: { data: DataRow[]; categoric?: boolean; key: string } = $props();
+	/**
+	 * Make this component able to load all data at once
+	 */
+	let {
+		data = $bindable(),
+		key,
+		categoric
+	}: { data: DataRow[]; categoric?: boolean; key: string } = $props();
 	const ctx = getCovContext();
 	const axes = $derived(ctx.axesSize);
 	let _axes = $derived(

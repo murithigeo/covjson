@@ -1,5 +1,5 @@
 <script lang="ts">
-	import * as Item from '#lib/components/ui/item/index.js';
+	import * as Item from '#lib/components/ui/item/index.ts';
 	import { ObservedProperty } from '#lib/core/index.ts';
 	import { cn } from '#lib/utils.ts';
 	import LocaleTable from './locale-table.svelte';
