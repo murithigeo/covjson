@@ -1,25 +1,14 @@
 <script lang="ts" module>
-	import {
-		axisOptionsToList,
-		type DataRow,
-		isNull,
-		isUndefined,
-		Parameter
-	} from '#lib/core/index.ts';
-	import * as Card from '#lib/components/ui/card/index.ts';
-	import * as Tabs from '#lib/components/ui/tabs/index.ts';
-	import {
-		defaultChartPadding,
-		LineChart,
-		type BrushDomainType,
-		type LineChartProps
-	} from 'layerchart';
-	import * as Chart from '#lib/components/ui/chart/index.ts';
-	import type { ChartDimensions, Colors } from './types.d.ts';
+	import { axisOptionsToList, type DataRow, isNull, isUndefined } from '#lib/core/index.js';
+	import * as Card from '#lib/components/ui/card/index.js';
+	import * as Tabs from '#lib/components/ui/tabs/index.js';
+	import { defaultChartPadding, LineChart, type LineChartProps } from 'layerchart';
+	import * as Chart from '#lib/components/ui/chart/index.js';
+	import type { ChartDimension, DataViewProps, FormatWithUnit } from './types.d.js';
 	import TableCpt from './table.svelte';
 	import Tooltip from './tooltip.svelte';
-	import { getCovContext } from './ctx.svelte.ts';
 	import { scaleOrdinal } from 'd3-scale';
+	import Parameter from '../Parameter.svelte';
 
 	const _chartProps: LineChartProps<DataRow> = {
 		transform: { mode: 'domain', axis: 'both' },
@@ -34,33 +23,36 @@
 </script>
 
 <script lang="ts">
-	interface Props {
-		view: 'chart' | 'table';
-		/**
-		 * See {@link HighlightPropsWithoutHTML.facetAll}
-		 */
-		// facetAll?: boolean;
-		parameter: Parameter | string;
-		colors: Colors;
-		xDomain?: BrushDomainType;
-	}
-	let { parameter, colors, view = $bindable(), xDomain = $bindable() }: Props = $props();
+	let {
+		colors,
+		view = $bindable(),
+		data,
+		cache,
+		config,
+		tooltip: tooltip_ = $bindable(),
+		xDomain = $bindable(),
+		axisNames,
+		resolver,
+		parameter: _key,
+		axesSize,
+		format: formatVal,
+		rangeIds,
+		info
+	}: DataViewProps = $props();
 
-	let ctx = $derived(getCovContext());
-	let series = $derived(ctx.config.get('series'));
-	let data = $derived(ctx.data);
-	let key = $derived(typeof parameter === 'string' ? parameter : parameter.key);
-	let stringy = $derived(ctx.coverage?.ranges.get(key)?.dataType === 'string');
-	let categories = $derived.by(() => {
-		if (typeof parameter === 'string') return undefined;
-		return parameter.observedProperty.categories;
-	});
+	let series = $derived(config.series);
+	let parameter = $derived(typeof _key === 'string' ? undefined : _key);
+	let key = $derived(typeof _key === 'string' ? _key : _key?.key);
+	let stringy = $derived(info?.['data-type'] === 'string');
+	let categories = $derived(parameter?.observedProperty.categories);
 	let categoric = $derived<boolean>(!isUndefined(categories));
+
 	let color = $derived(colors[key]);
-	const resolve = (dim: ChartDimensions, d: DataRow) => {
-		const axis = ctx.config.get(dim);
+	let totalSize = $derived(info?.totalSize);
+	const resolve = (dim: ChartDimension, d: DataRow) => {
+		const axis = config[dim];
 		if (!axis) return undefined;
-		return ctx.resolve(axis, d[axis] ?? 0, 'chart');
+		return resolver(axis, d[axis] ?? 0, 'chart');
 	};
 
 	let chartProps = $derived.by(() => {
@@ -105,17 +97,17 @@
 		props.series = [
 			{
 				key,
-				label: typeof parameter === 'string' ? parameter : parameter.label.query()?.value,
+				label: parameter?.label.query()?.value || key,
 				color: color.default
 			}
 		];
 		props.y = key;
 		if (series) {
 			delete props.data;
-			const indices = axisOptionsToList(ctx.axesSize.get(series), ctx.axisNames.get(series));
+			const indices = axisOptionsToList(axesSize.get(series), axisNames[series]);
 			const bySeries = Object.groupBy(data, (i) => i[series]!);
 			const getLabel = (idx: number): string => {
-				let label = ctx.resolve(series, idx, 'chart').toString();
+				let label = resolver(series, idx, 'chart').toString();
 				if (series === 'z') label += 'm';
 				return label;
 			};
@@ -128,24 +120,23 @@
 		}
 		return props;
 	});
+	const format: FormatWithUnit = (k, v) => {
+		if (k === key) return parameter?.unit?.format(v);
+		return formatVal?.(k, v);
+	};
 </script>
 
 <Card.Root>
 	<Card.Content>
-		<Tabs.Root
-			onValueChange={(val) => {
-				if (stringy && view === 'chart') view = 'table';
-				else view = val as typeof view;
-			}}
-			value={stringy && view === 'chart' ? 'table' : view}
-		>
+		<Tabs.Root bind:value={view}>
 			<Tabs.Content value="table">
-				<TableCpt data={ctx.cache} {key} {categoric} />
+				<TableCpt data={cache} {key} {categoric} {axesSize} {resolver} {totalSize} />
 			</Tabs.Content>
-			<Tabs.Content value="chart" class="">
+			<Tabs.Content value="chart">
 				{#if !stringy}
-					<Chart.Container config={{}} class="">
+					<Chart.Container config={{}}>
 						<LineChart
+							yNice
 							{...chartProps}
 							brush={{
 								x: xDomain,
@@ -155,12 +146,30 @@
 							}}
 						>
 							{#snippet tooltip({ context })}
-								<Tooltip {colors} {series} {context} current={key} />
+								<Tooltip
+									{colors}
+									{series}
+									{context}
+									active={key}
+									{data}
+									bind:tooltip={tooltip_}
+									{resolver}
+									{format}
+									{axesSize}
+									{rangeIds}
+								/>
 							{/snippet}
 						</LineChart>
 					</Chart.Container>
+				{:else}
+					<TableCpt data={cache} {key} {categoric} {axesSize} {resolver} {totalSize} />
 				{/if}
 			</Tabs.Content>
+			{#if parameter}
+				<Tabs.Content value="parameter">
+					<Parameter data={parameter} stats={info} />
+				</Tabs.Content>
+			{/if}
 		</Tabs.Root>
 	</Card.Content>
 </Card.Root>

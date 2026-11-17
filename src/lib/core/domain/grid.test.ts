@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import type { Grid as G, Coverage } from 'coveragejson';
+import type { Grid as G } from 'coveragejson';
 import { denormalizeNumAxis } from './utils';
 import { Grid } from './grid';
 import { load } from '../load';
@@ -46,7 +46,7 @@ describe('Reprojection', async () => {
 					system: { type: 'GeographicCRS', id: 'OGC:CRS84' }
 				}
 			]
-		}).reproject({ crsId: 'EPSG:32737' })
+		}).reproject({ crs: { id: 'EPSG:32737', z: false } })
 	).denormalize();
 	it('x/y unequal no. of elements are reprojected correctly', () => {
 		const expectedX = [
@@ -62,10 +62,10 @@ describe('Reprojection', async () => {
 	it.skip('returns normalized axis if was normalized', async () => {});
 });
 describe('Cloning', () => {
-	it('toPlain returns unique values', () => {
+	it('toJSON returns unique values', () => {
 		const clone = grid.clone();
 		clone.axes.x = { values: [20, 30] };
-		expect(grid.toPlain()).not.toEqual(clone.toPlain());
+		expect(grid.toJSON()).not.toEqual(clone.toJSON());
 	});
 });
 
@@ -82,17 +82,4 @@ describe('BBox/Polygon Generation', () => {
 			expect(feature.bbox).toEqual(bbox);
 		}
 	);
-});
-
-describe('Axis Bounds', () => {
-	it('does not generate bounds for regularlyspaced axes', () => {
-		const clone = grid.clone().calculateAxesBounds();
-		//@ts-expect-error bounds does not exist on regularlyspaced
-		expect(clone.axes.x.bounds).toBeUndefined();
-	});
-	it('generates bounds for denormalized axes', () => {
-		const clone = grid.clone().denormalize();
-		clone.calculateAxesBounds();
-		expect(clone.axes.x.bounds).toBeDefined();
-	});
 });

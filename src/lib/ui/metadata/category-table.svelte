@@ -1,13 +1,13 @@
 <script lang="ts">
-	import * as Table from '#lib/components/ui/table/index.ts';
-	import type { MetadataRenderProps } from './types.d.ts';
-	import { cn } from '#lib/utils.ts';
-	import type { Category } from '#lib/core/parameters.ts';
-	import type { RangeStatistics } from '#lib/core/ranges.ts';
+	import * as Table from '#lib/components/ui/table/index.js';
+	import type { Category } from '#lib/core/parameters.js';
 	import Color from './parameter/colour.svelte';
-	import type { ParameterColor } from '../coverage/types';
+	import type { ParameterColor } from '../coverage/types.d.js';
+	import { cn } from '#lib/utils.js';
+	import type { RangeStatistics } from '../coverage/types';
 
-	interface Props extends MetadataRenderProps<Category[]> {
+	interface Props {
+		data: Category[];
 		colors?: ParameterColor;
 		/**
 		 * The count of each category

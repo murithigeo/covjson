@@ -1,11 +1,15 @@
 <script lang="ts">
-	import * as Item from '#lib/components/ui/item/index.ts';
-	import { ObservedProperty } from '#lib/core/index.ts';
-	import { cn } from '#lib/utils.ts';
+	import * as Item from '#lib/components/ui/item/index.js';
+	import { ObservedProperty } from '#lib/core/index.js';
+	import type { ClassValue } from 'clsx';
 	import LocaleTable from './locale-table.svelte';
-	import type { MetadataRenderProps } from './types.d.ts';
+	import { cn } from 'cn';
 
-	let { data, class: className }: MetadataRenderProps<ObservedProperty> = $props();
+	interface Props {
+		data: ObservedProperty;
+		class?: ClassValue;
+	}
+	let { data, class: className }: Props = $props();
 	let label = $derived(data.label);
 	let description = $derived(data.description);
 </script>

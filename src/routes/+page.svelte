@@ -1,22 +1,23 @@
 <script lang="ts">
-	import type { Coverage } from '#lib/core/index.ts';
+	import { Coverage } from '#lib/core/index.js';
 	import * as Sheet from '#lib/components/ui/sheet/index.js';
 	import * as Tabs from '#lib/components/ui/tabs/index.js';
-	import DataInput from '#lib/ui/preview/input.svelte';
+	import DataInput from '../site/preview/input.svelte';
 	import { buttonVariants } from '#lib/components/ui/button/index.js';
 	import { JsonView } from '@zerodevx/svelte-json-view';
-	import ModeWatcher from '#lib/mode-watcher.svelte';
-	import Maplibre from '#lib/ui/preview/maplibre.svelte';
-	import CovJsonSource from '#lib/docs/maplibre/source.svelte';
+	import ModeWatcher from '../site/mode-watcher.svelte';
+	import Maplibre from '../site/preview/maplibre.svelte';
+	import CovJsonSource from '../site/maplibre/source.svelte';
 	import { SymbolLayer, LineLayer, FillLayer, type LayerClickInfo } from 'svelte-maplibre';
-	import type { MaplibrePlugin, MaplibrePluginOptions } from '#lib/plugin-maplibre/index.ts';
-	import type { Colors } from '#lib/ui/coverage/types.d.ts';
-	import CoverageCpt from '#lib/ui/coverage/coverage-cpt.svelte';
-	import { makeCoverageIndicesReactive } from '#lib/ui/coverage/ctx.svelte.ts';
+	import type { MaplibrePlugin, MaplibrePluginOptions } from '#lib/plugin-maplibre/index.js';
+	import type { Colors } from '#lib/ui/coverage/types.d.js';
+	// import CoverageCpt from '#lib/ui/Coverage.svelte';
+	import '#lib/ui/Coverage.svelte';
+	import { makeCoverageIndicesReactive } from '#lib/ui/coverage/utils.svelte.js';
 
 	let data = $state<MaplibrePluginOptions['data']>('/sample-data/grid-multi-z-t.covjson');
-	let coverages = $state<Coverage[]>([]);
-
+	let coverages = $state<Array<Coverage>>([]);
+	let colors = $state<Colors>({});
 	const handleLayerEvent = (e: LayerClickInfo, source: MaplibrePlugin) => {
 		const covs = source.getCoveragesFromFeatureList(e.features, e.event.lngLat);
 		updateCoverages(covs);
@@ -54,7 +55,6 @@
 			colors[k] = { default: getRandomColor() };
 		}
 	}
-	let colors = $state<Colors>({});
 </script>
 
 <div class="h-screen w-full md:grid md:grid-cols-2">
@@ -120,7 +120,7 @@
 	<div class="space-y-2 overflow-y-auto">
 		<Sheet.Root>
 			<Sheet.Trigger class={buttonVariants({ variant: 'outline' })}>Load Data</Sheet.Trigger>
-			<Sheet.Content class="gap-2 "
+			<Sheet.Content class="gap-2"
 				><Sheet.Header
 					><Sheet.Title>Load CoverageJSON</Sheet.Title>
 					<Sheet.Description>
@@ -128,7 +128,7 @@
 					</Sheet.Description></Sheet.Header
 				>
 				<div class="h-screen gap-2 overflow-auto">
-					<Tabs.Root value="url" class="px-4">
+					<Tabs.Root value="url" class="px-4" orientation="horizontal">
 						<Tabs.List>
 							<Tabs.Trigger value="file">File</Tabs.Trigger>
 							<Tabs.Trigger value="json">JSON</Tabs.Trigger>
@@ -150,8 +150,21 @@
 				</div>
 			</Sheet.Content>
 		</Sheet.Root>
-		{#each coverages as coverage (coverage.uuid)}
-			<CoverageCpt {coverage} {colors} />
-		{/each}
+		<!-- {#each coverages as coverage (coverage.uuid)}
+			<covjson-coverage
+				{coverage}
+				{colors}
+				formatters={{
+					axis: (dt, i) => {
+						return ['Germany'][i];
+					}
+				}}
+				config={{ x: 't' }}
+				axisNames={{ x: true, z: true, t: true }}
+			></covjson-coverage>
+		{/each} -->
+		{#await Coverage.load('https://covjson.org/playground/coverages/grid-tiled.covjson') then coverage}
+			<covjson-coverage {coverage} colors={{ FOO: { default: 'red' } }}> </covjson-coverage>
+		{/await}
 	</div>
 </div>

@@ -1,8 +1,8 @@
-import { BaseDomain } from './base-domain.ts';
+import { BaseDomain } from './base-domain.js';
 import type { Trajectory as TrajDomain, Position } from 'coveragejson';
-import type { Referencing } from '../referencing.ts';
+import type { Referencing } from '../referencing.js';
 import type { LineString } from 'geojson';
-import { isUndefined } from './utils.ts';
+import { isUndefined } from './utils.js';
 import nearestPointOnLine from '@turf/nearest-point-on-line';
 
 /**
@@ -28,8 +28,8 @@ export class Trajectory extends BaseDomain<TrajDomain> {
 	 * @returns
 	 */
 	queryIndices(ref: Position | string | number): Map<'z' | 'composite', number> {
-		const indices = new Map().set('composite', 0).set('z', 0);
-		let composite = 0;
+		const indices = new Map().set('z', 0);
+		let composite: number;
 		if (typeof ref === 'string') composite = this.tIndex(ref);
 		else if (typeof ref === 'number') composite = this.zIndex(ref);
 		else {
@@ -53,11 +53,8 @@ export class Trajectory extends BaseDomain<TrajDomain> {
 			})
 		};
 	}
-	calculateAxesBounds(): this {
-		return this;
-	}
+
 	_reproject(referencing: Referencing): this {
-		super._reproject(referencing);
 		for (let i = 0; i < this.axes.composite.values.length; i++) {
 			let [t, x, y, z] = this.axes.composite.values[i];
 			t = referencing.trs(t);

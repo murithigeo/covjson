@@ -4,6 +4,7 @@ import { defineConfig } from 'vitest/config';
 import { playwright } from '@vitest/browser-playwright';
 import { sveltekit } from '@sveltejs/kit/vite';
 import adapter from '@sveltejs/adapter-vercel';
+// import { svelte, type SvelteConfig } from '@sveltejs/vite-plugin-svelte';
 
 export default defineConfig({
 	plugins: [
@@ -13,14 +14,12 @@ export default defineConfig({
 				// Force runes mode for the project, except for libraries. Can be removed in svelte 6.
 				runes: ({ filename }) =>
 					filename.split(/[/\\]/).includes('node_modules') ? undefined : true,
-				customElement: ({ filename }) => filename.includes('-cpt.svelte')
+				customElement: ({ filename }) => filename.includes('src/lib/ui')
 			},
-			// adapter-auto only supports some environments, see https://svelte.dev/docs/kit/adapter-auto for a list.
-			// If your environment is not supported, or you settled on a specific environment, switch out the adapter.
-			// See https://svelte.dev/docs/kit/adapters for more information about adapters.
-			adapter: adapter(),
+			// prebundleSvelteLibraries: true,
 			preprocess: [mdsvex({ extensions: ['.svx', '.md'] })],
-			extensions: ['.svelte', '.svx', '.md']
+			extensions: ['.svelte', '.svx', '.md'],
+			adapter: adapter()
 		})
 	],
 	test: {

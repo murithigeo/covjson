@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { Range } from './ranges.ts';
+import { Range } from './ranges.js';
 
 describe('Simple NdArray', () => {
 	const ndarr = new Range({
@@ -62,18 +62,5 @@ describe('TiledNdArray', () => {
 		it('matches one tileSet for 2,5,10', () => {
 			expect(ndarr.intersects([1, 4, 9]).length).toBe(1);
 		});
-	});
-});
-
-describe('Statistics', () => {
-	const ndarr = new Range({
-		type: 'NdArray',
-		dataType: 'float',
-		axisNames: ['t', 'z', 'y', 'x'],
-		shape: [1, 1, 2, 3],
-		values: [0.5, 0.6, 0.4, 0.6, 0.2, null]
-	});
-	it('.max', () => {
-		expect(ndarr.mean).toBeCloseTo(0.3833);
 	});
 });

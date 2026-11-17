@@ -7,10 +7,11 @@ import type {
 	Unit as U,
 	CategoryEncoding as CatEncoding
 } from 'coveragejson';
-import { isNull, isUndefined } from './domain/utils.ts';
+import { isNull, isUndefined } from './domain/utils.js';
+import type { EdrParameterProperties } from './types.js';
 
 abstract class Metadata<T> {
-	abstract toPlain(): T;
+	abstract toJSON(): T;
 	abstract label?: I18N;
 	abstract description?: I18N;
 	abstract id?: string;
@@ -51,7 +52,7 @@ export class I18N extends Map<string, string> {
 	}
 }
 
-export class Parameter extends Metadata<PR> {
+export class Parameter extends Metadata<PR & EdrParameterProperties> {
 	type: 'Parameter';
 	label: I18N;
 	description: I18N;
@@ -60,33 +61,48 @@ export class Parameter extends Metadata<PR> {
 	key: string;
 	unit: Unit | undefined;
 	categoryEncoding?: Map<string, number[]>;
+	properties: EdrParameterProperties & Record<string, unknown>;
+
 	constructor(pr: PR, key: string) {
+		const {
+			type,
+			label,
+			description,
+			id,
+			unit,
+			observedProperty,
+			categoryEncoding,
+			...properties
+		} = pr;
 		super();
-		this.type = pr.type;
-		this.label = new I18N(pr.label);
-		this.description = new I18N(pr.description);
-		this.id = pr.id;
+		this.type = type;
+		this.label = new I18N(label);
+		this.description = new I18N(description);
+		this.id = id;
 		this.key = key;
-		if (pr.unit) this.unit = new Unit(pr.unit);
-		if (pr.categoryEncoding) {
+		if (unit) this.unit = new Unit(unit);
+		if (categoryEncoding) {
 			this.categoryEncoding = new Map();
-			Object.entries(pr.categoryEncoding)
+			Object.entries(categoryEncoding)
 				.map(([key, val]) => [key, Array.isArray(val) ? val : [val]] as const)
 				.forEach(([key, val]) => this.categoryEncoding?.set(key, val));
 		}
-		this.observedProperty = new ObservedProperty(pr.observedProperty, this.categoryEncoding);
+		this.observedProperty = new ObservedProperty(observedProperty, this.categoryEncoding);
+		this.properties = properties;
 	}
 
-	toPlain(): PR {
+	toJSON(): PR & EdrParameterProperties {
 		return {
 			type: this.type,
-			observedProperty: this.observedProperty?.toPlain(),
-			unit: this.observedProperty.categories ? undefined : this.unit?.toPlain(),
+			observedProperty: this.observedProperty?.toJSON(),
+			unit: this.observedProperty.categories ? undefined : this.unit?.toJSON(),
 			label: this.label.size ? Object.fromEntries(this.label) : undefined,
 			description: this.description.size ? Object.fromEntries(this.description) : undefined,
 			categoryEncoding: this.categoryEncoding
 				? Object.fromEntries(this.categoryEncoding?.entries())
-				: undefined
+				: undefined,
+
+			...this.properties
 		};
 	}
 	/**
@@ -123,13 +139,13 @@ export class ObservedProperty extends Metadata<Obs> {
 			this.categories = obs.categories.map((e) => new Category(e, catEncoding?.get(e.id)));
 	}
 
-	toPlain(): Obs {
+	toJSON(): Obs {
 		return {
 			id: this.id,
 			label: Object.fromEntries(this.label),
 			description: this.description.size ? Object.fromEntries(this.description) : undefined,
 			categories: this.categories?.length
-				? (this.categories.map((cat) => cat.toPlain()) as [Cat, ...Cat[]])
+				? (this.categories.map((cat) => cat.toJSON()) as [Cat, ...Cat[]])
 				: undefined
 		};
 	}
@@ -147,11 +163,11 @@ export class Unit extends Metadata<U> {
 		this.id = unit?.id;
 		if ('symbol' in unit) this.symbol = new Symbol(unit.symbol);
 	}
-	toPlain(): CoverageJSON.Unit {
+	toJSON(): CoverageJSON.Unit {
 		const unit: CoverageJSON.Unit = {
 			id: this.id,
 			label: Object.fromEntries(this.label),
-			symbol: this.symbol?.toPlain()
+			symbol: this.symbol?.toJSON()
 		};
 		return unit;
 	}
@@ -185,7 +201,7 @@ export class Symbol extends Metadata<USymbol> {
 		this.value = value;
 		return this;
 	}
-	toPlain(): USymbol {
+	toJSON(): USymbol {
 		if (!this.type) return this.value;
 		return { type: this.type, value: this.value };
 	}
@@ -211,11 +227,11 @@ export class ParameterGroup extends Metadata<CoverageJSON.ParameterGroup> {
 	hasParameter(id: string) {
 		return this.members.includes(id.toUpperCase());
 	}
-	toPlain(): CoverageJSON.ParameterGroup {
+	toJSON(): CoverageJSON.ParameterGroup {
 		const value: CoverageJSON.ParameterGroup = {
 			type: this.type,
 			members: this.members as [string, ...string[]],
-			observedProperty: this.observedProperty?.toPlain(),
+			observedProperty: this.observedProperty?.toJSON(),
 			label: Object.fromEntries(this.label)
 		};
 
@@ -235,7 +251,7 @@ export class Category extends Metadata<Cat> {
 		this.id = obj.id;
 		this.values = values;
 	}
-	toPlain(): Cat {
+	toJSON(): Cat {
 		return {
 			id: this.id,
 			label: Object.fromEntries(this.label),

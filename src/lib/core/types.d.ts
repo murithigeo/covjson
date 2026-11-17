@@ -1,7 +1,10 @@
-import type { DomainTypes, Domain } from 'coveragejson';
-import type { Geometry, Feature } from 'geojson';
-import type { DataValue } from './coverage';
+import type { DomainTypes, Position, NdArray } from 'coveragejson';
 import { Range } from './ranges';
+import type { BBox } from 'geojson';
+
+/**
+ * The Properties object in the GeoJSON Feature
+ */
 export interface CoverageProperties<DT extends DomainTypes> {
 	/**
 	 * Other properties not explicitly declared in schema
@@ -9,39 +12,18 @@ export interface CoverageProperties<DT extends DomainTypes> {
 	[x: string]: unknown;
 	uuid: string;
 	domainType: DT;
-	/**
-	 * The names of ranges in the coverage
-	 */
 	parameters: string[];
-	/**
-	 *
-	 */
 	id?: string;
 }
 
 /**
- * Callback to execute if a TiledNdArray's value has been freshly retrieved
+ * The indices used to query the Range.
+ * Can be a Map if you dont know the actual arrangement of the Range's axisNames or want the range to normalize
+ * Pass a position to que
  */
-type OnNonCacheFetch = (range: Range) => void;
-/**
- *
- */
+export type Indices = Map<string, number> | number[];
 
-type CoverageNonCacheFetch = (k: string, v: Range) => void;
-/**
- * The Domain's axes keys and their sizes
- */
-type DomainIndices<D extends Domain = Domain> = Record<keyof D, number>;
-
-type RangeIndices = Record<string, number> | number[];
-
-interface QueryOptions {
-	/**
-	 * Boolean selects all indices
-	 * Number Array for specific values
-	 * Unbounded object for range
-	 */
-
+export interface QueryOptions {
 	axisNames?: Record<string, AxisNamesOptions>;
 	/**
 	 * The ranges to query
@@ -59,3 +41,91 @@ export type GetDataOptions = Exclude<QueryOptions, 'axisNames'>;
  * In case of object, the values are inclusive
  */
 export type AxisNamesOptions = boolean | number[] | Partial<Record<'start' | 'stop', number>>;
+
+/**
+ *
+ */
+export type DataValue = string | number | null;
+
+/**
+ * An object where keys are the Range Ids. Also includes the axes indices for that particular row
+ * @example {POTM: 1, ICEC: null, x: 0, t: 3,y: 1}
+ */
+export type DataRow<D extends DataValue = DataValue> = Record<string, D | null> & {
+	t?: number;
+	z?: number;
+	x?: number;
+	y?: number;
+	composite?: number;
+};
+
+/**
+ * Find the domain axes indices with respect to
+ * Pass a x,y,z array if you want to determine best indices
+ * Pass a Date String if you have a specific time you want
+ * Pass a number if you have an elevation.
+ * Or pass a map if you already have the indices.
+ * For each, if the argument does not intersect with all axes, those axes will be set to 0
+ */
+export type Reference = Position | string | number | Exclude<RangeIndices, number[]>;
+
+/**
+ * Since OGC EDR primarily supports CoverageJSON, support these properties
+ * Extensions for parameters as specified by https://schemas.opengis.net/ogcapi/edr/1.1/openapi/schemas/collections/parameterNames.yaml
+ */
+export interface EdrParameterProperties {
+	/**
+	 * Parameter measurement approach
+	 * Approach to calculating the data values
+	 */
+	measurementType?: {
+		/**
+		 * @example mean
+		 */
+		method: string;
+		/**
+		 * Measurement time duration.
+		 * The time duration that the value was calulated for as an RFC3339 duration value. If the method value is instantaneous, this value is not required
+		 * @example PT10M
+		 */
+		duration?: string;
+	};
+	/**
+	 * The data-type of the NdArray values
+	 */
+	'data-type'?: NdArray['dataType'];
+	/**
+	 * The extent of the information in the collection.
+	 * Extensions may add additional members to represent other extents,for example, thermal or pressure changes
+	 */
+	extent?: {
+		spatial: {
+			bbox: BBox[];
+			crs: string;
+			name?: string;
+		};
+		temporal?: {
+			interval: [string, string][];
+			trs: string;
+			values: string[] | null;
+		};
+		vertical?: {
+			/**
+			 * Mininum and maximum heights of the vertical interval
+			 */
+			interval: [string, string][];
+			/**
+			 * Vertical level intervals that data in the collection is available at.
+			 */
+			values?: string[] | null;
+			/**
+			 * Coordinate reference system of the coordinates in the vertical extent (property `interval`)
+			 */
+			vrs: string;
+			/**
+			 * Name of the vertical coordinate reference system
+			 */
+			name?: string;
+		};
+	};
+}

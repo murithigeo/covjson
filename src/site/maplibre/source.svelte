@@ -1,9 +1,8 @@
 <script lang="ts">
 	import { addSourceType } from 'maplibre-gl';
-	import { MaplibrePlugin } from '#lib/plugin-maplibre/plugin.ts';
+	import { MaplibrePlugin, type MaplibrePluginOptions } from '#lib/plugin-maplibre/index.js';
 	import { getMapContext } from 'svelte-maplibre';
 	import { dev } from '$app/env';
-	import type { MaplibrePluginOptions } from '#lib/plugin-maplibre/index.ts';
 	import { type Snippet } from 'svelte';
 	interface Props extends Omit<MaplibrePluginOptions, 'type'> {
 		id: string;

@@ -1,18 +1,17 @@
 import type { BBox, Feature, MultiPolygon, Polygon } from 'geojson';
 import type { Grid as GridDomain, Position, WithBounds } from 'coveragejson';
-import type { Referencing } from '../referencing.ts';
-import { BaseDomain } from './base-domain.ts';
+import type { Referencing } from '../referencing.js';
+import { BaseDomain } from './base-domain.js';
 import combine from '@turf/combine';
 import {
 	denormalizeNumAxis,
 	normalizeNumAxis,
 	numAxisIsNormalized,
 	calcNumAxisBounds,
-	calcStrAxisBounds,
 	isUndefined
-} from './utils.ts';
+} from './utils.js';
 import bboxPolygon from '@turf/bbox-polygon';
-import { indexOfNearest } from '../utils.ts';
+import { indexOfNearest } from '../utils.js';
 
 export class Grid extends BaseDomain<GridDomain> {
 	constructor(domain: GridDomain) {
@@ -27,7 +26,6 @@ export class Grid extends BaseDomain<GridDomain> {
 	}
 
 	_reproject(referencing: Referencing): this {
-		super._reproject(referencing);
 		const [xvals, yvals] = [this.x, this.y];
 		const xIsNormalized = numAxisIsNormalized(this.axes.x);
 		const yIsNormalized = numAxisIsNormalized(this.axes.y);
@@ -74,15 +72,7 @@ export class Grid extends BaseDomain<GridDomain> {
 		if (!this.axes.z) return [];
 		return denormalizeNumAxis(this.axes.z).values;
 	}
-	calculateAxesBounds(timeZone?: string) {
-		if ('values' in this.axes.x) this.axes.x.bounds = calcNumAxisBounds(this.axes.x.values);
-		if ('values' in this.axes.y) this.axes.y.bounds = calcNumAxisBounds(this.axes.y.values);
-		if (this.axes.z && 'values' in this.axes.z) {
-			this.axes.z.bounds = calcNumAxisBounds(this.axes.z.values);
-		}
-		if (this.axes.t) this.axes.t.bounds = calcStrAxisBounds(this.axes.t.values, timeZone);
-		return this;
-	}
+
 	normalize() {
 		this.#normalize('x');
 		this.#normalize('y');
@@ -100,6 +90,7 @@ export class Grid extends BaseDomain<GridDomain> {
 		this.axes.x = denormalizeNumAxis(this.axes.x);
 		this.axes.y = denormalizeNumAxis(this.axes.y);
 		if (this.axes.z) this.axes.z = denormalizeNumAxis(this.axes.z);
+		//@ts-expect-error compat issue
 		return this;
 	}
 	get geometry(): MultiPolygon {

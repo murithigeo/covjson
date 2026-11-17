@@ -2,7 +2,7 @@
 	import { getChartContext, Tooltip as TooltipPrimitive } from 'layerchart';
 	import { cn, type WithElementRef, type WithoutChildren } from '#lib/utils.js';
 	import { getPayloadConfigFromPayload, useChart, type TooltipPayload } from './chart-utils.js';
-	import { isNull, isUndefined } from '#lib/core/index.ts';
+	import { isNull, isUndefined } from '#lib/core/index.js';
 	import type { Snippet } from 'svelte';
 	import type { HTMLAttributes } from 'svelte/elements';
 

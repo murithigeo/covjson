@@ -2,29 +2,16 @@ import type { Point as PointGeometry } from 'geojson';
 import type {
 	Point as PointD,
 	PointSeries as PSeriesD,
-	Position2D,
 	Position,
 	VerticalProfile as VertProfDomain,
 	WithBounds
 } from 'coveragejson';
-import type { Referencing } from '../referencing.ts';
-import { BaseDomain } from './base-domain.ts';
-import {
-	calcNumAxisBounds,
-	calcStrAxisBounds,
-	denormalizeNumAxis,
-	isUndefined,
-	normalizeNumAxis,
-	numAxisIsNormalized
-} from './utils.ts';
+import type { Referencing } from '../referencing.js';
+import { BaseDomain } from './base-domain.js';
+import { denormalizeNumAxis, isUndefined, normalizeNumAxis, numAxisIsNormalized } from './utils.js';
 
 abstract class Base<D extends PointD | PSeriesD | VertProfDomain> extends BaseDomain<D> {
-	constructor(domain: D) {
-		super(domain);
-	}
-
 	_reproject(referencing: Referencing): this {
-		super._reproject(referencing);
 		[this.axes.x.values[0], this.axes.y.values[0]] = referencing.crs([
 			this.axes.x.values[0],
 			this.axes.y.values[0]
@@ -46,15 +33,7 @@ abstract class Base<D extends PointD | PSeriesD | VertProfDomain> extends BaseDo
 		if (!this.axes.t) return [];
 		return this.axes.t.values.map((v) => v);
 	}
-	calculateAxesBounds(timeZone?: string): this {
-		this.axes.x.bounds = calcNumAxisBounds(this.axes.x.values) as Position2D;
-		this.axes.y.bounds = calcNumAxisBounds(this.axes.y.values) as Position2D;
-		if (this.axes.z && !numAxisIsNormalized(this.axes.z)) {
-			this.axes.z.bounds = calcNumAxisBounds(this.axes.z.values) as Position2D;
-		}
-		if (this.axes.t) this.axes.t.bounds = calcStrAxisBounds(this.axes.t.values, timeZone);
-		return this;
-	}
+
 	queryIndices(ref: Position | string | number): Map<keyof D['axes'], number> {
 		const indices = new Map().set('x', 0).set('y', 0).set('z', 0).set('t', 0);
 		const zRef = typeof ref === 'number' ? ref : Array.isArray(ref) ? ref[2] : undefined;
@@ -100,15 +79,6 @@ export class PointSeries extends Base<PSeriesD> {
 }
 
 export class VerticalProfile extends Base<VertProfDomain> {
-	calculateAxesBounds(): this {
-		if (!numAxisIsNormalized(this.axes.z)) {
-			this.axes.z.bounds = calcNumAxisBounds(this.axes.z.values);
-		}
-		return this;
-	}
-	constructor(domain: VertProfDomain) {
-		super(domain);
-	}
 	get geometry(): PointGeometry {
 		return {
 			type: 'Point',
@@ -144,6 +114,7 @@ export class VerticalProfile extends Base<VertProfDomain> {
 	} {
 		{
 			this.axes.z = denormalizeNumAxis(this.axes.z);
+			//@ts-expect-error compat issue
 			return this;
 		}
 	}

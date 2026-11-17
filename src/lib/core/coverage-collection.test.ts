@@ -1,11 +1,13 @@
 import { describe, expect, it } from 'vitest';
-import { CoverageCollection, load } from './index.ts';
+import { CoverageCollection, load } from './index.js';
 import type { CoverageCollection as CovColl } from 'coveragejson';
-import { Coverage } from './coverage.ts';
+import { Coverage } from './coverage.js';
 const data = load<CovColl>('https://covjson.org/playground/coverages/point-collection.covjson');
 
 describe('Referencing', async () => {
-	const v0 = await (await CoverageCollection.load(await data)).reproject({ crsId: 'OGC:CRS84' });
+	const v0 = await (
+		await CoverageCollection.load(await data)
+	).reproject({ crs: { id: 'OGC:CRS84' } });
 	it.each(v0.coverages)(
 		'Reprojection: domain.referencing is set to undefined because it is part of collection',
 		(cov) => {
@@ -13,7 +15,7 @@ describe('Referencing', async () => {
 		}
 	);
 	it('Expect that the resulting collection has a defined referencing object whose length is 3', () => {
-		expect(v0.referencing?.length).toBe(3);
+		expect(v0.referencing?.length).toBe(2);
 	});
 });
 

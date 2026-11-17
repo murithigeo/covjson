@@ -8,12 +8,12 @@ import type {
 } from 'coveragejson';
 import ndarray, { type NdArray as NdArr } from 'ndarray';
 import { parseTemplate } from 'url-template';
-import { load } from './load.ts';
-import ops from 'ndarray-ops';
-import { cartesianProduct } from './utils.ts';
-import { TilesetNotFound } from './error.ts';
-import { isUndefined } from './domain/utils.ts';
-import type { Indices } from './base.ts';
+import { load } from './load.js';
+import { assign } from 'ndarray-ops';
+import { cartesianProduct } from './utils.js';
+import { TilesetNotFound } from './error.js';
+import { isUndefined } from './domain/utils.js';
+import type { Indices } from './types.js';
 
 export interface RangeOptions {
 	/**
@@ -87,8 +87,7 @@ export class Range<T extends DataValue = DataValue, Nd extends NdArray = NdArray
 		range: ValuesNdArray<T> | StringNdArray | NumberNdArray
 	) {
 		const offsets = tile.map((v, i) => v * this.fillNulls(tileShape)[i]);
-
-		ops.assign(
+		assign(
 			this._ndarr.lo(...offsets).hi(...(range.shape || this.shape)),
 			ndarray(range.values, range.shape)
 		);
@@ -154,7 +153,7 @@ export class Range<T extends DataValue = DataValue, Nd extends NdArray = NdArray
 		return value;
 	}
 
-	toPlain(resolve = false): Nd {
+	toJSON(resolve = false): Nd {
 		if (this.type === 'NdArray' || resolve) {
 			//@ts-expect-error conflict
 			return {
@@ -175,30 +174,6 @@ export class Range<T extends DataValue = DataValue, Nd extends NdArray = NdArray
 			tileSets: this.tileSets
 		} as TiledNdArray;
 	}
-}
-
-export interface RangeStatistics {
-	dataType?: 'string' | 'float' | 'integer';
-	/**
-	 * Defaults to null for string NdArrays
-	 */
-	min: number | null;
-	/**
-	 * Defaults to null for string NdArrays
-	 */
-	max: number | null;
-	/**
-	 * The middle value of the values
-	 */
-	median: string | number | null;
-	/**
-	 * The average of the NdArray
-	 */
-	mean: number | null;
-	/**
-	 * Provided a categoryEncoding object, calculate the bins
-	 */
-	frequency?: Map<string, number> | null;
 }
 
 export function isNdArray(doc: CoverageJSON.CoverageJSON): doc is NdArray {

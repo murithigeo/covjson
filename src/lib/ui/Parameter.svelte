@@ -1,37 +1,29 @@
-<svelte:options customElement="covjson-parameter" />
+<svelte:options customElement={{ tag: 'covjson-parameter', shadow: 'none' }} />
 
 <script lang="ts">
-	import { Parameter, type RangeStatistics } from '#lib/core/index.ts';
-	import LocaleTable from './locale-table.svelte';
-	import ObservedProperty from './observed-property.svelte';
-	import * as Accordion from '#lib/components/ui/accordion/index.ts';
-	import * as ButtonGroup from '#lib/components/ui/button-group/index.ts';
-	import * as Item from '#lib/components/ui/item/index.ts';
-	import { Checkbox } from '#lib/components/ui/checkbox/index.ts';
-	import { Badge, type BadgeVariant } from '#lib/components/ui/badge/index.ts';
-	import { Label } from '#lib/components/ui/label/index.ts';
-	import type { MetadataRenderProps } from './types';
-	import CategoryTable from './category-table.svelte';
-	import Stats from './parameter/stats.svelte';
-	import * as Card from '#lib/components/ui/card/index.ts';
-	import type { ParameterColor } from '../coverage/types';
-	import Colour from './parameter/colour.svelte';
-
-	interface Props extends MetadataRenderProps<Parameter> {
+	import { Parameter } from '#lib/core/index.js';
+	import LocaleTable from './metadata/locale-table.svelte';
+	import ObservedProperty from './metadata/observed-property.svelte';
+	import * as Accordion from '#lib/components/ui/accordion/index.js';
+	import * as Item from '#lib/components/ui/item/index.js';
+	import { Badge, type BadgeVariant } from '#lib/components/ui/badge/index.js';
+	import { Label } from '#lib/components/ui/label/index.js';
+	import CategoryTable from './metadata/category-table.svelte';
+	import Stats from './metadata/parameter/stats.svelte';
+	import * as Card from '#lib/components/ui/card/index.js';
+	import type { ParameterColor } from './coverage/types';
+	import Colour from './metadata/parameter/colour.svelte';
+	import css from '../../routes/layout.css?inline';
+	import { type RangeStatistics } from './coverage/types';
+	interface Props {
+		data: Parameter | CoverageJSON.Parameter;
 		stats?: RangeStatistics;
-		checked?: boolean;
 		colors?: ParameterColor;
-		onCheckedChange?: (checked: boolean) => void;
 	}
 
-	let {
-		data: parameter,
-		stats,
-		checked = $bindable(true),
-		colors,
-		onCheckedChange
-	}: Props = $props();
-
+	let { data, stats, colors }: Props = $props();
+	let parameter = $derived(data instanceof Parameter ? data : new Parameter(data, ''));
+	let dataType = $derived(parameter.properties['data-type'] ?? stats?.['data-type']);
 	const variant: BadgeVariant = 'outline';
 </script>
 
@@ -39,23 +31,17 @@
 	<Card.Header>
 		<Card.Title class="flex flex-row space-x-2">
 			<Label>{parameter.key}</Label>
-			{#if stats?.dataType}
-				<Badge {variant}>{stats.dataType}</Badge>
+			{#if dataType}
+				<Badge {variant}>{dataType}</Badge>
 			{/if}
 			{#if parameter.unit?.symbol?.value}
 				<Badge {variant}>{parameter.unit.symbol.value}</Badge>
 			{/if}
 			<Colour color={colors?.default} />
 		</Card.Title>
-
-		<Card.Action>
-			<ButtonGroup.Root class="space-x-2">
-				<Checkbox bind:checked {onCheckedChange} />
-			</ButtonGroup.Root>
-		</Card.Action>
 	</Card.Header>
 	<Card.Content>
-		<Accordion.Root type="multiple">
+		<Accordion.Root type="multiple" value={['stats', 'internationalization']}>
 			{#if stats}
 				<Accordion.Item value="stats">
 					<Accordion.Trigger>Statistics</Accordion.Trigger>
@@ -127,3 +113,5 @@
 		</Accordion.Root>
 	</Card.Content>
 </Card.Root>
+
+<svelte:element this={'style'}>{css}</svelte:element>

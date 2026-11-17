@@ -1,10 +1,9 @@
 <script lang="ts">
-	import * as Table from '#lib/components/ui/table/index.ts';
-	import { I18N } from '#lib/core/index.ts';
-	import { cn } from '#lib/utils.ts';
-	import type { MetadataRenderProps } from './types.d.ts';
+	import * as Table from '#lib/components/ui/table/index.js';
+	import { I18N } from '#lib/core/index.js';
+	import { cn } from 'cn';
 
-	type Props = MetadataRenderProps<Record<string, I18N>>;
+	type Props = Record<'data', Record<string, I18N>>;
 
 	let { data }: Props = $props();
 	const cellStyle = 'border break-all whitespace-normal';

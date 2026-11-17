@@ -3,7 +3,7 @@
  * @author letmaik
  */
 
-import type { AxisNamesOptions } from './types';
+import type { AxisNamesOptions } from './types.js';
 
 /**
  * Copyright (c) 2016 The University of Reading
@@ -109,6 +109,9 @@ export type WithRequiredProperty<Type, Key extends keyof Type> = Type & {
 	[Property in Key]-?: Type[Property];
 };
 
+/**
+ * Convert {@link AxisNamesOptions} to a list of numbers
+ */
 export function axisOptionsToList(size?: number, opts?: AxisNamesOptions): number[] {
 	if (!opts) return [];
 	if (opts === true) return [...Array(size).keys()];

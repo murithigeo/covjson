@@ -1,64 +1,64 @@
 <script lang="ts">
-	import { getCovContext } from './ctx.svelte.ts';
-	import { Tooltip, type ChartState } from 'layerchart';
-	import type { Axis, Colors } from './types';
-	import { CustomDate, isUndefined, type DataRow } from '#lib/core/index.ts';
+	import { Tooltip } from 'layerchart';
+	import type { Axis, Data, TooltipProps } from './types.d.js';
+	import { CustomDate, isUndefined, type DataRow } from '#lib/core/index.js';
 	import type { ComponentProps } from 'svelte';
-	interface Props {
-		colors: Colors;
-		series?: Axis;
-		current: string;
-		context: ChartState;
-	}
-	let { colors, series, current, context }: Props = $props();
-	let data = $derived<DataRow | null>(context.tooltip.data);
-	let ctx = getCovContext();
-	let visibleSeries = $derived(
-		context.series.highlightKey
-			? [context.series.highlightKey]
-			: context.series.visibleSeries.map((d) => Number(d.key))
-	);
-	let tooltip = $derived.by(() => {
-		if (!data) return [];
-		if (!series) {
-			return [data];
-		}
-		const indices = ctx.axesSize
+
+	type TooltipItemProps = ComponentProps<typeof Tooltip.Item>;
+	let {
+		colors,
+		series,
+		active,
+		tooltip = $bindable(),
+		data,
+		context,
+		resolver,
+		format = (k, v) => v?.toString(),
+		rangeIds,
+		axesSize
+	}: TooltipProps = $props();
+
+	let visibleSeries = $derived.by(() => {
+		let keys: string[];
+		if (context.series.highlightKey) keys = [context.series.highlightKey];
+		else keys = context.series.visibleSeries.map(({ key }) => key);
+		return keys.map((v) => Number(v));
+	});
+
+	let resolvedTipData = $derived.by(() => {
+		let _data: DataRow | null = context.tooltip.data;
+		if (!_data) return [];
+		if (!series) return [_data];
+
+		const indices = axesSize
 			.keys()
 			.filter((k) => k !== series)
-			.map((key) => [key, data[key] ?? 0] as const)
+			.map((key) => [key, _data[key] ?? 0] as const)
 			.toArray();
-		return ctx.data
-			.filter((d) => {
-				if (!series) return true;
-				return visibleSeries.map((d) => Number(d)).includes(d[series]!);
-			})
+		return data
+			.filter((d) => visibleSeries.map((d) => Number(d)).includes(d[series]!))
 			.filter((d) => indices.every(([k, i]) => d[k] === i));
 	});
-	const setTooltip = (r: DataRow[]) => ctx.setProp('tooltip', r);
-
-	$effect(() => setTooltip(tooltip));
-
-	let prefixes = {
-		z: 'm'
-		// y: ['S', 'N'],// We coult hook up to Coverage.domain.referencing
-		// x: ['W', 'E']
-	};
-
 	const resolveAndFormat = (an: Axis, idx?: number) => {
-		let value = ctx.resolve(an, idx ?? 0, 'chart');
+		let value = resolver(an, idx ?? 0, 'chart');
 		if (value instanceof CustomDate) return value.value;
-		if (typeof value === 'number') {
-			if (an === 'z') return value + prefixes[an];
-			// if (an === 'x' || an === 'y') return `${value}°${prefixes[an][Number(value > 0)]}`;
-			return value;
-		}
+		// if (typeof value === 'number') {
+		// 	if (an === 'z') return value + prefixes[an];
+		// 	// if (an === 'x' || an === 'y') return `${value}°${prefixes[an][Number(value > 0)]}`;
+		// 	return value;
+		// }
 		return value;
 	};
-	const itemProps: Pick<ComponentProps<typeof Tooltip.Item>, 'classes' | 'valueAlign'> = {
-		valueAlign: 'right',
-		classes: { label: 'text-xs', value: 'text-xs' }
+	const setTooltip = (r: Data) => {
+		tooltip = r;
 	};
+
+	$effect(() => setTooltip(resolvedTipData));
+	const valueAlign: TooltipItemProps['valueAlign'] = 'right';
+	const classes = {
+		label: 'text-xs',
+		value: 'text-xs font-normal'
+	} satisfies TooltipItemProps['classes'];
 
 	let rows = $derived.by(() => {
 		return tooltip.map((row) => {
@@ -69,9 +69,9 @@
 			}
 			return {
 				header,
-				rows: ctx.rangeIds.map((key) => ({
+				rows: rangeIds.map((key) => ({
 					key,
-					value: ctx.coverage?.parameters.get(key)?.unit?.format(row[key]) ?? row[key],
+					value: format(key, row[key]) ?? row[key],
 					category: row[`${key}:cat`],
 					get color() {
 						if (!this.category) return colors[key].default;
@@ -87,26 +87,38 @@
 	<Tooltip.Root pointerEvents portal={false}>
 		<Tooltip.Header>
 			<Tooltip.List class="w-full">
-				{#each ctx.axesSize
+				{#each axesSize
 					.entries()
 					.filter(([, s]) => s > 0)
 					.filter(([an]) => an !== series) as [an] (an)}
-					<Tooltip.Item {...itemProps} label={an} value={resolveAndFormat(an, tooltip[0][an])} />
+					<Tooltip.Item
+						{valueAlign}
+						{classes}
+						label={an}
+						value={resolveAndFormat(an, tooltip[0][an])}
+					/>
 				{/each}
 			</Tooltip.List>
 		</Tooltip.Header>
 		{#each rows as data, i (i)}
 			<Tooltip.List
 				>{#if data.header}
-					<Tooltip.Item {...itemProps} label={data.header.label} value={data.header.value} />
+					<Tooltip.Item
+						{valueAlign}
+						{classes}
+						label={data.header.label}
+						value={data.header.value}
+					/>
 				{/if}
 				{#each data.rows as { key, category, value, color } (key)}
-					<Tooltip.Item {...itemProps} {color} {value}>
+					<Tooltip.Item {valueAlign} {classes} {color} {value}>
 						{#snippet label()}
 							<div class="flex flex-col">
-								<p class:font-bold={current === key}>{key}</p>
+								<p class="{classes.label} capitalize {active === key ? 'font-bold' : ''}">
+									{key.toLowerCase()}
+								</p>
 								{#if !isUndefined(category)}
-									<p>{category}</p>
+									<p class="text-muted-foreground">{category}</p>
 								{/if}
 							</div>
 						{/snippet}

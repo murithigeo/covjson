@@ -1,9 +1,9 @@
 import { describe, it, expect } from 'vitest';
-import { Coverage } from './coverage.ts';
+import { Coverage } from './coverage.js';
 
 describe('Reprojections', async () => {
 	const cov = await Coverage.load('https://covjson.org/playground/coverages/grid-tiled.covjson');
-	const clone = await cov.clone().reproject({ crsId: 'EPSG:32738' });
+	const clone = await cov.clone().reproject({ crs: { id: 'EPSG:32738' } });
 	it('Replaces the connection object', () => {
 		expect(
 			clone.domain.referencing?.find((e) => e.coordinates.some((el) => ['x', 'y'].includes(el)))

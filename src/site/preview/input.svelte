@@ -1,17 +1,16 @@
 <script lang="ts">
 	import Ajv from 'ajv';
-	import { onMount } from 'svelte';
-	import v1 from '#lib/ui/json/schemas/1_0.json' with { type: 'json' };
-	import covjsonOrgData from './data.ts';
+	import v1 from '../json/schemas/1_0.json' with { type: 'json' };
+	import covjsonOrgData from './data.js';
 	import { TrashIcon } from '@lucide/svelte';
-	import { Button } from '#lib/components/ui/button/index.ts';
-	import { Label } from '#lib/components/ui/label/index.ts';
-	import { Input } from '#lib/components/ui/input/index.ts';
-	import * as Field from '#lib/components/ui/field/index.ts';
-	import * as ButtonGroup from '#lib/components/ui/button-group/index.ts';
+	import { Button } from '#lib/components/ui/button/index.js';
+	import { Label } from '#lib/components/ui/label/index.js';
+	import { Input } from '#lib/components/ui/input/index.js';
+	import * as Field from '#lib/components/ui/field/index.js';
+	import * as ButtonGroup from '#lib/components/ui/button-group/index.js';
 	import { SvelteMap } from 'svelte/reactivity';
-	import { isUndefined } from '#lib/core/index.ts';
-	import type { MaplibrePluginOptions } from '#lib/plugin-maplibre/index.ts';
+	import { isUndefined } from '#lib/core/index.js';
+	import type { MaplibrePluginOptions } from '#lib/plugin-maplibre/index.js';
 	const ajv = new Ajv();
 	const validator = ajv.compile(v1);
 
@@ -20,6 +19,7 @@
 		type: 'url' | 'file' | 'text';
 	}
 
+	// eslint-disable-next-line @typescript-eslint/no-unused-vars, no-useless-assignment
 	let { data = $bindable(), type }: Props = $props();
 
 	let urlCache = new SvelteMap<string, string>(Object.entries(covjsonOrgData));
@@ -79,9 +79,9 @@
 			<Input type="text" bind:value={name} />
 		</Field.Field>
 	{/if}
-	{#if errors.length}
-		<Field.Error></Field.Error>
-	{/if}
+	{#each errors as err, i (i)}
+		<Field.Error>{err.message}</Field.Error>
+	{/each}
 	<Field.Field>
 		<ButtonGroup.Root>
 			<Button

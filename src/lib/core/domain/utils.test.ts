@@ -4,12 +4,9 @@ import {
 	inferDomainType,
 	normalizeNumAxis,
 	numListIsRegular,
-	tListIsRegular,
-	parseDateString,
 	calcNumAxisBounds,
-	calcStrAxisBounds,
 	tIndicesOfNearest
-} from './utils.ts';
+} from './utils.js';
 
 describe('#regularNumToValuesAxis', () => {
 	const { values } = regularNumToValuesAxis({ num: 1, start: 0, stop: 0 });
@@ -59,15 +56,6 @@ describe('axis normalization/denormalization', () => {
 			expect(numListIsRegular([2021, 2022])).toBeTruthy();
 			expect(numListIsRegular([2021, 2022, 2024])).toBeFalsy();
 			expect(numListIsRegular([2021])).toBeTruthy();
-		});
-	});
-	describe('#tListIsRegular', () => {
-		it('Returns true if t values are regularly spaced', () => {
-			expect(tListIsRegular(['2021', '2022', '2023'])).toBeTruthy();
-			expect(tListIsRegular(['2021-01-01', '2021-02-01', '2021-03-04'])).toBeTruthy();
-			expect(
-				tListIsRegular(['2026-01-02T13:00:00Z', '2026-01-03T13:00:00Z', '2026-01-04T13:00:00Z'])
-			).toBeTruthy();
 		});
 	});
 });
@@ -136,8 +124,6 @@ describe('#inferDomainType', () => {
 });
 
 describe('axis bounds calculations', () => {
-	describe.skip('tuple axis bounds', () => {});
-	describe.skip('Polygon axis bounds', () => {});
 	describe('Simple axis bounds', () => {
 		describe('number axis', () => {
 			it('returns bound values +-1 for one el array', () => {
@@ -149,70 +135,6 @@ describe('axis bounds calculations', () => {
 			it('bounds for 3+ value array', () => {
 				expect(calcNumAxisBounds([2, 4, 7])).toEqual([1, 3, 3, 5.5, 5.5, 8.5]);
 			});
-		});
-
-		describe.skip('string axis', () => {
-			it('returns year+- when given year string', () => {
-				expect(calcStrAxisBounds(['2021'])).toEqual(['2020', '2022']);
-			});
-			it('returns month+- when given year-month', () => {
-				expect(calcStrAxisBounds(['2021-01'])).toEqual(['2020-12', '2021-02']);
-			});
-			it('returns day+- when given date', () => {
-				expect(calcStrAxisBounds(['2021-01-01'])).toEqual(['2020-12-31', '2021-01-02']);
-			});
-			it('');
-		});
-	});
-});
-
-describe('Date[time] detection', () => {
-	it('Returns Year for YYYY', () => {
-		expect(parseDateString('2021')).toStrictEqual({
-			resolution: 'Year',
-			year: 2021,
-			month: undefined,
-			day: undefined,
-			offset: undefined,
-			hour: undefined,
-			minute: undefined,
-			second: undefined
-		});
-	});
-	it('Returns Year-Month for YYYY-MM', () => {
-		expect(parseDateString('2021-10')).toStrictEqual({
-			resolution: 'YearMonth',
-			year: 2021,
-			month: 10,
-			day: undefined,
-			offset: undefined,
-			hour: undefined,
-			minute: undefined,
-			second: undefined
-		});
-	});
-	it('Returns YYYY-MM-DD for YYYY-MM-DD', () => {
-		expect(parseDateString('2021-01-01')).toStrictEqual({
-			resolution: 'Date',
-			year: 2021,
-			month: 1,
-			day: 1,
-			offset: undefined,
-			hour: undefined,
-			minute: undefined,
-			second: undefined
-		});
-	});
-	it('Returns TimeStamp for timestamps', () => {
-		expect(parseDateString('2021-01-10T13:13:27.78Z')).toStrictEqual({
-			resolution: 'Instant',
-			year: 2021,
-			month: 1,
-			day: 10,
-			hour: 13,
-			minute: 13,
-			second: 27.78,
-			offset: '+00:00'
 		});
 	});
 });

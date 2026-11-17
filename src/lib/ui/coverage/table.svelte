@@ -1,22 +1,11 @@
 <script lang="ts">
-	import * as Table from '#lib/components/ui/table/index.ts';
-	import type { DataRow } from '#lib/core/coverage.ts';
-	import { isNull, isUndefined } from '#lib/core/index.ts';
-	import { getCovContext } from './ctx.svelte.ts';
-	import type { Axis } from './types.d.ts';
+	import * as Table from '#lib/components/ui/table/index.js';
+	import { isNull, isUndefined } from '#lib/core/index.js';
+	import type { Axis, Data, TableProps } from './types.d.js';
 
-	/**
-	 * Make this component able to load all data at once
-	 */
-	let {
-		data = $bindable(),
-		key,
-		categoric
-	}: { data: DataRow[]; categoric?: boolean; key: string } = $props();
-	const ctx = getCovContext();
-	const axes = $derived(ctx.axesSize);
+	let { data = $bindable(), key, categoric, axesSize, resolver, totalSize }: TableProps = $props();
 	let _axes = $derived(
-		axes
+		axesSize
 			.entries()
 			.filter(([, size]) => size > 0)
 			.toArray()
@@ -24,7 +13,9 @@
 </script>
 
 <Table.Root class="table-auto">
-	<Table.Caption>Tabulated {key} data.</Table.Caption>
+	<Table.Caption>
+		Tabulated {key} data. {data.length}/{totalSize ?? '--'} values loaded
+	</Table.Caption>
 
 	<Table.Header>
 		<Table.Row>
@@ -74,7 +65,7 @@
 	inheritedCells
 }: {
 	depth: number;
-	currentRows: DataRow[];
+	currentRows: Data;
 	inheritedCells: {
 		/**
 		 * Current axis index
@@ -117,7 +108,7 @@
 								rowspan={cell.rowspan}
 								class="border align-middle break-all whitespace-normal"
 							>
-								{ctx.resolve?.(cell.axisName, cell.index)}
+								{resolver(cell.axisName, cell.index)}
 							</Table.Cell>
 						{/each}
 					{/if}

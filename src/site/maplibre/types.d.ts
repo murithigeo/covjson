@@ -1,4 +1,3 @@
-import type { InferDomainClass } from '#lib/core/index.ts';
 import type { CommonLayerProps, LayerClickInfo } from 'svelte-maplibre';
 
 export interface CovLayerClickInfo<D extends Domain> extends LayerClickInfo<

@@ -1,2 +1,2 @@
-export type { PluginOptions as MaplibrePluginOptions } from './types.d.ts';
-export * from './plugin.ts';
+export type { PluginOptions as MaplibrePluginOptions } from './types.js';
+export * from './plugin.js';

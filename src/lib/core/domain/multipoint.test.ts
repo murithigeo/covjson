@@ -1,7 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import type { Coverage, MultiPoint as MP } from 'coveragejson';
-import { MultiPoint } from './multipoint.ts';
-import { load } from '../load.ts';
+import { MultiPoint } from './multipoint.js';
 
 const multipoint = new MultiPoint({
 	type: 'Domain',

@@ -1,4 +1,4 @@
-import { BaseDomain } from './base-domain.ts';
+import { BaseDomain } from './base-domain.js';
 import type {
 	Polygon as PolygonDomain,
 	PolygonSeries as PolySeriesD,
@@ -6,10 +6,9 @@ import type {
 	MultiPolygonSeries as MPs,
 	Position
 } from 'coveragejson';
-import type { Referencing } from '../referencing.ts';
+import type { Referencing } from '../referencing.js';
 import inside from 'point-in-polygon-hao';
 import type { Polygon as PolygonGeometry } from 'geojson';
-import { calcNumAxisBounds } from './utils.ts';
 
 abstract class Base<T extends PolygonDomain | PolySeriesD | MP | MPs> extends BaseDomain<T> {
 	constructor(domain: T) {
@@ -23,7 +22,6 @@ abstract class Base<T extends PolygonDomain | PolySeriesD | MP | MPs> extends Ba
 			.set('z', this.z.length);
 	}
 	_reproject(referencing: Referencing): this {
-		super._reproject(referencing);
 		for (let oi = 0; oi < this.axes.composite.values.length; oi++) {
 			for (let ii = 0; ii < this.axes.composite.values[oi].length; ii++) {
 				for (let i = 0; i < this.axes.composite.values[oi][ii].length; i++) {
@@ -61,19 +59,10 @@ abstract class Base<T extends PolygonDomain | PolySeriesD | MP | MPs> extends Ba
 		if (typeof ref === 'string') indices.set('t', this.tIndex(ref));
 		return indices;
 	}
-
-	calculateAxesBounds(): this {
-		if (this.axes.z) this.axes.z.bounds = calcNumAxisBounds(this.axes.z.values);
-
-		return this;
-	}
 }
 
 export class Polygon extends Base<PolygonDomain> {
 	denormalize(): this {
-		return this;
-	}
-	calculateAxesBounds(): this {
 		return this;
 	}
 
@@ -92,12 +81,7 @@ export class PolygonSeries extends Base<PolySeriesD> {
 	denormalize(): this {
 		return this;
 	}
-	calculateAxesBounds(): this {
-		if (this.axes.z) {
-			this.axes.z.bounds = calcNumAxisBounds(this.axes.z.values) as [number, number];
-		}
-		return this;
-	}
+
 	get geometry(): PolygonGeometry {
 		return {
 			type: 'Polygon',

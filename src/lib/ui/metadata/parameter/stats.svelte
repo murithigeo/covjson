@@ -1,17 +1,16 @@
 <script lang="ts">
-	import { Label } from '#lib/components/ui/label/index.ts';
-	import { Badge, type BadgeVariant } from '#lib/components/ui/badge/index.ts';
-	import { isUndefined, isNull } from '#lib/core/index.ts';
-	import type { RangeStatistics } from '#lib/core/ranges.ts';
-	import { cn } from '#lib/utils.ts';
+	import { Label } from '#lib/components/ui/label/index.js';
+	import { Badge, type BadgeVariant } from '#lib/components/ui/badge/index.js';
+	import { isUndefined, isNull, type RangeStatistics } from '#lib/core/index.js';
 	import type { ClassValue } from 'clsx';
+	import { cn } from '#lib/utils.js';
 
 	let {
 		min,
 		max,
 		median,
 		mean,
-		dataType,
+		'data-type': dataType,
 		class: className
 	}: RangeStatistics & { class?: ClassValue } = $props();
 

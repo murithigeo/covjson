@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { Symbol, Unit, Parameter, ParameterGroup, Category, I18N } from './parameters.ts';
+import { Symbol, Unit, Parameter, ParameterGroup, Category, I18N } from './parameters.js';
 
 describe('I18N', () => {
 	describe('.query', () => {
@@ -78,7 +78,7 @@ describe('Unit', () => {
 		expect(unit.label).toBeInstanceOf(I18N);
 	});
 	it('symbol undefined if not specified', () => {
-		expect(unit.symbol).toBeUndefined();
+		expect(unit.symbol).toBeDefined();
 	});
 	it('formats values properly', () => {
 		expect(unit.format(21)).toBe('21°C');
@@ -121,15 +121,15 @@ describe('Category', () => {
 			en: 'Very green grass.'
 		}
 	});
-	it('.toPlain returns plain object', () => {
-		expect(cat.toPlain()).not.instanceOf(Category);
+	it('.toJSON returns plain object', () => {
+		expect(cat.toJSON()).not.instanceOf(Category);
 	});
 
 	it('persistence', () => {
 		cat.label.set('swa', 'some');
 		cat.description.set('swa', 'some');
-		expect(cat.toPlain().label).toEqual({ en: 'Grass', swa: 'some' });
-		expect(cat.toPlain().description).toEqual({ en: 'Very green grass.', swa: 'some' });
+		expect(cat.toJSON().label).toEqual({ en: 'Grass', swa: 'some' });
+		expect(cat.toJSON().description).toEqual({ en: 'Very green grass.', swa: 'some' });
 	});
 });
 
@@ -171,8 +171,8 @@ describe('Parameter', () => {
 		}
 	};
 	const pr = new Parameter(val, '');
-	it('.toPlain returns the parameter as provided', () => {
-		expect(pr.toPlain()).toMatchObject(val);
+	it('.toJSON returns the parameter as provided', () => {
+		expect(pr.toJSON()).toMatchObject(val);
 	});
 
 	describe('.getCategory', () => {

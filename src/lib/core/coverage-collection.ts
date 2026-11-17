@@ -1,17 +1,11 @@
-import type {
-	Domain,
-	ReferenceSystemConnection,
-	CoverageCollection as CovColl,
-	Coverage as CRG,
-	ReferenceSystemObject
-} from 'coveragejson';
-import { Parameter, ParameterGroup } from './parameters.ts';
-import { Coverage, type CoverageOptions } from './coverage.ts';
-import { Referencing, type UserReferencingOptions } from './referencing.ts';
-import { Base, type ReferenceArgument, type Indices } from './base.ts';
+import type { Domain, CoverageCollection as CovColl, Coverage as CRG } from 'coveragejson';
+import { Parameter, ParameterGroup } from './parameters.js';
+import { Coverage, type CoverageOptions } from './coverage.js';
+import { Referencing } from './referencing.js';
+import { Base } from './base.js';
 import type { FeatureCollection } from 'geojson';
-import type { InferDomainClass } from './domain/types.d.ts';
-import type { CoverageProperties, GetDataOptions, QueryOptions } from './types';
+import type { InferDomainClass } from './domain/types.js';
+import type { CoverageProperties, GetDataOptions, QueryOptions, Reference } from './types.js';
 
 export class CoverageCollection<
 	D extends Domain = Domain,
@@ -20,7 +14,7 @@ export class CoverageCollection<
 	type: 'CoverageCollection';
 	coverages: Coverage<D>[];
 	domainType?: D['domainType'];
-	referencing: ReferenceSystemConnection<ReferenceSystemObject>[] | undefined;
+	referencing: Referencing;
 	parameters: Map<string, Parameter>;
 	parameterGroups: ParameterGroup[];
 	properties: Record<string, unknown>;
@@ -40,7 +34,7 @@ export class CoverageCollection<
 		this.type = type;
 		this.domainType = domainType;
 		this.parameterGroups = parameterGroups.map((e) => new ParameterGroup(e));
-		this.referencing = referencing;
+		this.referencing = new Referencing(referencing);
 		this.properties = properties;
 		this.parameters = new Map();
 		for (const id in parameters) {
@@ -84,51 +78,26 @@ export class CoverageCollection<
 	normalize() {
 		for (const coverage of this.coverages) coverage.normalize();
 	}
-	reproject(referencing: Referencing, force: true): this;
-	reproject(referencing: Referencing, force?: false): Promise<this>;
-	reproject(referencing: UserReferencingOptions, force?: false): Promise<this>;
-	reproject(
-		referencing: Referencing | UserReferencingOptions,
-		force?: boolean
-	): this | Promise<this> {
-		if (referencing instanceof Referencing && force) {
-			this._reproject(referencing);
-			this.coverages = this.coverages
-				.map((cov) => cov.reproject(referencing, true))
-				.map((cov) => {
-					delete cov.domain.referencing;
-					return cov;
-				});
 
-			return this;
+	async _reproject(referencing: Referencing): Promise<this> {
+		this.referencing = referencing;
+		for (let i = 0; i < this.coverages.length; i++) {
+			this.coverages[i] = await this.coverages[i].reproject(referencing);
+			delete this.coverages[i].domain.referencing;
 		}
-
-		return Promise.all(this.coverages.map((cov) => cov.reproject(referencing))).then((covs) => {
-			this.coverages = covs.map((cov, i) => {
-				if (i === 0 && cov.domain.referencing) this.referencing = [...cov.domain.referencing];
-				delete cov.domain.referencing;
-				return cov;
-			});
-
-			return this;
-		});
-	}
-
-	_reproject(referencing: Referencing): this {
-		this.referencing = referencing.connections;
 		return this;
 	}
 	// Add referencing memeber behavior
-	toPlain(): CovColl<D> {
+	toJSON(): CovColl<D> {
 		return {
 			type: this.type,
 			//@ts-expect-error upstream conflict
 			domainType: this.domainType,
-			coverages: this.coverages.map((cov) => cov.toPlain()),
+			coverages: this.coverages.map((cov) => cov.toJSON()),
 			parameters: this.parameters
 				.entries()
-				.reduce((l, [id, param]) => ({ ...l, [id]: param.toPlain() }), {}),
-			parameterGroups: this.parameterGroups.map((e) => e.toPlain()),
+				.reduce((l, [id, param]) => ({ ...l, [id]: param.toJSON() }), {}),
+			parameterGroups: this.parameterGroups.map((e) => e.toJSON()),
 			referencing: this.referencing
 		};
 	}
@@ -156,7 +125,7 @@ export class CoverageCollection<
 	 * Simple function to retrieve a list of data values.
 	 * For eagerLoading data, see @see {query}
 	 */
-	async getData(ref: Exclude<ReferenceArgument, Indices>, options?: GetDataOptions) {
+	async getData(ref: Reference, options?: GetDataOptions) {
 		const data = await Promise.all(this.coverages.map((cov) => cov.getData(ref, options)));
 
 		return data;
@@ -164,7 +133,7 @@ export class CoverageCollection<
 	/**
 	 * @param axisNames Axis names to preload data for
 	 */
-	query(ref: Exclude<ReferenceArgument, Indices>, options: QueryOptions) {
+	query(ref: Reference, options: QueryOptions) {
 		return this.coverages.map((cov) => cov.query(ref, options));
 	}
 

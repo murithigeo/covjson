@@ -1,7 +1,6 @@
 import {
 	type Dispatcher,
 	type Evented,
-	Map as MapInstance,
 	GeoJSONSource,
 	type MapGeoJSONFeature,
 	type GeoJSONSourceDiff,
@@ -17,7 +16,8 @@ import {
 	isNdArray,
 	load,
 	Parameter,
-	isNull
+	isNull,
+	CRS84
 } from '#lib/core/index.js';
 import type { BasicPluginOptions, PluginOptions } from './types.js';
 import type { Domain, NdArray, Position } from 'coveragejson';
@@ -45,7 +45,11 @@ export class MaplibrePlugin extends GeoJSONSource {
 			coverages: []
 		});
 		this.setCovData(options.data);
-		Referencing.load({ crsId: 'OGC:CRS84' }).then((d) => (this._referencing = d));
+		if (options.reproject) {
+			new Referencing()
+				.to({ crs: { id: CRS84, z: false } })
+				.then((ref) => (this._referencing = ref));
+		}
 	}
 
 	getCoveragesFromFeatureList(features: (MapGeoJSONFeature | Feature)[], point: Position | LngLat) {
@@ -71,8 +75,10 @@ export class MaplibrePlugin extends GeoJSONSource {
 		switch (x.type) {
 			case 'Domain':
 				x = new Coverage({ type: 'Coverage', domain: x, ranges: {} });
+			// eslint-disable-next-line no-fallthrough
 			case 'Coverage':
 				x = new CoverageCollection({ type: 'CoverageCollection', coverages: [x] });
+			// eslint-disable-next-line no-fallthrough
 			case 'CoverageCollection':
 				if (x instanceof CoverageCollection) return x;
 				return CoverageCollection.load(x);
@@ -95,7 +101,7 @@ export class MaplibrePlugin extends GeoJSONSource {
 					});
 				data.coverages[i] = cov;
 			}
-			if (!this.covOptions.reproject || !this._referencing) return data;
+			if (!this._referencing) return data;
 			return await data.reproject(this._referencing);
 		});
 
