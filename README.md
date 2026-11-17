@@ -9,19 +9,19 @@ This project is still in Alpha. It should not be used in production environments
 ## API
 
 ```ts
-import {Coverage,CoverageCollection} from "@murithigeo/covjson/core";
+import { Coverage, CoverageCollection } from '@murithigeo/covjson/core';
 
-import {MaplibrePlugin} from "@murithigeo/covjson/plugin-maplibre";
+import { MaplibrePlugin } from '@murithigeo/covjson/plugin-maplibre';
 
 // For non-svelte environments
-import "@murithigeo/covjson/parameter.js"
-import "@murithigeo/covjson/coverage.js"
-import "@murithigeo/covjson/parameter-group.js"
-import "@murithigeo/covjson/covjson.css";
+import '@murithigeo/covjson/parameter.js';
+import '@murithigeo/covjson/coverage.js';
+import '@murithigeo/covjson/parameter-group.js';
+import '@murithigeo/covjson/covjson.css';
 
 //Svelte
-import "@murithigeo/covjson/covjson.css"
-import Coverage from "@murithigeo/covjson/coverage";
-import ParameterGroup from "@murithigeo/covjson/parameter-group";
-import Parameter from "@murithigeo/covjson/parameter";
+import '@murithigeo/covjson/covjson.css';
+import Coverage from '@murithigeo/covjson/coverage';
+import ParameterGroup from '@murithigeo/covjson/parameter-group';
+import Parameter from '@murithigeo/covjson/parameter';
 ```
