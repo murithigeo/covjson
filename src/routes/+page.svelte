@@ -9,12 +9,15 @@
 	import CovJsonSource from '../site/maplibre/source.svelte';
 	import { SymbolLayer, LineLayer, FillLayer, type LayerClickInfo } from 'svelte-maplibre';
 	import type { MaplibrePlugin, MaplibrePluginOptions } from '#lib/plugin-maplibre/index.js';
-	import type { Colors } from '#lib/ui/types.d.js';
-	// import CoverageCpt from '#lib/ui/Coverage.svelte';
-	import '#lib/ui/Coverage.svelte';
-	import { makeCoverageIndicesReactive, getRandomColor } from '#lib/ui/coverage/utils.svelte.js';
+	import type { Colors } from '#lib/plugin-ui/types.d.js';
+	import '#lib/plugin-ui/Coverage.svelte';
+	import {
+		makeCoverageIndicesReactive,
+		getRandomColor
+	} from '#lib/plugin-ui/coverage/utils.svelte.js';
+	import preloads from '../site/preview/data';
 
-	let data = $state<MaplibrePluginOptions['data']>('/sample-data/grid-multi-z-t.covjson');
+	let data = $state<MaplibrePluginOptions['data']>(preloads['Grid Tiled']);
 	let coverages = $state<Array<Coverage>>([]);
 	let colors = $state<Colors>({});
 	const handleLayerEvent = (e: LayerClickInfo, source: MaplibrePlugin) => {
@@ -145,9 +148,6 @@
 				}}
 				config={{ x: 't' }}
 				axisNames={{ x: true, z: true, t: true }}
-				onIndicesChange={(e) => {
-					console.log(e.detail);
-				}}
 			></covjson-coverage>
 		{/each}
 	</div>

@@ -16,12 +16,12 @@
 	import type { RangeStatistics, ParameterColor } from './types.d.js';
 
 	interface Props {
-		parameter: Parameter;
+		data: Parameter;
 		stats?: RangeStatistics;
 		colors?: ParameterColor;
 	}
 
-	let { parameter, stats, colors }: Props = $props();
+	let { data: parameter, stats, colors }: Props = $props();
 
 	let dataType = $derived(parameter.properties['data-type'] ?? stats?.['data-type']);
 	const variant: BadgeVariant = 'outline';
