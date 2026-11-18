@@ -60,14 +60,14 @@ export interface Formatters<D extends Domain = Domain> {
 	 * Format the value of a parameter
 	 * @param key The parameter name
 	 * @param val The value to format
-	 * If undefined is returned, the val is used
+	 * If undefined is returned, the internal formatter is used
 	 */
 	value?: (key: string, val: DataValue) => string | undefined;
 	/**
 	 * Format an axis value
 	 * @example (d,i,v)=>["Germany","Kenya"][i]
 	 */
-	axis?: (dt: D['domainType'], i: number, v: unknown) => string;
+	axis?: (d: D['domainType'], i: number, options: { mode?: 'chart'; value: unknown }) => string;
 }
 
 export type FormatWithUnit = (key: string, val: DataValue) => string | undefined;
@@ -103,7 +103,7 @@ export interface AxisCustomizationOptions {
 export type Config = Partial<Record<ChartDimension, Axis>>;
 
 export interface CoverageOptions<D extends Domain = Domain> {
-	coverage: Coverage<D> | CoverageJSON.Coverage<D>;
+	coverage: Coverage<D>;
 	/**
 	 * Only show these parameters
 	 * Defaults to all range keys
@@ -131,6 +131,12 @@ export interface CoverageOptions<D extends Domain = Domain> {
 	axisNames?: Record<string, AxisNamesOptions>;
 	config?: Config;
 	formatters?: Formatters<D>;
+	/**
+	 * Values for the card title and description slots
+	 * Use {key:"key"} when the value is in coverage
+	 * or {value:"..."} when you want an explicit value
+	 */
+	labels: Partial<Record<'title' | 'description', { key: string } | { value: string }>>;
 }
 
 export type View = 'chart' | 'table' | 'parameter';

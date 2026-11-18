@@ -13,7 +13,7 @@ export default defineConfig({
 				// Force runes mode for the project, except for libraries. Can be removed in svelte 6.
 				runes: ({ filename }) =>
 					filename.split(/[/\\]/).includes('node_modules') ? undefined : true,
-				customElement: ({ filename }) => filename.includes('src/lib/ui')
+				customElement: ({ filename }) => filename.includes('src/lib/plugin-ui')
 			},
 			// prebundleSvelteLibraries: true,
 			preprocess: [mdsvex({ extensions: ['.svx', '.md'] })],

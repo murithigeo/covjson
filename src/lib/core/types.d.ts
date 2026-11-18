@@ -35,7 +35,7 @@ export interface QueryOptions {
 	cb?(name: string, range: Range): void;
 }
 
-export type GetDataOptions = Exclude<QueryOptions, 'axisNames'>;
+export type GetDataOptions = Omit<QueryOptions, 'axisNames'>;
 
 /**
  * In case of object, the values are inclusive
@@ -67,7 +67,7 @@ export type DataRow<D extends DataValue = DataValue> = Record<string, D | null> 
  * Or pass a map if you already have the indices.
  * For each, if the argument does not intersect with all axes, those axes will be set to 0
  */
-export type Reference = Position | string | number | Exclude<RangeIndices, number[]>;
+export type Reference = Position | string | number | Exclude<Indices, number[]>;
 
 /**
  * Since OGC EDR primarily supports CoverageJSON, support these properties

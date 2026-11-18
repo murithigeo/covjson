@@ -5,15 +5,14 @@
 	import DataInput from '../site/preview/input.svelte';
 	import { buttonVariants } from '#lib/components/ui/button/index.js';
 	import { JsonView } from '@zerodevx/svelte-json-view';
-	import ModeWatcher from '../site/mode-watcher.svelte';
 	import Maplibre from '../site/preview/maplibre.svelte';
 	import CovJsonSource from '../site/maplibre/source.svelte';
 	import { SymbolLayer, LineLayer, FillLayer, type LayerClickInfo } from 'svelte-maplibre';
 	import type { MaplibrePlugin, MaplibrePluginOptions } from '#lib/plugin-maplibre/index.js';
-	import type { Colors } from '#lib/ui/coverage/types.d.js';
+	import type { Colors } from '#lib/ui/types.d.js';
 	// import CoverageCpt from '#lib/ui/Coverage.svelte';
 	import '#lib/ui/Coverage.svelte';
-	import { makeCoverageIndicesReactive } from '#lib/ui/coverage/utils.svelte.js';
+	import { makeCoverageIndicesReactive, getRandomColor } from '#lib/ui/coverage/utils.svelte.js';
 
 	let data = $state<MaplibrePluginOptions['data']>('/sample-data/grid-multi-z-t.covjson');
 	let coverages = $state<Array<Coverage>>([]);
@@ -26,19 +25,6 @@
 			coverages: covs
 		};
 	};
-
-	// Source - https://stackoverflow.com/a/1484514
-	// Posted by Anatoliy, modified by community. See post 'Timeline' for change history
-	// Retrieved 2026-08-20, License - CC BY-SA 3.0
-
-	function getRandomColor() {
-		const letters = '0123456789ABCDEF';
-		let color = '#';
-		for (var i = 0; i < 6; i++) {
-			color += letters[Math.floor(Math.random() * 16)];
-		}
-		return color;
-	}
 
 	function updateCoverages(covs: Coverage[], replaceAll?: boolean) {
 		if (replaceAll) coverages = covs.map((cov) => makeCoverageIndicesReactive(cov));
@@ -57,7 +43,7 @@
 	}
 </script>
 
-<div class="h-screen w-full md:grid md:grid-cols-2">
+<div class="h-screen w-full space-x-2 md:grid md:grid-cols-2">
 	<div class="h-75 md:h-full">
 		<Maplibre>
 			{@const source = 'sample-data'}
@@ -123,9 +109,7 @@
 			<Sheet.Content class="gap-2"
 				><Sheet.Header
 					><Sheet.Title>Load CoverageJSON</Sheet.Title>
-					<Sheet.Description>
-						<ModeWatcher />
-					</Sheet.Description></Sheet.Header
+					<Sheet.Description>Ranges are not supported</Sheet.Description></Sheet.Header
 				>
 				<div class="h-screen gap-2 overflow-auto">
 					<Tabs.Root value="url" class="px-4" orientation="horizontal">
@@ -150,7 +134,7 @@
 				</div>
 			</Sheet.Content>
 		</Sheet.Root>
-		<!-- {#each coverages as coverage (coverage.uuid)}
+		{#each coverages as coverage (coverage.uuid)}
 			<covjson-coverage
 				{coverage}
 				{colors}
@@ -161,10 +145,10 @@
 				}}
 				config={{ x: 't' }}
 				axisNames={{ x: true, z: true, t: true }}
+				onIndicesChange={(e) => {
+					console.log(e.detail);
+				}}
 			></covjson-coverage>
-		{/each} -->
-		{#await Coverage.load('https://covjson.org/playground/coverages/grid-tiled.covjson') then coverage}
-			<covjson-coverage {coverage} colors={{ FOO: { default: 'red' } }}> </covjson-coverage>
-		{/await}
+		{/each}
 	</div>
 </div>

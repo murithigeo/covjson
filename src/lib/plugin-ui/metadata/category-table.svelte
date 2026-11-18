@@ -2,9 +2,9 @@
 	import * as Table from '#lib/components/ui/table/index.js';
 	import type { Category } from '#lib/core/parameters.js';
 	import Color from './parameter/colour.svelte';
-	import type { ParameterColor } from '../coverage/types.d.js';
+	import type { ParameterColor } from '../types.js';
 	import { cn } from '#lib/utils.js';
-	import type { RangeStatistics } from '../coverage/types';
+	import type { RangeStatistics } from '../types.js';
 
 	interface Props {
 		data: Category[];

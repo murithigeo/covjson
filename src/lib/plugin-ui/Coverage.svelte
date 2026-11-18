@@ -14,29 +14,43 @@
 		Data,
 		Axis,
 		RangeStatistics
-	} from './coverage/types';
+	} from './types';
 	import { type BrushDomainType } from 'layerchart';
-	import { axisIdxResolver, calculateMedian, getAxisConfig } from './coverage/utils.svelte';
-	import { isNull, isUndefined, minMax, Range, Coverage } from '#lib/core/index.js';
+	import {
+		axisIdxResolver,
+		calculateMedian,
+		getAxisConfig,
+		getRandomColor
+	} from './coverage/utils.svelte';
+	import { isNull, isUndefined, minMax, Range, Coverage, type Indices } from '#lib/core/index.js';
 	import { SvelteMap } from 'svelte/reactivity';
 	import type { Domain } from 'coveragejson';
 	import css from '../../routes/layout.css?inline';
 
+	/**
+	 * @todo add support for string coverages
+	 */
 	let {
-		coverage: cov,
+		coverage,
 		selected: s,
 		colors: c,
 		id,
 		axisNames: an,
 		config: conf,
-		formatters
+		formatters,
+		labels = {}
 	}: CoverageOptions<D> = $props();
+
 	let rangeInfo = new SvelteMap<string, RangeStatistics>();
 
-	let coverage = $derived.by(() => {
-		if (cov instanceof Coverage) return cov;
-		return new Coverage(cov);
-	});
+	const onIndicesChange = (indices: Exclude<Indices, number[]>) => {
+		const event = new CustomEvent<{ indices: typeof indices; coverage: Coverage<D> }>(
+			'IndicesChange',
+			{ detail: { indices, coverage } }
+		);
+		$host().dispatchEvent(event);
+	};
+
 	let domain = $derived(coverage.domain.clone().denormalize());
 	const updateInfo = (id: string, range: Range) => {
 		if (range.dataType === 'string') {
@@ -82,14 +96,17 @@
 	});
 	let resolver = $derived(axisIdxResolver(domain, formatters?.axis));
 	let axesSize = $derived(coverage.axesSize as Map<Axis, number>);
-
+	let selected = $derived(s || coverage.rangeIds);
 	let rangeIds = $derived(coverage.rangeIds.filter((id) => selected.includes(id)));
 
-	let selected = $derived(s || coverage.rangeIds);
-
-	let colors = $derived<Colors>(
-		c || rangeIds.reduce((l, r) => ({ ...l, [r]: { default: 'black' } }), {})
-	);
+	let colors = $derived.by<Colors>(() => {
+		let colors: Colors = { ...(c || {}) };
+		for (let rangeId of coverage.rangeIds) {
+			if (colors[rangeId]) continue;
+			colors[rangeId] = { default: getRandomColor() };
+		}
+		return colors;
+	});
 
 	let cache = $state<Data>([]);
 	const updateCache = (rows: Data) => {
@@ -129,15 +146,45 @@
 		return cache.filter((d) => check.every((an) => d[an] === (coverage.indices.get(an) ?? 0)));
 	});
 	let tooltip = $state<Tooltip>([]);
+	$effect(() => {
+		const t = tooltip.at(0);
+		if (!t) return;
+		const indices = axesSize.keys().map((an) => [an, t[an] ?? 0] as const);
+		onIndicesChange(new Map(indices));
+	});
+
 	let view = $state<View>('chart');
 	// svelte-ignore state_referenced_locally
 	let active = $state<string>(rangeIds.at(0) ?? '');
 	let xDomain = $state<BrushDomainType>();
+
+	let title = $derived.by(() => {
+		const { title } = labels;
+		if (!title) return coverage.id || '';
+		if ('value' in title) return title.value;
+		const { key } = title;
+		if (key in coverage) return coverage[key as keyof typeof cov];
+		return coverage.properties[key];
+	});
+	let description = $derived.by(() => {
+		const { description } = labels;
+		if (!description) return coverage.id || '';
+		if ('value' in description) return description.value;
+		const { key } = description;
+		if (key in coverage) return coverage[key as keyof typeof cov];
+		return coverage.properties[key];
+	});
 </script>
 
 <Card.Root {id}>
 	<Card.Header>
-		<Card.Title><Badge variant="outline">{coverage.domain.domainType}</Badge></Card.Title>
+		<Card.Title class="flex w-full items-center justify-between gap-3"
+			>{#if title}<p>{title}</p>{/if}
+			<Badge variant="outline">{coverage.domain.domainType}</Badge></Card.Title
+		>
+		{#if description}
+			<Card.Description>{description}</Card.Description>
+		{/if}
 	</Card.Header>
 	<Card.Content class="space-y-2">
 		{#if !rangeIds.length}
@@ -178,7 +225,8 @@
 							{axisNames}
 							{axesSize}
 							format={(k, v) => {
-								if (formatters?.value) return formatters.value(k, v);
+								const value = formatters?.value?.(k, v);
+								if (value) return value;
 								return coverage.parameters.get(k)?.unit?.format(v);
 							}}
 							{rangeIds}

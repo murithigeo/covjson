@@ -9,11 +9,10 @@
 	import { Badge } from '#lib/components/ui/badge/index.js';
 	import css from '../../routes/layout.css?inline';
 	interface Props {
-		data: ParameterGroup | CoverageJSON.ParameterGroup;
+		data: ParameterGroup;
 	}
 
-	let { data: pGroup }: Props = $props();
-	let data = $derived(pGroup instanceof ParameterGroup ? pGroup : new ParameterGroup(pGroup));
+	let { data }: Props = $props();
 </script>
 
 <Card.Root class="w-full">

@@ -1,7 +1,7 @@
 <script lang="ts">
 	import * as Table from '#lib/components/ui/table/index.js';
 	import { isNull, isUndefined } from '#lib/core/index.js';
-	import type { Axis, Data, TableProps } from './types.d.js';
+	import type { Axis, Data, TableProps } from '../types.js';
 
 	let { data = $bindable(), key, categoric, axesSize, resolver, totalSize }: TableProps = $props();
 	let _axes = $derived(

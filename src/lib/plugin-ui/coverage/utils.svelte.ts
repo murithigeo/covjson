@@ -1,6 +1,6 @@
-import { CustomDate, Coverage, type InferDomainClass } from '#lib/core/index.js';
+import { CustomDate, Coverage, type InferDomainClass } from '#lib/core/index.ts';
 import { SvelteMap } from 'svelte/reactivity';
-import type { Axis, CoverageOptions, AxisResolver, ChartDimension, Formatters } from './types';
+import type { Axis, CoverageOptions, AxisResolver, ChartDimension, Formatters } from '../types';
 
 /**
  * @param coverage A Coverage whose axes values are no longer normalized
@@ -21,7 +21,7 @@ export function axisIdxResolver(
 			if (typeof value === 'string' && mode === 'chart') return new CustomDate(value);
 			return value;
 		}
-		if (customResolver) return customResolver(domain.domainType, idx, value);
+		if (customResolver) return customResolver(domain.domainType, idx, { mode, value });
 		if (dataType === 'tuple') {
 			if (typeof value[0] === 'string' && mode === 'chart')
 				[dataType, value] = ['primitive', value[0]];
@@ -124,4 +124,17 @@ export function calculateMedian<T extends string | number>(vals: Array<T>): T | 
 		return (((a as number) + (b as number)) / 2) as T;
 	}
 	return vals.at(index) ?? null;
+}
+
+// Source - https://stackoverflow.com/a/1484514
+// Posted by Anatoliy, modified by community. See post 'Timeline' for change history
+// Retrieved 2026-08-20, License - CC BY-SA 3.0
+
+export function getRandomColor() {
+	const letters = '0123456789ABCDEF';
+	let color = '#';
+	for (let i = 0; i < 6; i++) {
+		color += letters[Math.floor(Math.random() * 16)];
+	}
+	return color;
 }

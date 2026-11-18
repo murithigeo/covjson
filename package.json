@@ -28,7 +28,8 @@
 	"type": "module",
 	"imports": {
 		"#lib": "./src/lib/index.js",
-		"#lib/*": "./src/lib/*"
+		"#lib/*": "./src/lib/*",
+		"#app.css": "./src/routes/layout.css"
 	},
 	"peerDependencies": {
 		"svelte": "^5.0.0"
@@ -36,26 +37,44 @@
 	"exports": {
 		"./core": {
 			"types": "./dist/core/index.d.ts",
-			"default": "./dist/core/index-es.js"
+			"default": "./dist/core/index.js"
 		},
 		"./plugin-maplibre": {
 			"types": "./dist/plugin-maplibre/index.d.ts",
-			"default": "./dist/plugin-maplibre/index-es.js"
+			"default": "./dist/plugin-maplibre/index.js"
 		},
 		"./plugin-ui/coverage": {
-			"types": "./dist/ui/Coverage.svelte.d.ts",
-			"default": "./dist/ui/Coverage.js",
-			"svelte": "./dist/ui/Coverage.svelte"
+			"types": "./dist/plugin-ui/client/Coverage.d.ts",
+			"default": "./dist/plugin-ui/client/Coverage.js"
+		},
+		"./plugin-ui/coverage/svelte": {
+			"types": "./dist/plugin-ui/client/Coverage.svelte-types.d.ts"
+		},
+		"./plugin-ui/coverage/ssr": {
+			"types": "./dist/plugin-ui/ssr/Coverage-ssr.d.ts",
+			"default": "./dist/plugin-ui/ssr/Coverage-ssr.js"
 		},
 		"./plugin-ui/parameter": {
-			"types": "./dist/ui/Parameter.svelte.d.ts",
-			"default": "./dist/ui/Parameter.js",
-			"svelte": "./dist/ui/Parameter.svelte"
+			"types": "./dist/plugin-ui/client/Parameter.d.ts",
+			"default": "./dist/plugin-ui/client/Parameter.js"
+		},
+		"./plugin-ui/parameter/ssr": {
+			"types": "./dist/plugin-ui/ssr/Parameter-ssr.d.ts",
+			"default": "./dist/plugin-ui/ssr/Parameter-ssr.js"
+		},
+		"./plugin-ui/parameter/svelte": {
+			"types": "./dist/plugin-ui/client/Parameter.svelte-types.d.ts"
 		},
 		"./plugin-ui/parameter-group": {
-			"types": "./dist/ui/ParameterGroup.svelte.d.ts",
-			"default": "./dist/ui/ParameterGroup.js",
-			"svelte": "./dist/ui/ParameterGroup.svelte"
+			"types": "./dist/plugin-ui/client/ParameterGroup.d.ts",
+			"default": "./dist/plugin-ui/client/ParameterGroup.js"
+		},
+		"./plugin-ui/parameter-group/ssr": {
+			"types": "./dist/plugin-ui/ssr/ParameterGroup-ssr.d.ts",
+			"default": "./dist/plugin-ui/ssr/ParameterGroup-ssr.js"
+		},
+		"./plugin-ui/parameter-group/svelte": {
+			"types": "./dist/plugin-ui/client/ParameterGroup.svelte-types.d.ts"
 		}
 	},
 	"devDependencies": {
@@ -63,12 +82,14 @@
 		"@eslint/js": "^10.0.1",
 		"@fontsource-variable/montserrat": "^5.3.0",
 		"@playwright/test": "^1.62.1",
-		"@svebcomponents/build": "^0.4.0",
+		"@svebcomponents/build": "^0.7.5",
 		"@sveltejs/adapter-vercel": "^7.0.0",
 		"@sveltejs/kit": "^3.0.0",
 		"@sveltejs/package": "^3.0.0",
 		"@sveltejs/vite-plugin-svelte": "^7.3.1",
+		"@tailwindcss/postcss": "^4.3.5",
 		"@tailwindcss/vite": "^4.3.3",
+		"@tsdown/css": "^0.23.7",
 		"@turf/center": "^7.4.0",
 		"@types/coveragejson": "^3.0.0",
 		"@types/d3-scale": "^4.0.9",
@@ -76,6 +97,7 @@
 		"@types/ndarray": "^1.1.0",
 		"@types/ndarray-ops": "^1.2.7",
 		"@types/node": "^24",
+		"@types/postcss-url": "^10.0.4",
 		"@vitest/browser-playwright": "^4.1.3",
 		"@zerodevx/svelte-json-view": "^2.0.0",
 		"ajv": "^6.15.0",
@@ -89,6 +111,8 @@
 		"mdsvex": "^0.12.7",
 		"mode-watcher": "^1.1.0",
 		"playwright": "^1.62.1",
+		"postcss-import": "^17.0.1",
+		"postcss-url": "^10.1.4",
 		"prettier": "^3.9.6",
 		"prettier-plugin-svelte": "^3.5.1",
 		"prettier-plugin-tailwindcss": "^0.7.2",
@@ -104,12 +128,7 @@
 		"typescript-eslint": "^8.68.0",
 		"vite": "^8.3.8",
 		"vitest": "^4.1.11",
-		"vitest-browser-svelte": "^2.1.0"
-	},
-	"keywords": [
-		"svelte"
-	],
-	"dependencies": {
+		"vitest-browser-svelte": "^2.1.0",
 		"@lucide/svelte": "^1.73.0",
 		"@murithigeo/uriproj": "^1.0.0",
 		"@turf/bbox-polygon": "^7.4.0",
@@ -124,5 +143,8 @@
 		"point-in-polygon-hao": "^1.2.4",
 		"svelte-maplibre": "^2.0.1",
 		"url-template": "^3.1.1"
-	}
+	},
+	"keywords": [
+		"svelte"
+	]
 }

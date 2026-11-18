@@ -11,18 +11,18 @@
 	import CategoryTable from './metadata/category-table.svelte';
 	import Stats from './metadata/parameter/stats.svelte';
 	import * as Card from '#lib/components/ui/card/index.js';
-	import type { ParameterColor } from './coverage/types';
 	import Colour from './metadata/parameter/colour.svelte';
 	import css from '../../routes/layout.css?inline';
-	import { type RangeStatistics } from './coverage/types';
+	import type { RangeStatistics, ParameterColor } from './types.d.js';
+
 	interface Props {
-		data: Parameter | CoverageJSON.Parameter;
+		parameter: Parameter;
 		stats?: RangeStatistics;
 		colors?: ParameterColor;
 	}
 
-	let { data, stats, colors }: Props = $props();
-	let parameter = $derived(data instanceof Parameter ? data : new Parameter(data, ''));
+	let { parameter, stats, colors }: Props = $props();
+
 	let dataType = $derived(parameter.properties['data-type'] ?? stats?.['data-type']);
 	const variant: BadgeVariant = 'outline';
 </script>

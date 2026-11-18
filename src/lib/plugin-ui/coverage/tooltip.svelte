@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { Tooltip } from 'layerchart';
-	import type { Axis, Data, TooltipProps } from './types.d.js';
+	import type { Axis, Data, TooltipProps } from '../types.js';
 	import { CustomDate, isUndefined, type DataRow } from '#lib/core/index.js';
 	import type { ComponentProps } from 'svelte';
 
@@ -40,13 +40,8 @@
 			.filter((d) => indices.every(([k, i]) => d[k] === i));
 	});
 	const resolveAndFormat = (an: Axis, idx?: number) => {
-		let value = resolver(an, idx ?? 0, 'chart');
+		const value = resolver(an, idx ?? 0, 'chart');
 		if (value instanceof CustomDate) return value.value;
-		// if (typeof value === 'number') {
-		// 	if (an === 'z') return value + prefixes[an];
-		// 	// if (an === 'x' || an === 'y') return `${value}°${prefixes[an][Number(value > 0)]}`;
-		// 	return value;
-		// }
 		return value;
 	};
 	const setTooltip = (r: Data) => {

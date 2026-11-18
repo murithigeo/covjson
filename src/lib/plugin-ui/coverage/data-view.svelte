@@ -4,7 +4,7 @@
 	import * as Tabs from '#lib/components/ui/tabs/index.js';
 	import { defaultChartPadding, LineChart, type LineChartProps } from 'layerchart';
 	import * as Chart from '#lib/components/ui/chart/index.js';
-	import type { ChartDimension, DataViewProps, FormatWithUnit } from './types.d.js';
+	import type { ChartDimension, DataViewProps, FormatWithUnit } from '../types.js';
 	import TableCpt from './table.svelte';
 	import Tooltip from './tooltip.svelte';
 	import { scaleOrdinal } from 'd3-scale';
