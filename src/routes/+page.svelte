@@ -10,7 +10,7 @@
 	import { SymbolLayer, LineLayer, FillLayer, type LayerClickInfo } from 'svelte-maplibre';
 	import type { MaplibrePlugin, MaplibrePluginOptions } from '#lib/plugin-maplibre/index.js';
 	import type { Colors } from '#lib/plugin-ui/types.d.js';
-	import '#lib/plugin-ui/Coverage.svelte';
+	import CoverageComponent from '#lib/plugin-ui/Coverage.svelte';
 	import {
 		makeCoverageIndicesReactive,
 		getRandomColor
@@ -138,7 +138,7 @@
 			</Sheet.Content>
 		</Sheet.Root>
 		{#each coverages as coverage (coverage.uuid)}
-			<covjson-coverage
+			<CoverageComponent
 				{coverage}
 				{colors}
 				formatters={{
@@ -148,7 +148,7 @@
 				}}
 				config={{ x: 't' }}
 				axisNames={{ x: true, z: true, t: true }}
-			></covjson-coverage>
+			></CoverageComponent>
 		{/each}
 	</div>
 </div>

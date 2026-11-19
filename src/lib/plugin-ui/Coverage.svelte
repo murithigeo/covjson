@@ -44,6 +44,7 @@
 	let rangeInfo = new SvelteMap<string, RangeStatistics>();
 
 	const onIndicesChange = (indices: Exclude<Indices, number[]>) => {
+		if (!$host()) return;
 		const event = new CustomEvent<{ indices: typeof indices; coverage: Coverage<D> }>(
 			'IndicesChange',
 			{ detail: { indices, coverage } }
