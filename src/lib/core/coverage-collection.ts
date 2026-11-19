@@ -1,11 +1,17 @@
 import type { Domain, CoverageCollection as CovColl, Coverage as CRG } from 'coveragejson';
 import { Parameter, ParameterGroup } from './parameters.js';
-import { Coverage, type CoverageOptions } from './coverage.js';
+import { Coverage } from './coverage.js';
 import { Referencing } from './referencing.js';
 import { Base } from './base.js';
 import type { FeatureCollection } from 'geojson';
 import type { InferDomainClass } from './domain/types.js';
-import type { CoverageProperties, GetDataOptions, QueryOptions, Reference } from './types.js';
+import type {
+	CoverageOptions,
+	CoverageProperties,
+	GetDataOptions,
+	QueryOptions,
+	Reference
+} from './types.js';
 
 export class CoverageCollection<
 	D extends Domain = Domain,

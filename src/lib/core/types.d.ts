@@ -3,12 +3,30 @@ import { Range } from './ranges';
 import type { BBox } from 'geojson';
 
 /**
+ * Extra arguments for the Coverage
+ */
+export interface CoverageOptions {
+	/**
+	 * Options to be applied to each ndarray
+	 */
+	ranges?: RangeOptions;
+	/**
+	 * Force the locale of anything using I18N
+	 */
+	language?: string;
+}
+
+export interface RangeOptions {
+	/**
+	 * When a indices hit requests that tileSet, the entire tileSet is loaded
+	 */
+	eagerLoad?: boolean;
+}
+
+/**
  * The Properties object in the GeoJSON Feature
  */
 export interface CoverageProperties<DT extends DomainTypes> {
-	/**
-	 * Other properties not explicitly declared in schema
-	 */
 	[x: string]: unknown;
 	uuid: string;
 	domainType: DT;
@@ -42,10 +60,7 @@ export type GetDataOptions = Omit<QueryOptions, 'axisNames'>;
  */
 export type AxisNamesOptions = boolean | number[] | Partial<Record<'start' | 'stop', number>>;
 
-/**
- *
- */
-export type DataValue = string | number | null;
+export type DataValue = string | number;
 
 /**
  * An object where keys are the Range Ids. Also includes the axes indices for that particular row
@@ -64,10 +79,9 @@ export type DataRow<D extends DataValue = DataValue> = Record<string, D | null> 
  * Pass a x,y,z array if you want to determine best indices
  * Pass a Date String if you have a specific time you want
  * Pass a number if you have an elevation.
- * Or pass a map if you already have the indices.
  * For each, if the argument does not intersect with all axes, those axes will be set to 0
  */
-export type Reference = Position | string | number | Exclude<Indices, number[]>;
+export type Reference = Position | string | number;
 
 /**
  * Since OGC EDR primarily supports CoverageJSON, support these properties

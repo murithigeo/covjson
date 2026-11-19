@@ -1,17 +1,15 @@
-import { CustomDate, Coverage, type InferDomainClass } from '#lib/core/index.ts';
+import { CustomDate, Coverage } from '#lib/core/index.ts';
 import { SvelteMap } from 'svelte/reactivity';
 import type { Axis, CoverageOptions, AxisResolver, ChartDimension, Formatters } from '../types';
 
 /**
  * @param coverage A Coverage whose axes values are no longer normalized
  */
-export function axisIdxResolver(
-	domain: ReturnType<InferDomainClass['denormalize']>,
-	customResolver?: Formatters['axis']
-): AxisResolver {
-	return (an: Axis, idx: number, mode?: 'chart') => {
+export function axisIdxResolver(cov: Coverage, resolver?: Formatters['axis']): AxisResolver {
+	const domain = cov.domain.clone().denormalize();
+	return (axisName: Axis, idx: number, mode?: 'chart') => {
 		// eslint-disable-next-line @typescript-eslint/no-explicit-any
-		const axis: undefined | any = domain.axes[an as keyof (typeof domain)['axes']];
+		const axis: undefined | any = domain.axes[axisName as keyof (typeof domain)['axes']];
 		if (!axis) return '';
 
 		let dataType = axis.dataType || 'primitive';
@@ -21,7 +19,7 @@ export function axisIdxResolver(
 			if (typeof value === 'string' && mode === 'chart') return new CustomDate(value);
 			return value;
 		}
-		if (customResolver) return customResolver(domain.domainType, idx, { mode, value });
+		if (resolver) return resolver(domain.domainType, idx, { mode, value, axisName });
 		if (dataType === 'tuple') {
 			if (typeof value[0] === 'string' && mode === 'chart')
 				[dataType, value] = ['primitive', value[0]];
@@ -36,19 +34,19 @@ export function axisIdxResolver(
 	};
 }
 
-export function getAxisConfig(domain: ReturnType<InferDomainClass['denormalize']>) {
+export function getAxisConfig(coverage: Coverage) {
 	const config: CoverageOptions['config'] = {};
 	const setDimension = (dim: ChartDimension, axis: Axis) => {
-		const size = domain.axesSize.get(axis as never);
+		const size = coverage.axesSize.get(axis as never);
 		if (!size) return { setDimension };
 		config[dim] = axis;
 		return { setDimension };
 	};
-	switch (domain.domainType) {
+	switch (coverage.domainType) {
 		case 'Grid':
-			setDimension('x', domain.t.length ? 't' : 'z').setDimension(
+			setDimension('x', coverage.t.length ? 't' : 'z').setDimension(
 				'series',
-				domain.t.length ? 'z' : 't'
+				coverage.t.length ? 'z' : 't'
 			);
 			break;
 		case 'Section':
@@ -65,17 +63,17 @@ export function getAxisConfig(domain: ReturnType<InferDomainClass['denormalize']
 		case 'MultiPointSeries':
 		case 'PointSeries':
 			setDimension('x', 't');
-			if (domain.domainType !== 'PointSeries') setDimension('series', 'composite');
+			if (coverage.domainType !== 'PointSeries') setDimension('series', 'composite');
 			break;
 		case 'MultiPolygon':
 		case 'Polygon':
-			setDimension('x', domain.t.length ? 't' : domain.z.length ? 'z' : 'composite');
+			setDimension('x', coverage.t.length ? 't' : coverage.z.length ? 'z' : 'composite');
 			break;
 		case 'Point':
-			setDimension('x', domain.t.length ? 't' : 'z');
+			setDimension('x', coverage.t.length ? 't' : 'z');
 			break;
 		case 'MultiPoint':
-			setDimension('x', domain.t.length ? 't' : 'composite');
+			setDimension('x', coverage.t.length ? 't' : 'composite');
 	}
 
 	return {

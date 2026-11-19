@@ -120,14 +120,13 @@ map.on("load",(map)=>{
 })
 ```
 
-### UI
+### Plugin-UI
 
-This was facilitated using [Shadcn Svelte](https://shadcn-svelte.com) and using
-[sveb components](https://svebcomponents.com)
+Written as custom web components and in Svelte, this ensures that components are usable in almost all frameworks.
 
-#### Coverage
+#### Vanilla
 
-If you are using the lib on a
+Also applies to frameworks although they do support inline variables
 
 ```html
 <body>
@@ -161,22 +160,32 @@ If you are using the lib on a
 </body>
 ```
 
-```html
-<>
-<script type="module">
-import {Coverage} from "./dist/core/index.js"
-import "./dist/plugin-ui/client/Coverage.js"
+#### Frameworks
 
-const element=document.createElement("covjson-coverage")
-el.coverage=await Coverage.load({...});
-// Configure everything else
-document.body.append(element)
+Some environments such as SSR will necessitate some extra configuration. This example is for usage in Svelte but configurations in other frameworks should be similar. For more info, see [SSR Overview on SvebComponents](https://svebcomponents.dev/server-rendering/)
 
-// Support for Dark mode
-el.classList.toggle("dark");
+```ts
+// Svelte
+// layout.svelte Only import once app-wide
+import "@murithigeo/covjson/plugin-ui/parameter";
+import "@murithigeo/covjson/plugin-ui/coverage";
+import "@murithigeo/covjson/plugin-ui/parametergroup";
 
+// hooks.server.ts //Should not be necessary when ssr/prerendering is set to false in +layout.ts
+import "@murithigeo/covjson/plugin-ui/parameter/ssr"
+import "@murithigeo/covjson/plugin-ui/parameter/ssr";
+import "@murithigeo/covjson/plugin-ui/parameter/ssr";
 
+// vite.config.ts
+import svebcomponents from "@svebcomponents/ssr/vite"
+export default defineConfig({...,plugins:[svebcomponents(),sveltekit({...})]})
+```
+
+```svelte
+<script>
+import {Parameter} from "@murithigeo/covjson/core"
 </script>
+<covjson-parameter parameter={new Parameter({...},"key")} color={{default:"red"}} ...>
+</covjson-parameter>
 
-</>
 ```

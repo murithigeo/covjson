@@ -4,7 +4,7 @@
 	import ObservedProperty from './metadata/observed-property.svelte';
 	import LocaleTable from './metadata/locale-table.svelte';
 	import * as Accordion from '#lib/components/ui/accordion/index.js';
-	import { ParameterGroup } from '#lib/core/index.js';
+	import { type ParameterGroup } from '#lib/core/index.js';
 	import * as Card from '#lib/components/ui/card/index.js';
 	import { Badge } from '#lib/components/ui/badge/index.js';
 	import css from '../../routes/layout.css?inline';

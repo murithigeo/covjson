@@ -1,5 +1,5 @@
 import type { BBox, Feature, MultiPolygon, Polygon } from 'geojson';
-import type { Grid as GridDomain, Position, WithBounds } from 'coveragejson';
+import type { Grid as GridDomain, WithBounds } from 'coveragejson';
 import type { Referencing } from '../referencing.js';
 import { BaseDomain } from './base-domain.js';
 import combine from '@turf/combine';
@@ -12,6 +12,7 @@ import {
 } from './utils.js';
 import bboxPolygon from '@turf/bbox-polygon';
 import { indexOfNearest } from '../utils.js';
+import type { Reference } from '../types';
 
 export class Grid extends BaseDomain<GridDomain> {
 	constructor(domain: GridDomain) {
@@ -140,7 +141,7 @@ export class Grid extends BaseDomain<GridDomain> {
 		return this.bboxes.map((bbox) => bboxPolygon(bbox));
 	}
 
-	queryIndices(ref: Position | string | number): Map<'x' | 'y' | 'z' | 't', number> {
+	queryIndices(ref: Reference): Map<'x' | 'y' | 'z' | 't', number> {
 		const indices = new Map().set('x', 0).set('y', 0).set('z', 0).set('t', 0);
 		let zRef = typeof ref === 'number' ? ref : undefined;
 		if (Array.isArray(ref)) {

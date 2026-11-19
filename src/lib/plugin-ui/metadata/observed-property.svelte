@@ -1,6 +1,6 @@
 <script lang="ts">
 	import * as Item from '#lib/components/ui/item/index.js';
-	import { ObservedProperty } from '#lib/core/index.js';
+	import type { ObservedProperty } from '#lib/core/index.js';
 	import type { ClassValue } from 'clsx';
 	import LocaleTable from './locale-table.svelte';
 	import { cn } from 'cn';

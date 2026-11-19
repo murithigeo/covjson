@@ -1,9 +1,10 @@
 <script lang="ts">
 	import { Label } from '#lib/components/ui/label/index.js';
 	import { Badge, type BadgeVariant } from '#lib/components/ui/badge/index.js';
-	import { isUndefined, isNull, type RangeStatistics } from '#lib/core/index.js';
+	import { isUndefined, isNull } from '#lib/core/index.js';
 	import type { ClassValue } from 'clsx';
 	import { cn } from '#lib/utils.js';
+	import type { RangeStatistics } from '../../types.js';
 
 	let {
 		min,

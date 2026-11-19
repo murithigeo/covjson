@@ -4,7 +4,8 @@ import type {
 	Parameter,
 	DataValue,
 	AxisNamesOptions,
-	EdrParameterProperties
+	EdrParameterProperties,
+	CustomDate
 } from '#lib/core/index.js';
 import type { Domain } from 'coveragejson';
 import type { BrushDomainType, ChartState } from 'layerchart';
@@ -50,7 +51,7 @@ export type Axis = 'x' | 'y' | 'composite' | 'z' | 't';
  * Internal resolver for an axis index.
  * When chart is set, //@todo check
  */
-export type AxisResolver = (a: Axis, i: number, mode?: 'chart') => any;
+export type AxisResolver = (a: Axis, i: number, mode?: 'chart') => string | number | CustomDate;
 
 /**
  *
@@ -67,7 +68,11 @@ export interface Formatters<D extends Domain = Domain> {
 	 * Format an axis value
 	 * @example (d,i,v)=>["Germany","Kenya"][i]
 	 */
-	axis?: (d: D['domainType'], i: number, options: { mode?: 'chart'; value: unknown }) => string;
+	axis?: (
+		d: D['domainType'],
+		i: number,
+		options: { mode?: 'chart'; value: unknown; axisName: Axis }
+	) => string;
 }
 
 export type FormatWithUnit = (key: string, val: DataValue) => string | undefined;
@@ -86,17 +91,6 @@ interface ParameterColor {
 	[x: string]: string;
 }
 
-export interface AxisCustomizationOptions {
-	/**
-	 * Label for the axes
-	 */
-	label: string;
-	/**
-	 * The unit will only be appended to the tuple and primitive axes
-	 * Only applies to the tooltip
-	 */
-	unit: string;
-}
 /**
  * How the chart axes are configured
  */
@@ -131,12 +125,24 @@ export interface CoverageOptions<D extends Domain = Domain> {
 	axisNames?: Record<string, AxisNamesOptions>;
 	config?: Config;
 	formatters?: Formatters<D>;
-	/**
-	 * Values for the card title and description slots
-	 * Use {key:"key"} when the value is in coverage
-	 * or {value:"..."} when you want an explicit value
-	 */
-	labels: Partial<Record<'title' | 'description', { key: string } | { value: string }>>;
+
+	labels?: Partial<
+		Record<
+			'title' | 'description',
+			| {
+					/**
+					 * Value exists on Coverage
+					 */
+					key: string;
+			  }
+			| {
+					/**
+					 * Literal value
+					 */
+					value: string;
+			  }
+		> & {}
+	>;
 }
 
 export type View = 'chart' | 'table' | 'parameter';

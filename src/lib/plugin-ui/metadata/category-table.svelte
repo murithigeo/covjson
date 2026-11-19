@@ -8,14 +8,14 @@
 
 	interface Props {
 		data: Category[];
-		colors?: ParameterColor;
+		color?: ParameterColor;
 		/**
 		 * The count of each category
 		 */
-		stats?: RangeStatistics['frequency'];
+		frequencies?: RangeStatistics['frequency'];
 	}
-	let { data: categories, colors, stats }: Props = $props();
-
+	let { data: categories, color, frequencies }: Props = $props();
+	let showcolor = $derived(color && Object.keys(color).length > 1);
 	const cellStyle = 'border break-all whitespace-normal';
 </script>
 
@@ -23,9 +23,13 @@
 	<Table.Caption>List of Categories and their Localization Values</Table.Caption>
 	<Table.Header>
 		<Table.Row>
-			<Table.Head></Table.Head>
+			{#if showcolor}
+				<Table.Head></Table.Head>
+			{/if}
 			<Table.Head>Id</Table.Head>
-			<Table.Head>n</Table.Head>
+			{#if frequencies}
+				<Table.Head>n</Table.Head>
+			{/if}
 			<Table.Head>Scope</Table.Head>
 			<Table.Head>Language</Table.Head>
 			<Table.Head>Value</Table.Head>
@@ -38,11 +42,15 @@
 				{#each label as [lang, value], i (lang)}
 					<Table.Row>
 						{#if i === 0}
-							<Table.Cell {rowspan} class={cn(cellStyle, 'rounded-full')}
-								><Color color={colors?.[id] ?? colors?.default} /></Table.Cell
-							>
+							{#if showcolor}
+								<Table.Cell {rowspan} class={cn(cellStyle, 'rounded-full')}
+									><Color color={color?.[id] ?? color?.default} /></Table.Cell
+								>
+							{/if}
 							<Table.Cell {rowspan} class={cn(cellStyle, '')}>{id}</Table.Cell>
-							<Table.Cell {rowspan} class={cn(cellStyle)}>{stats?.get(id) || 0}</Table.Cell>
+							{#if frequencies}
+								<Table.Cell {rowspan} class={cn(cellStyle)}>{frequencies?.get(id) || 0}</Table.Cell>
+							{/if}
 							<Table.Cell rowspan={label.size} class={cn(cellStyle, 'whitespace-nowrap')}
 								>Label</Table.Cell
 							>

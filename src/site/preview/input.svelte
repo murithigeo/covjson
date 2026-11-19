@@ -8,6 +8,7 @@
 	import { Input } from '#lib/components/ui/input/index.js';
 	import * as Field from '#lib/components/ui/field/index.js';
 	import * as ButtonGroup from '#lib/components/ui/button-group/index.js';
+	import { Textarea } from '#lib/components/ui/textarea/index.js';
 	import { SvelteMap } from 'svelte/reactivity';
 	import { isUndefined } from '#lib/core/index.js';
 	import type { MaplibrePluginOptions } from '#lib/plugin-maplibre/index.js';
@@ -70,7 +71,19 @@
 			<Label for="link">Load Remote Document</Label>
 			<Input type="url" bind:value aria-invalid={invalid} required />
 		{:else}
-			<Input type="text" bind:value aria-invalid={invalid} required />
+			<Textarea
+				bind:value={
+					() => {
+						if (value) return JSON.stringify(JSON.parse(value), undefined, 4);
+						return '';
+					},
+					(v) => {
+						value = v;
+					}
+				}
+				aria-invalid={invalid}
+				required
+			/>
 		{/if}
 	</Field.Field>
 	{#if type === 'url'}
@@ -101,32 +114,34 @@
 			>
 		</ButtonGroup.Root>
 	</Field.Field>
-	<Field.Field>
-		<ButtonGroup.Root class="flex flex-wrap">
-			{@const variant = 'outline'}
-			{#each urlCache as [k, v] (k)}
-				<ButtonGroup.Root>
-					<Button
-						variant={name === k ? 'secondary' : 'outline'}
-						disabled={type !== 'url'}
-						onclick={() => {
-							[name, value] = [k, v];
-							onclick(false);
-						}}
-						class="hover:cursor-pointer"
-						size="sm"
-					>
-						{k}
-					</Button>
-					<Button
-						{variant}
-						size="icon-sm"
-						onclick={() => {
-							urlCache.delete(k);
-						}}><TrashIcon /></Button
-					>
-				</ButtonGroup.Root>
-			{/each}
-		</ButtonGroup.Root>
-	</Field.Field>
+	{#if type === 'url'}
+		<Field.Field>
+			<ButtonGroup.Root class="flex flex-wrap">
+				{@const variant = 'outline'}
+				{#each urlCache as [k, v] (k)}
+					<ButtonGroup.Root>
+						<Button
+							variant={name === k ? 'secondary' : 'outline'}
+							disabled={type !== 'url'}
+							onclick={() => {
+								[name, value] = [k, v];
+								onclick(false);
+							}}
+							class="hover:cursor-pointer"
+							size="sm"
+						>
+							{k}
+						</Button>
+						<Button
+							{variant}
+							size="icon-sm"
+							onclick={() => {
+								urlCache.delete(k);
+							}}><TrashIcon /></Button
+						>
+					</ButtonGroup.Root>
+				{/each}
+			</ButtonGroup.Root>
+		</Field.Field>
+	{/if}
 </Field.Group>

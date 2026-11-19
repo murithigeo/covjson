@@ -116,6 +116,17 @@ export class Parameter extends Metadata<PR & EdrParameterProperties> {
 		if (!id) return undefined;
 		return this.observedProperty.categories?.find((cat) => cat.id === id);
 	}
+	bin(values: Array<number | null>) {
+		if (!this.categoryEncoding) return undefined;
+		if (this.properties['data-type'] === 'string') return undefined;
+		const nonNulls = values.filter((d) => !isNull(d));
+		const map = new Map<string, number>();
+		map.set('NULL', values.length - nonNulls.length);
+		for (const [id, vals] of this.categoryEncoding) {
+			map.set(id, vals.filter((v) => vals.includes(v)).length);
+		}
+		return map;
+	}
 }
 
 export class CategoryEncoding extends Map<string, number[]> {

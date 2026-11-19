@@ -5,11 +5,12 @@ import { BaseDomain, getDomain, isUndefined } from './domain/index.js';
 import { load } from './load.js';
 import type { InferDomainClass } from './domain/types.js';
 import { Referencing } from './referencing.js';
-import { Range, type RangeOptions } from './ranges.js';
+import { Range } from './ranges.js';
 import { nanoid } from 'nanoid';
 import { axisOptionsToList, cartesianProduct } from './utils.js';
 import type { Feature } from 'geojson';
 import type {
+	CoverageOptions,
 	CoverageProperties,
 	DataRow,
 	GetDataOptions,
@@ -18,20 +19,6 @@ import type {
 	Reference
 } from './types.js';
 
-/**
- * Add a function to forcibly set each ranges minMax externally
- */
-export interface CoverageOptions {
-	/**
-	 * Options to be applied to each ndarray
-	 */
-	ranges?: RangeOptions;
-	/**
-	 * The preferred language of any parameters
-	 * @see {I18N} for more details
-	 */
-	language?: string;
-}
 export class Coverage<D extends Domain = Domain> extends Base<CRG<D>> {
 	/**
 	 * Remote NdArrays.
@@ -209,7 +196,10 @@ export class Coverage<D extends Domain = Domain> extends Base<CRG<D>> {
 		return this.domain.referencing;
 	}
 
-	async getData(ref: Reference, options: GetDataOptions = {}): Promise<DataRow> {
+	async getData(
+		ref: Reference | Map<string, number>,
+		options: GetDataOptions = {}
+	): Promise<DataRow> {
 		if (isUndefined(ref)) ref = this.indices;
 		if (!(ref instanceof Map)) ref = this.queryIndices(ref);
 		options.ranges = options.ranges || [...this.ranges.keys()];
@@ -248,7 +238,7 @@ export class Coverage<D extends Domain = Domain> extends Base<CRG<D>> {
 	/**
 	 * Load multiple values at once
 	 */
-	query(ref: Reference, options: QueryOptions): Promise<DataRow[]> {
+	query(ref: Reference | Map<string, number>, options: QueryOptions): Promise<DataRow[]> {
 		options.axisNames = options.axisNames || {};
 		const consider = this.axesSize
 			.entries()

@@ -52,7 +52,8 @@
 	const valueAlign: TooltipItemProps['valueAlign'] = 'right';
 	const classes = {
 		label: 'text-xs',
-		value: 'text-xs font-normal'
+		value: 'text-xs font-medium',
+		color: 'rounded-none'
 	} satisfies TooltipItemProps['classes'];
 
 	let rows = $derived.by(() => {
@@ -79,13 +80,15 @@
 </script>
 
 {#if tooltip.length}
-	<Tooltip.Root pointerEvents portal={false}>
+	<Tooltip.Root pointerEvents portal={false} class="rounded-none">
 		<Tooltip.Header>
 			<Tooltip.List class="w-full">
 				{#each axesSize
 					.entries()
 					.filter(([, s]) => s > 0)
-					.filter(([an]) => an !== series) as [an] (an)}
+					.filter(([an]) => an !== series)
+					.toArray()
+					.sort(([, a], [, b]) => a - b) as [an] (an)}
 					<Tooltip.Item
 						{valueAlign}
 						{classes}
@@ -106,11 +109,19 @@
 					/>
 				{/if}
 				{#each data.rows as { key, category, value, color } (key)}
-					<Tooltip.Item {valueAlign} {classes} {color} {value}>
+					<Tooltip.Item
+						{valueAlign}
+						classes={{
+							...classes,
+							value: classes.value.concat(active === key ? ' font-bold' : '')
+						}}
+						{color}
+						{value}
+					>
 						{#snippet label()}
 							<div class="flex flex-col">
 								<p class="{classes.label} capitalize {active === key ? 'font-bold' : ''}">
-									{key.toLowerCase()}
+									{key}
 								</p>
 								{#if !isUndefined(category)}
 									<p class="text-muted-foreground">{category}</p>

@@ -1,7 +1,7 @@
 <svelte:options customElement={{ tag: 'covjson-parameter', shadow: 'none' }} />
 
 <script lang="ts">
-	import { Parameter } from '#lib/core/index.js';
+	import type { Parameter } from '#lib/core/index.js';
 	import LocaleTable from './metadata/locale-table.svelte';
 	import ObservedProperty from './metadata/observed-property.svelte';
 	import * as Accordion from '#lib/components/ui/accordion/index.js';
@@ -13,15 +13,15 @@
 	import * as Card from '#lib/components/ui/card/index.js';
 	import Colour from './metadata/parameter/colour.svelte';
 	import css from '../../routes/layout.css?inline';
-	import type { RangeStatistics, ParameterColor } from './types.d.js';
+	import type { RangeStatistics, ParameterColor } from './types.js';
 
 	interface Props {
 		data: Parameter;
 		stats?: RangeStatistics;
-		colors?: ParameterColor;
+		color?: ParameterColor;
 	}
 
-	let { data: parameter, stats, colors }: Props = $props();
+	let { data: parameter, stats, color }: Props = $props();
 
 	let dataType = $derived(parameter.properties['data-type'] ?? stats?.['data-type']);
 	const variant: BadgeVariant = 'outline';
@@ -37,7 +37,7 @@
 			{#if parameter.unit?.symbol?.value}
 				<Badge {variant}>{parameter.unit.symbol.value}</Badge>
 			{/if}
-			<Colour color={colors?.default} />
+			<Colour color={color?.default} />
 		</Card.Title>
 	</Card.Header>
 	<Card.Content>
@@ -103,9 +103,9 @@
 				<Accordion.Content>
 					{#if parameter.observedProperty.categories}
 						<CategoryTable
-							{colors}
+							{color}
 							data={parameter.observedProperty.categories}
-							stats={stats?.frequency}
+							frequencies={stats?.frequency}
 						/>
 					{/if}
 				</Accordion.Content>

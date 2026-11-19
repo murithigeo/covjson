@@ -1,6 +1,6 @@
 <script lang="ts">
 	import * as Table from '#lib/components/ui/table/index.js';
-	import { I18N } from '#lib/core/index.js';
+	import type { I18N } from '#lib/core/index.js';
 	import { cn } from 'cn';
 
 	type Props = Record<'data', Record<string, I18N>>;

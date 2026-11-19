@@ -10,16 +10,22 @@
 	import { scaleOrdinal } from 'd3-scale';
 	import Parameter from '../Parameter.svelte';
 
+	const padding = 24;
+
 	const _chartProps: LineChartProps<DataRow> = {
 		transform: { mode: 'domain', axis: 'both' },
 		brush: true,
 		yNice: true,
 		highlight: { lines: true, points: { r: 6 }, axis: 'both' },
 		points: { r: 4 },
-		legend: true
+		padding: defaultChartPadding({
+			top: padding,
+			axis: true,
+			legend: true,
+			left: padding,
+			right: padding
+		})
 	};
-
-	const padding = 24;
 </script>
 
 <script lang="ts">
@@ -30,7 +36,7 @@
 		cache,
 		config,
 		tooltip: tooltip_ = $bindable(),
-		xDomain = $bindable(),
+		// xDomain = $bindable(),
 		axisNames,
 		resolver,
 		parameter: _key,
@@ -57,14 +63,7 @@
 
 	let chartProps = $derived.by(() => {
 		const props = {
-			..._chartProps,
-			padding: defaultChartPadding({
-				top: padding,
-				axis: true,
-				legend: true,
-				left: padding,
-				right: padding
-			})
+			..._chartProps
 		};
 		props.data = data;
 		props.x = (d) => resolve('x', d);
@@ -103,6 +102,7 @@
 		];
 		props.y = key;
 		if (series) {
+			props.legend = true;
 			delete props.data;
 			const indices = axisOptionsToList(axesSize.get(series), axisNames[series]);
 			const bySeries = Object.groupBy(data, (i) => i[series]!);
@@ -135,16 +135,7 @@
 			<Tabs.Content value="chart">
 				{#if !stringy}
 					<Chart.Container config={{}}>
-						<LineChart
-							yNice
-							{...chartProps}
-							brush={{
-								x: xDomain,
-								onChange: (detail) => {
-									xDomain = detail.brush.x;
-								}
-							}}
-						>
+						<LineChart {...chartProps}>
 							{#snippet tooltip({ context })}
 								<Tooltip
 									{colors}
@@ -167,7 +158,7 @@
 			</Tabs.Content>
 			{#if parameter}
 				<Tabs.Content value="parameter">
-					<Parameter data={parameter} stats={info} />
+					<Parameter data={parameter} stats={info} color={colors[key]} />
 				</Tabs.Content>
 			{/if}
 		</Tabs.Root>

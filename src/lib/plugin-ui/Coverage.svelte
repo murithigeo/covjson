@@ -15,14 +15,21 @@
 		Axis,
 		RangeStatistics
 	} from './types';
-	import { type BrushDomainType } from 'layerchart';
+	import { ChartGroup } from 'layerchart';
 	import {
 		axisIdxResolver,
 		calculateMedian,
 		getAxisConfig,
 		getRandomColor
 	} from './coverage/utils.svelte';
-	import { isNull, isUndefined, minMax, Range, Coverage, type Indices } from '#lib/core/index.js';
+	import {
+		isNull,
+		isUndefined,
+		minMax,
+		type Range,
+		type Coverage,
+		type Indices
+	} from '#lib/core/index.js';
 	import { SvelteMap } from 'svelte/reactivity';
 	import type { Domain } from 'coveragejson';
 	import css from '../../routes/layout.css?inline';
@@ -44,15 +51,15 @@
 	let rangeInfo = new SvelteMap<string, RangeStatistics>();
 
 	const onIndicesChange = (indices: Exclude<Indices, number[]>) => {
-		if (!$host()) return;
+		const host = $host();
+		if (!host) return;
 		const event = new CustomEvent<{ indices: typeof indices; coverage: Coverage<D> }>(
 			'IndicesChange',
 			{ detail: { indices, coverage } }
 		);
-		$host().dispatchEvent(event);
+		host.dispatchEvent(event);
 	};
 
-	let domain = $derived(coverage.domain.clone().denormalize());
 	const updateInfo = (id: string, range: Range) => {
 		if (range.dataType === 'string') {
 			if (!rangeInfo.has(id))
@@ -73,9 +80,12 @@
 		};
 		const values = range.values as Array<number | null>;
 		[stats.min, stats.max] = minMax(values);
+		stats.frequency = coverage.parameters.get(id)?.bin(values);
+		console.log(stats.frequency);
 		const vals = [...values].map((v) => (isNull(v) ? 0 : v)).sort((a, b) => a - b);
 		stats.mean = vals.reduce((l, r) => l + r) / range.totalSize;
 		stats.median = calculateMedian([...vals]);
+
 		rangeInfo.set(id, stats);
 	};
 	$effect(() => {
@@ -85,7 +95,8 @@
 			updateInfo(key, val);
 		});
 	});
-	let defaultAxesConfig = $derived(getAxisConfig(domain));
+
+	let defaultAxesConfig = $derived(getAxisConfig(coverage));
 	let config = $derived(conf || defaultAxesConfig.config);
 	let axisNames = $derived.by(() => {
 		if (an) return an;
@@ -95,7 +106,7 @@
 			{}
 		);
 	});
-	let resolver = $derived(axisIdxResolver(domain, formatters?.axis));
+	let resolver = $derived(axisIdxResolver(coverage, formatters?.axis));
 	let axesSize = $derived(coverage.axesSize as Map<Axis, number>);
 	let selected = $derived(s || coverage.rangeIds);
 	let rangeIds = $derived(coverage.rangeIds.filter((id) => selected.includes(id)));
@@ -157,14 +168,13 @@
 	let view = $state<View>('chart');
 	// svelte-ignore state_referenced_locally
 	let active = $state<string>(rangeIds.at(0) ?? '');
-	let xDomain = $state<BrushDomainType>();
 
 	let title = $derived.by(() => {
 		const { title } = labels;
 		if (!title) return coverage.id || '';
 		if ('value' in title) return title.value;
 		const { key } = title;
-		if (key in coverage) return coverage[key as keyof typeof cov];
+		if (key in coverage) return coverage[key as keyof typeof coverage];
 		return coverage.properties[key];
 	});
 	let description = $derived.by(() => {
@@ -172,7 +182,7 @@
 		if (!description) return coverage.id || '';
 		if ('value' in description) return description.value;
 		const { key } = description;
-		if (key in coverage) return coverage[key as keyof typeof cov];
+		if (key in coverage) return coverage[key as keyof typeof coverage];
 		return coverage.properties[key];
 	});
 </script>
@@ -211,30 +221,31 @@
 				</Tabs.Root>
 			</span>
 			<Tabs.Root bind:value={active}>
-				{#each rangeIds as key (key)}
-					<Tabs.Content value={key}>
-						<DataView
-							bind:view
-							parameter={coverage.parameters.get(key) || key}
-							{colors}
-							bind:xDomain
-							bind:tooltip
-							{resolver}
-							{cache}
-							{data}
-							{config}
-							{axisNames}
-							{axesSize}
-							format={(k, v) => {
-								const value = formatters?.value?.(k, v);
-								if (value) return value;
-								return coverage.parameters.get(k)?.unit?.format(v);
-							}}
-							{rangeIds}
-							info={rangeInfo.get(key)}
-						/>
-					</Tabs.Content>
-				{/each}
+				<ChartGroup>
+					{#each rangeIds as key (key)}
+						<Tabs.Content value={key}>
+							<DataView
+								bind:view
+								parameter={coverage.parameters.get(key) || key}
+								{colors}
+								bind:tooltip
+								{resolver}
+								{cache}
+								{data}
+								{config}
+								{axisNames}
+								{axesSize}
+								format={(k, v) => {
+									const value = formatters?.value?.(k, v);
+									if (value) return value;
+									return coverage.parameters.get(k)?.unit?.format(v);
+								}}
+								{rangeIds}
+								info={rangeInfo.get(key)}
+							/>
+						</Tabs.Content>
+					{/each}
+				</ChartGroup>
 			</Tabs.Root>
 		{/if}
 	</Card.Content>

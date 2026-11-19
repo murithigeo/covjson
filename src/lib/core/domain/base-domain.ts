@@ -8,13 +8,13 @@ import type {
 	PolygonSeries,
 	VerticalProfile,
 	Trajectory,
-	Position,
 	RegularlySpacedAxis,
 	Section
 } from 'coveragejson';
 import { Base } from '../base.js';
 import { Referencing } from '../referencing.js';
 import { indexOfNearest } from '../utils.js';
+import type { Reference } from '../types';
 
 export abstract class BaseDomain<D extends Domain = Domain> extends Base<D> {
 	type: D['type'];
@@ -85,7 +85,7 @@ export abstract class BaseDomain<D extends Domain = Domain> extends Base<D> {
 	zIndex(z: number): number {
 		return indexOfNearest(this.z, z);
 	}
-	abstract queryIndices(ref: Position | string | number): Map<keyof D['axes'], number>;
+	abstract queryIndices(ref: Reference): Map<keyof D['axes'], number>;
 	/**
 	 * We can have a method that returns boolean for boolean intersects
 	 * Another for determining which composite values intersect ie. for polygons,multipoints which are computationally expensive

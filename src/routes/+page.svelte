@@ -19,6 +19,7 @@
 
 	let data = $state<MaplibrePluginOptions['data']>(preloads['Grid Tiled']);
 	let coverages = $state<Array<Coverage>>([]);
+
 	let colors = $state<Colors>({});
 	const handleLayerEvent = (e: LayerClickInfo, source: MaplibrePlugin) => {
 		const covs = source.getCoveragesFromFeatureList(e.features, e.event.lngLat);
