@@ -1,6 +1,7 @@
 {
 	"name": "@murithigeo/covjson",
-	"version": "0.1.0",
+	"version": "0.3.0",
+	"description": "Process, visualize and validate CoverageJSON documents in the browser",
 	"scripts": {
 		"dev": "vite dev",
 		"build": "vite build",
