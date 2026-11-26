@@ -1,4 +1,4 @@
-<svelte:options customElement={{ tag: 'covjson-parametergroup', shadow: 'none' }} />
+<svelte:options customElement="covjson-parametergroup" />
 
 <script lang="ts">
 	import ObservedProperty from './metadata/observed-property.svelte';

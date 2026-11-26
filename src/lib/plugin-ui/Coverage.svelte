@@ -1,4 +1,4 @@
-<svelte:options customElement={{ tag: 'covjson-coverage', shadow: 'none' }} />
+<svelte:options customElement="covjson-coverage" />
 
 <script lang="ts" generics="D extends Domain=Domain">
 	import DataView from './coverage/data-view.svelte';
@@ -9,27 +9,21 @@
 	import type {
 		Tooltip,
 		Colors,
-		CoverageOptions,
+		CoverageProps,
 		View,
 		Data,
 		Axis,
 		RangeStatistics
-	} from './types';
+	} from './types.js';
 	import { ChartGroup } from 'layerchart';
 	import {
 		axisIdxResolver,
 		calculateMedian,
 		getAxisConfig,
+		getAxisLabels,
 		getRandomColor
-	} from './coverage/utils.svelte';
-	import {
-		isNull,
-		isUndefined,
-		minMax,
-		type Range,
-		type Coverage,
-		type Indices
-	} from '#lib/core/index.js';
+	} from './coverage/utils.svelte.js';
+	import { isNull, isUndefined, minMax, type Range, type Coverage } from '#lib/core/index.js';
 	import { SvelteMap } from 'svelte/reactivity';
 	import type { Domain } from 'coveragejson';
 	import css from '../../routes/layout.css?inline';
@@ -46,11 +40,11 @@
 		config: conf,
 		formatters,
 		labels = {}
-	}: CoverageOptions<D> = $props();
+	}: CoverageProps<D> = $props();
 
 	let rangeInfo = new SvelteMap<string, RangeStatistics>();
 
-	const onIndicesChange = (indices: Exclude<Indices, number[]>) => {
+	const onIndicesChange = (indices: Map<Axis, number>) => {
 		const host = $host();
 		if (!host) return;
 		const event = new CustomEvent<{ indices: typeof indices; coverage: Coverage<D> }>(
@@ -81,7 +75,6 @@
 		const values = range.values as Array<number | null>;
 		[stats.min, stats.max] = minMax(values);
 		stats.frequency = coverage.parameters.get(id)?.bin(values);
-		console.log(stats.frequency);
 		const vals = [...values].map((v) => (isNull(v) ? 0 : v)).sort((a, b) => a - b);
 		stats.mean = vals.reduce((l, r) => l + r) / range.totalSize;
 		stats.median = calculateMedian([...vals]);
@@ -96,17 +89,18 @@
 		});
 	});
 
-	let defaultAxesConfig = $derived(getAxisConfig(coverage));
+	let domain = $derived(coverage.domain.clone().denormalize());
+	let defaultAxesConfig = $derived(getAxisConfig(domain));
 	let config = $derived(conf || defaultAxesConfig.config);
 	let axisNames = $derived.by(() => {
 		if (an) return an;
 		if (!conf) return defaultAxesConfig.axisNames;
 		return Object.values(conf).reduce(
-			(l: NonNullable<CoverageOptions['axisNames']>, r) => ({ ...l, [r]: true }),
+			(l: NonNullable<CoverageProps['axisNames']>, r) => ({ ...l, [r]: true }),
 			{}
 		);
 	});
-	let resolver = $derived(axisIdxResolver(coverage, formatters?.axis));
+	let resolver = $derived(axisIdxResolver(domain, formatters?.axis));
 	let axesSize = $derived(coverage.axesSize as Map<Axis, number>);
 	let selected = $derived(s || coverage.rangeIds);
 	let rangeIds = $derived(coverage.rangeIds.filter((id) => selected.includes(id)));
@@ -185,6 +179,14 @@
 		if (key in coverage) return coverage[key as keyof typeof coverage];
 		return coverage.properties[key];
 	});
+	let axisLabels = $derived.by(() => {
+		const _labels = { ...labels };
+		const defs = getAxisLabels(domain);
+		for (const an in axesSize) {
+			if (!_labels[an]) _labels[an] = defs[an];
+		}
+		return _labels;
+	});
 </script>
 
 <Card.Root {id}>
@@ -242,6 +244,7 @@
 								}}
 								{rangeIds}
 								info={rangeInfo.get(key)}
+								labels={axisLabels}
 							/>
 						</Tabs.Content>
 					{/each}

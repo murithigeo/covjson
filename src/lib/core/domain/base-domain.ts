@@ -68,13 +68,11 @@ export abstract class BaseDomain<D extends Domain = Domain> extends Base<D> {
 	 */
 	abstract get geometry(): D extends Point | PointSeries | VerticalProfile
 		? GeoJSON.Point
-		: D extends Trajectory
-			? GeoJSON.LineString
-			: D extends Polygon | PolygonSeries
-				? GeoJSON.Polygon
-				: D extends MultiPoint | MultiPointSeries | Section
-					? GeoJSON.MultiPoint
-					: GeoJSON.MultiPolygon;
+		: D extends Polygon | PolygonSeries
+			? GeoJSON.Polygon
+			: D extends MultiPoint | MultiPointSeries | Section | Trajectory
+				? GeoJSON.MultiPoint
+				: GeoJSON.MultiPolygon;
 
 	tIndex(t: string): number {
 		return indexOfNearest(
@@ -86,8 +84,4 @@ export abstract class BaseDomain<D extends Domain = Domain> extends Base<D> {
 		return indexOfNearest(this.z, z);
 	}
 	abstract queryIndices(ref: Reference): Map<keyof D['axes'], number>;
-	/**
-	 * We can have a method that returns boolean for boolean intersects
-	 * Another for determining which composite values intersect ie. for polygons,multipoints which are computationally expensive
-	 */
 }

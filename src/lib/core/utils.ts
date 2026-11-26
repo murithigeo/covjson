@@ -3,7 +3,7 @@
  * @author letmaik
  */
 
-import type { AxisNamesOptions } from './types.js';
+import type { Indices } from './types.js';
 
 /**
  * Copyright (c) 2016 The University of Reading
@@ -110,13 +110,16 @@ export type WithRequiredProperty<Type, Key extends keyof Type> = Type & {
 };
 
 /**
- * Convert {@link AxisNamesOptions} to a list of numbers
+ * Convert {@link Indices} to a list of numbers
  */
-export function axisOptionsToList(size?: number, opts?: AxisNamesOptions): number[] {
+export function axisOptionsToList(size?: number, opts?: Indices): number[] {
 	if (!opts) return [];
 	if (opts === true) return [...Array(size).keys()];
 	if (Array.isArray(opts)) return opts;
-	const stop = opts.stop ?? size ?? 0;
-	const start = opts.start ?? 0;
+	const { start, stop = size || 1, step = 1 } = opts;
+	const stops = Array<number>();
+	for (let i = 0; i <= stop - 1; i + step) {
+		stops.push(start + i + step);
+	}
 	return Array.from({ length: (stop - start) / 2 }, (_, index) => start + index * 1);
 }

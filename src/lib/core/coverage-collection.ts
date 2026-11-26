@@ -13,10 +13,7 @@ import type {
 	Reference
 } from './types.js';
 
-export class CoverageCollection<
-	D extends Domain = Domain,
-	ID extends InferDomainClass<D> = InferDomainClass<D>
-> extends Base<CovColl<D>> {
+export class CoverageCollection<D extends Domain = Domain> extends Base<CovColl<D>> {
 	type: 'CoverageCollection';
 	coverages: Coverage<D>[];
 	domainType?: D['domainType'];
@@ -107,7 +104,10 @@ export class CoverageCollection<
 			referencing: this.referencing
 		};
 	}
-	get featurecollection(): FeatureCollection<ID['geometry'], CoverageProperties<ID['domainType']>> {
+	get featurecollection(): FeatureCollection<
+		InferDomainClass<D>['geometry'],
+		CoverageProperties<D['domainType']>
+	> {
 		return {
 			type: 'FeatureCollection',
 			features: this.coverages.map((cov) => cov.feature)
@@ -146,6 +146,16 @@ export class CoverageCollection<
 	addCoverage(coverage: Coverage<D>) {
 		this.parameters = new Map([...this.parameters, ...coverage.parameters]);
 		this.coverages.push(coverage);
+	}
+	/**
+	 * Returns exactly this instance with nothing changed
+	 */
+	subsetByIndex(): this {
+		return this;
+	}
+	subsetByBbox(): this {
+		// Call each of the coverages
+		return this;
 	}
 }
 

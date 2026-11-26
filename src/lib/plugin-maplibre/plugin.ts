@@ -20,7 +20,7 @@ import {
 	CRS84,
 	type WithRequiredProperty
 } from '#lib/core/index.js';
-import type { PluginOptions, SourceDiff } from './types.js';
+import type { PluginOptions, CoverageJSONSourceDiff } from './types.js';
 import type { Domain, Position } from 'coveragejson';
 import { Coverage } from '#lib/core/coverage.js';
 import type { Feature } from 'geojson';
@@ -72,7 +72,10 @@ export class MaplibrePlugin<D extends Domain = Domain> extends GeoJSONSource {
 		if (point instanceof LngLat) point = point.wrap().toArray();
 		return this._coveragecollection.coverages
 			.filter((cov) => featureIds.includes(cov.uuid))
-			.map((cov) => cov.calculateIndices(point));
+			.map((cov) => {
+				cov.domain.referencing = this._coveragecollection.referencing;
+				return cov.calculateIndices(point);
+			});
 	}
 
 	// todo reproject
@@ -123,7 +126,7 @@ export class MaplibrePlugin<D extends Domain = Domain> extends GeoJSONSource {
 	 * Adapted closely to GeoJSON's source
 	 * @todo call the GeoJSON.updateData method
 	 */
-	async updateCovData(diff: SourceDiff<D>): Promise<void> {
+	async updateCovData(diff: CoverageJSONSourceDiff<D>): Promise<void> {
 		const geojsonDiff: GeoJSONSourceDiff = { add: [], update: [], remove: [] };
 		if (diff.add) {
 			for (let cov of diff.add) {

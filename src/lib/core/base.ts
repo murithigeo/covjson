@@ -7,6 +7,7 @@ export abstract class Base<T> {
 	async reproject(referencing: Referencing | ReferenceSystemConnection[] | ReferencingOptions) {
 		const ref = await new Referencing(this.referencing).to(referencing);
 		this._reproject(ref);
+		// Coverage.referencing is a getter for the domain's referencing
 		if (Object.getOwnPropertyDescriptor(this, 'referencing')?.value) this.referencing = ref;
 
 		return this;

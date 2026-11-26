@@ -2,9 +2,8 @@
 	import * as Table from '#lib/components/ui/table/index.js';
 	import type { Category } from '#lib/core/parameters.js';
 	import Color from './parameter/colour.svelte';
-	import type { ParameterColor } from '../types.js';
+	import type { Frequencies, ParameterColor } from '../types.js';
 	import { cn } from '#lib/utils.js';
-	import type { RangeStatistics } from '../types.js';
 
 	interface Props {
 		data: Category[];
@@ -12,7 +11,7 @@
 		/**
 		 * The count of each category
 		 */
-		frequencies?: RangeStatistics['frequency'];
+		frequencies?: Frequencies;
 	}
 	let { data: categories, color, frequencies }: Props = $props();
 	let showcolor = $derived(color && Object.keys(color).length > 1);

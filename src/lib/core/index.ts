@@ -1,8 +1,9 @@
-import { Coverage, type CoverageOptions } from './coverage.js';
+import { Coverage } from './coverage.js';
 import type { CoverageJSON, Domain, NdArray, TiledNdArray } from 'coveragejson';
 import { CoverageCollection } from './coverage-collection.js';
 import { getDomain } from './domain/index.js';
-import { Range, type RangeOptions } from './ranges.js';
+import { Range } from './ranges.js';
+import type { CoverageOptions, RangeOptions } from './types.js';
 export * from './coverage.js';
 export * from './coverage-collection.js';
 export * from './domain/index.js';

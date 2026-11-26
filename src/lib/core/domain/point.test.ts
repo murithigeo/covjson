@@ -1,6 +1,5 @@
 import { Point, PointSeries } from './point.js';
 import { describe, it, expect } from 'vitest';
-import { Referencing } from '../referencing.js';
 import { load } from '../load.js';
 import type { Coverage, Point as P, PointSeries as Ps } from 'coveragejson';
 
@@ -25,8 +24,8 @@ describe('Clone: The clone method returns a completely different object', () => 
 });
 
 describe('reproject: Actually works', async () => {
-	const referencing = new Referencing();
-	const referencing = await Referencing.load({ crsId: 'EPSG:32737' }, []);
+	// const referencing = new Referencing();
+	// const referencing = await Referencing.load({ crsId: 'EPSG:32737' }, []);
 	describe('Point', async () => {
 		const utmPoint = await point.clone().reproject({ crs: { id: 'EPSG:32737' } });
 		it('returns a clone', () => {
@@ -34,7 +33,7 @@ describe('reproject: Actually works', async () => {
 		});
 		it('correctly reprojects', () => {
 			expect(utmPoint.geometry.coordinates).toEqual(
-				referencing.crs(point.geometry.coordinates as [number, number])
+				utmPoint.referencing?.crs(point.geometry.coordinates as [number, number])
 			);
 		});
 

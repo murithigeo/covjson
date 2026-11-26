@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { Tooltip } from 'layerchart';
 	import type { Axis, Data, TooltipProps } from '../types.js';
-	import { CustomDate, isUndefined, type DataRow } from '#lib/core/index.js';
+	import { CustomDate, isNull, isUndefined, type DataRow } from '#lib/core/index.js';
 	import type { ComponentProps } from 'svelte';
 
 	type TooltipItemProps = ComponentProps<typeof Tooltip.Item>;
@@ -15,7 +15,8 @@
 		resolver,
 		format = (k, v) => v?.toString(),
 		rangeIds,
-		axesSize
+		axesSize,
+		labels
 	}: TooltipProps = $props();
 
 	let visibleSeries = $derived.by(() => {
@@ -42,6 +43,7 @@
 	const resolveAndFormat = (an: Axis, idx?: number) => {
 		const value = resolver(an, idx ?? 0, 'chart');
 		if (value instanceof CustomDate) return value.value;
+		if (typeof value === 'number' && labels[an]) return `${value}${labels[an].unit}`;
 		return value;
 	};
 	const setTooltip = (r: Data) => {
@@ -60,20 +62,27 @@
 		return tooltip.map((row) => {
 			let header: { label: string; value: unknown } | undefined = undefined;
 			if (series) {
-				const value = resolveAndFormat(series, row[series]);
-				if (value) header = { value, label: series };
+				header = {
+					value: resolveAndFormat(series, row[series]),
+					label: labels[series]?.title || series
+				};
 			}
 			return {
 				header,
-				rows: rangeIds.map((key) => ({
-					key,
-					value: format(key, row[key]) ?? row[key],
-					category: row[`${key}:cat`],
-					get color() {
-						if (!this.category) return colors[key].default;
-						return colors[key][this.category] ?? colors[key].default;
-					}
-				}))
+				rows: rangeIds.map((key) => {
+					let value = row[key];
+					if (isNull(value)) value = 'No Data';
+					else value = format(key, value) || value;
+					return {
+						key,
+						value,
+						category: row[`${key}:cat`],
+						get color() {
+							if (!this.category) return colors[key].default;
+							return colors[key][this.category] ?? colors[key].default;
+						}
+					};
+				})
 			};
 		});
 	});
@@ -92,7 +101,7 @@
 					<Tooltip.Item
 						{valueAlign}
 						{classes}
-						label={an}
+						label={labels[an]?.title || an}
 						value={resolveAndFormat(an, tooltip[0][an])}
 					/>
 				{/each}

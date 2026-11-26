@@ -15,9 +15,6 @@ import { indexOfNearest } from '../utils.js';
 import type { Reference } from '../types';
 
 export class Grid extends BaseDomain<GridDomain> {
-	constructor(domain: GridDomain) {
-		super(domain);
-	}
 	/**
 	 * Normalize axes individually
 	 */

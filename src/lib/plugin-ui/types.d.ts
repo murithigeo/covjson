@@ -3,9 +3,10 @@ import type {
 	OnIndicesChange,
 	Parameter,
 	DataValue,
-	AxisNamesOptions,
+	Indices,
 	EdrParameterProperties,
-	CustomDate
+	CustomDate,
+	DataRow
 } from '#lib/core/index.js';
 import type { Domain } from 'coveragejson';
 import type { BrushDomainType, ChartState } from 'layerchart';
@@ -30,7 +31,7 @@ export interface RangeStatistics extends Pick<EdrParameterProperties, 'data-type
 	/**
 	 * Provided a categoryEncoding object, calculate the bins
 	 */
-	frequency?: Map<string, number> | null;
+	frequency?: Frequencies;
 	/**
 	 * Total count of values
 	 */
@@ -51,7 +52,11 @@ export type Axis = 'x' | 'y' | 'composite' | 'z' | 't';
  * Internal resolver for an axis index.
  * When chart is set, //@todo check
  */
-export type AxisResolver = (a: Axis, i: number, mode?: 'chart') => string | number | CustomDate;
+export type AxisResolver = (
+	a: Axis,
+	i: number,
+	mode?: 'chart'
+) => string | number | CustomDate | Record<Axis, string | number | CustomDate>;
 
 /**
  *
@@ -96,7 +101,7 @@ interface ParameterColor {
  */
 export type Config = Partial<Record<ChartDimension, Axis>>;
 
-export interface CoverageOptions<D extends Domain = Domain> {
+export interface CoverageProps<D extends Domain = Domain> {
 	coverage: Coverage<D>;
 	/**
 	 * Only show these parameters
@@ -122,7 +127,7 @@ export interface CoverageOptions<D extends Domain = Domain> {
 	/**
 	 * Which axis values to load etc
 	 */
-	axisNames?: Record<string, AxisNamesOptions>;
+	axisNames?: Record<string, Indices>;
 	config?: Config;
 	formatters?: Formatters<D>;
 
@@ -141,15 +146,20 @@ export interface CoverageOptions<D extends Domain = Domain> {
 					 */
 					value: string;
 			  }
-		> & {}
+		> & {
+			/**
+			 * Where the key is the axis name
+			 */
+			[x: string]: Record<'title' | 'unit', string>;
+		}
 	>;
 }
 
 export type View = 'chart' | 'table' | 'parameter';
 export type AxesSize = Map<Axis, number>;
-export interface DataViewProps extends Required<
-	Pick<CoverageOptions, 'axisNames' | 'colors' | 'config'>
-> {
+
+export type DataViewProps = Required<Pick<CoverageProps, 'axisNames' | 'colors' | 'config'>> & {
+	labels: Partial<Record<string, Record<'unit' | 'title', string>>>;
 	view: View;
 	xDomain?: BrushDomainType;
 	resolver: AxisResolver;
@@ -165,9 +175,14 @@ export interface DataViewProps extends Required<
 	axesSize: AxesSize;
 	format: NonNullable<Formatters['value']>;
 	rangeIds: string[];
-}
+};
 
+/**
+ * Count of how values are in one category
+ */
+export type Frequencies = Map<string, number>;
 export interface TooltipProps {
+	labels: DataViewProps['labels'];
 	colors: Colors;
 	series: Axis | undefined;
 	context: ChartState;

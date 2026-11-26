@@ -5,7 +5,7 @@
 	import { defaultChartPadding, LineChart, type LineChartProps } from 'layerchart';
 	import * as Chart from '#lib/components/ui/chart/index.js';
 	import type { ChartDimension, DataViewProps, FormatWithUnit } from '../types.js';
-	import TableCpt from './table.svelte';
+	import Table from './table.svelte';
 	import Tooltip from './tooltip.svelte';
 	import { scaleOrdinal } from 'd3-scale';
 	import Parameter from '../Parameter.svelte';
@@ -22,7 +22,7 @@
 			top: padding,
 			axis: true,
 			legend: true,
-			left: padding,
+			left: padding + 2,
 			right: padding
 		})
 	};
@@ -36,14 +36,14 @@
 		cache,
 		config,
 		tooltip: tooltip_ = $bindable(),
-		// xDomain = $bindable(),
 		axisNames,
 		resolver,
 		parameter: _key,
 		axesSize,
 		format: formatVal,
 		rangeIds,
-		info
+		info,
+		labels
 	}: DataViewProps = $props();
 
 	let series = $derived(config.series);
@@ -51,7 +51,7 @@
 	let key = $derived(typeof _key === 'string' ? _key : _key?.key);
 	let stringy = $derived(info?.['data-type'] === 'string');
 	let categories = $derived(parameter?.observedProperty.categories);
-	let categoric = $derived<boolean>(!isUndefined(categories));
+	let categoric = $derived(!isUndefined(categories));
 
 	let color = $derived(colors[key]);
 	let totalSize = $derived(info?.totalSize);
@@ -83,6 +83,21 @@
 				}
 			}
 		};
+		props.rule = true;
+		if (config.x && labels[config.x]) props.props.xAxis = { label: labels[config.x]?.title };
+		props.props.yAxis = {
+			get label() {
+				let label = 'value';
+				if (parameter?.unit?.symbol?.value) label += `(${parameter.unit.symbol.value})`;
+				return label;
+			},
+			labelProps: {
+				dx: -0.6,
+				class: 'font-medium'
+			},
+			rule: true
+		};
+
 		if (categories && Object.keys(color).length > 1) {
 			props.c = `${key}:cat`;
 			props.cScale = scaleOrdinal();
@@ -130,7 +145,7 @@
 	<Card.Content>
 		<Tabs.Root bind:value={view}>
 			<Tabs.Content value="table">
-				<TableCpt data={cache} {key} {categoric} {axesSize} {resolver} {totalSize} />
+				<Table data={cache} {key} {categoric} {axesSize} {resolver} {totalSize} />
 			</Tabs.Content>
 			<Tabs.Content value="chart">
 				{#if !stringy}
@@ -138,6 +153,7 @@
 						<LineChart {...chartProps}>
 							{#snippet tooltip({ context })}
 								<Tooltip
+									{labels}
 									{colors}
 									{series}
 									{context}
@@ -153,12 +169,12 @@
 						</LineChart>
 					</Chart.Container>
 				{:else}
-					<TableCpt data={cache} {key} {categoric} {axesSize} {resolver} {totalSize} />
+					<Table data={cache} {key} {categoric} {axesSize} {resolver} {totalSize} />
 				{/if}
 			</Tabs.Content>
 			{#if parameter}
 				<Tabs.Content value="parameter">
-					<Parameter data={parameter} stats={info} color={colors[key]} />
+					<Parameter {parameter} stats={info} color={colors[key]} showTitle={false} />
 				</Tabs.Content>
 			{/if}
 		</Tabs.Root>

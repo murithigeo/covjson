@@ -198,11 +198,11 @@
             },
             {
               "kind": "field",
-              "name": "colors",
+              "name": "color",
               "type": {
                 "text": "ParameterColor"
               },
-              "attribute": "colors",
+              "attribute": "color",
               "reflects": false,
               "privacy": "public"
             }
@@ -223,11 +223,11 @@
               "fieldName": "stats"
             },
             {
-              "name": "colors",
+              "name": "color",
               "type": {
                 "text": "ParameterColor"
               },
-              "fieldName": "colors"
+              "fieldName": "color"
             }
           ]
         }

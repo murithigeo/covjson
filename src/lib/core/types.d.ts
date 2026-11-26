@@ -1,4 +1,4 @@
-import type { DomainTypes, Position, NdArray } from 'coveragejson';
+import type { DomainTypes, Position, NdArray, Domain } from 'coveragejson';
 import { Range } from './ranges';
 import type { BBox } from 'geojson';
 
@@ -39,10 +39,10 @@ export interface CoverageProperties<DT extends DomainTypes> {
  * Can be a Map if you dont know the actual arrangement of the Range's axisNames or want the range to normalize
  * Pass a position to que
  */
-export type Indices = Map<string, number> | number[];
+export type RangeIndices = Map<string, number> | number[];
 
 export interface QueryOptions {
-	axisNames?: Record<string, AxisNamesOptions>;
+	axisNames?: Record<string, Indices>;
 	/**
 	 * The ranges to query
 	 */
@@ -58,7 +58,7 @@ export type GetDataOptions = Omit<QueryOptions, 'axisNames'>;
 /**
  * In case of object, the values are inclusive
  */
-export type AxisNamesOptions = boolean | number[] | Partial<Record<'start' | 'stop', number>>;
+export type Indices = boolean | number[] | GraduatedIndices;
 
 export type DataValue = string | number;
 
@@ -143,3 +143,19 @@ export interface EdrParameterProperties {
 		};
 	};
 }
+
+export type SubsetByIndexOptions<D extends Domain> = {
+	[x in keyof D['axes']]: GraduatedIndices | boolean | number[];
+};
+
+export type GraduatedIndices = {
+	start: number;
+	/**
+	 * Best to include it
+	 */
+	stop?: number;
+	/**
+	 * @default 1
+	 */
+	step?: number;
+};

@@ -14,7 +14,6 @@ import type {
 	CoverageProperties,
 	DataRow,
 	GetDataOptions,
-	Indices,
 	QueryOptions,
 	Reference
 } from './types.js';
@@ -45,7 +44,7 @@ export class Coverage<D extends Domain = Domain> extends Base<CRG<D>> {
 	parameterGroups: ParameterGroup[];
 	ranges: Map<string, Range>;
 	uuid: string;
-	indices: Exclude<Indices, number[]>;
+	indices: Map<string, number>;
 	options: CoverageOptions;
 	constructor(coverage: CRG<D | InferDomainClass<D>>, options: CoverageOptions = {}) {
 		super();

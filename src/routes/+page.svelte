@@ -77,7 +77,7 @@
 					<LineLayer
 						{source}
 						filter={['in', ['get', 'domainType'], ['literal', ['Grid', 'Section', 'Trajectory']]]}
-						paint={{ 'line-color': 'red', 'line-width': 0.4 }}
+						paint={{ 'line-color': 'black', 'line-width': 0.4 }}
 					></LineLayer>
 					<SymbolLayer
 						id="point-based-coverages"

@@ -9,6 +9,7 @@
 			.entries()
 			.filter(([, size]) => size > 0)
 			.toArray()
+			.reverse()
 	);
 </script>
 

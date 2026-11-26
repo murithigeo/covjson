@@ -13,10 +13,6 @@ import { isUndefined, denormalizeNumAxis } from './utils.js';
 import nearestPointOnLine from '@turf/nearest-point-on-line';
 
 abstract class Base<T extends MpD | MpsD> extends BaseDomain<T> {
-	constructor(domain: T) {
-		super(domain);
-	}
-
 	get z(): number[] {
 		return this.axes.composite.values.map(([, , z]) => z).filter((v) => v !== undefined);
 	}

@@ -1,12 +1,21 @@
-import { CustomDate, Coverage } from '#lib/core/index.ts';
+import { CustomDate, Coverage, type InferDomainClass } from '#lib/core/index.js';
 import { SvelteMap } from 'svelte/reactivity';
-import type { Axis, CoverageOptions, AxisResolver, ChartDimension, Formatters } from '../types';
+import type {
+	Axis,
+	CoverageProps,
+	AxisResolver,
+	ChartDimension,
+	Formatters,
+	DataViewProps
+} from '../types';
 
 /**
  * @param coverage A Coverage whose axes values are no longer normalized
  */
-export function axisIdxResolver(cov: Coverage, resolver?: Formatters['axis']): AxisResolver {
-	const domain = cov.domain.clone().denormalize();
+export function axisIdxResolver(
+	domain: ReturnType<InferDomainClass['denormalize']>,
+	resolver?: Formatters['axis']
+): AxisResolver {
 	return (axisName: Axis, idx: number, mode?: 'chart') => {
 		// eslint-disable-next-line @typescript-eslint/no-explicit-any
 		const axis: undefined | any = domain.axes[axisName as keyof (typeof domain)['axes']];
@@ -21,6 +30,7 @@ export function axisIdxResolver(cov: Coverage, resolver?: Formatters['axis']): A
 		}
 		if (resolver) return resolver(domain.domainType, idx, { mode, value, axisName });
 		if (dataType === 'tuple') {
+			// Split into x,y,t,z
 			if (typeof value[0] === 'string' && mode === 'chart')
 				[dataType, value] = ['primitive', value[0]];
 		}
@@ -34,19 +44,19 @@ export function axisIdxResolver(cov: Coverage, resolver?: Formatters['axis']): A
 	};
 }
 
-export function getAxisConfig(coverage: Coverage) {
-	const config: CoverageOptions['config'] = {};
+export function getAxisConfig(domain: ReturnType<InferDomainClass['denormalize']>) {
+	const config: CoverageProps['config'] = {};
 	const setDimension = (dim: ChartDimension, axis: Axis) => {
-		const size = coverage.axesSize.get(axis as never);
+		const size = domain.axesSize.get(axis as never);
 		if (!size) return { setDimension };
 		config[dim] = axis;
 		return { setDimension };
 	};
-	switch (coverage.domainType) {
+	switch (domain.domainType) {
 		case 'Grid':
-			setDimension('x', coverage.t.length ? 't' : 'z').setDimension(
+			setDimension('x', domain.t.length ? 't' : 'z').setDimension(
 				'series',
-				coverage.t.length ? 'z' : 't'
+				domain.t.length ? 'z' : 't'
 			);
 			break;
 		case 'Section':
@@ -63,26 +73,63 @@ export function getAxisConfig(coverage: Coverage) {
 		case 'MultiPointSeries':
 		case 'PointSeries':
 			setDimension('x', 't');
-			if (coverage.domainType !== 'PointSeries') setDimension('series', 'composite');
+			if (domain.domainType !== 'PointSeries') setDimension('series', 'composite');
 			break;
 		case 'MultiPolygon':
 		case 'Polygon':
-			setDimension('x', coverage.t.length ? 't' : coverage.z.length ? 'z' : 'composite');
+			setDimension('x', domain.t.length ? 't' : domain.z.length ? 'z' : 'composite');
 			break;
 		case 'Point':
-			setDimension('x', coverage.t.length ? 't' : 'z');
+			setDimension('x', domain.t.length ? 't' : 'z');
 			break;
 		case 'MultiPoint':
-			setDimension('x', coverage.t.length ? 't' : 'composite');
+			setDimension('x', domain.t.length ? 't' : 'composite');
 	}
 
 	return {
 		config,
 		axisNames: Object.values(config).reduce(
-			(l: NonNullable<CoverageOptions['axisNames']>, r) => ({ ...l, [r]: true }),
+			(l: NonNullable<CoverageProps['axisNames']>, r) => ({ ...l, [r]: true }),
 			{}
 		)
 	};
+}
+
+export function getAxisLabels(domain: ReturnType<InferDomainClass['denormalize']>) {
+	const labels: DataViewProps['labels'] = {};
+
+	const setLabel = (a: string, v: DataViewProps['labels'][string]) => {
+		labels[a] = v;
+		return { setLabel };
+	};
+
+	const isProjected = !!domain.referencing?.find((d) => d.system.type === 'ProjectedCRS');
+	const longitude = {
+		title: isProjected ? 'Easting' : 'Lon',
+		unit: isProjected ? 'm' : '°'
+	};
+	const latitude = {
+		title: isProjected ? 'Northing' : 'Lat',
+		unit: isProjected ? 'm' : '°'
+	};
+	const temporal = {
+		title: 'Datetime',
+		unit: ''
+	};
+	const elevation = { title: 'z', unit: '' };
+	switch (domain.domainType) {
+		case 'Polygon':
+		case 'PolygonSeries':
+		case 'MultiPolygon':
+		case 'MultiPolygonSeries':
+		default:
+			setLabel('x', longitude)
+				.setLabel('y', latitude)
+				.setLabel('t', temporal)
+				.setLabel('z', elevation);
+	}
+
+	return labels;
 }
 
 export function makeIndicesReactive(cov: Coverage) {

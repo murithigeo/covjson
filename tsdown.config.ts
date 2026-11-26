@@ -2,7 +2,6 @@ import { defineConfig } from 'tsdown';
 import tailwind from '@tailwindcss/postcss';
 import url from 'postcss-url';
 export default defineConfig({
-	dts: true,
 	suppressWarnings: (message) => {
 		const warning = [
 			'https://svelte.dev/e/custom_element_props_identifier',
@@ -13,7 +12,6 @@ export default defineConfig({
 		console.log(`Suppressed error: ${warning}`);
 		return true;
 	},
-
 	css: {
 		transformer: 'postcss',
 		postcss: {

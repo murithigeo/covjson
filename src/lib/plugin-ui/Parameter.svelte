@@ -1,7 +1,7 @@
-<svelte:options customElement={{ tag: 'covjson-parameter', shadow: 'none' }} />
+<svelte:options customElement="covjson-parameter" />
 
 <script lang="ts">
-	import type { Parameter } from '#lib/core/index.js';
+	import { Parameter } from '#lib/core/index.js';
 	import LocaleTable from './metadata/locale-table.svelte';
 	import ObservedProperty from './metadata/observed-property.svelte';
 	import * as Accordion from '#lib/components/ui/accordion/index.js';
@@ -13,15 +13,19 @@
 	import * as Card from '#lib/components/ui/card/index.js';
 	import Colour from './metadata/parameter/colour.svelte';
 	import css from '../../routes/layout.css?inline';
-	import type { RangeStatistics, ParameterColor } from './types.js';
+	import type { RangeStatistics, ParameterColor } from './types.d.ts';
 
-	interface Props {
-		data: Parameter;
+	let {
+		parameter,
+		stats,
+		color,
+		showTitle = true
+	}: {
+		parameter: Parameter;
 		stats?: RangeStatistics;
 		color?: ParameterColor;
-	}
-
-	let { data: parameter, stats, color }: Props = $props();
+		showTitle?: boolean;
+	} = $props();
 
 	let dataType = $derived(parameter.properties['data-type'] ?? stats?.['data-type']);
 	const variant: BadgeVariant = 'outline';
@@ -30,7 +34,9 @@
 <Card.Root id="parameter-{parameter.key}">
 	<Card.Header>
 		<Card.Title class="flex flex-row space-x-2">
-			<Label>{parameter.key}</Label>
+			{#if showTitle}
+				<Label>{parameter.key}</Label>
+			{/if}
 			{#if dataType}
 				<Badge {variant}>{dataType}</Badge>
 			{/if}

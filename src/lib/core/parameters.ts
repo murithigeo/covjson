@@ -50,6 +50,9 @@ export class I18N extends Map<string, string> {
 		if (name === 'root') return 'Undetermined';
 		return name;
 	}
+	toJSON() {
+		return Object.fromEntries(this);
+	}
 }
 
 export class Parameter extends Metadata<PR & EdrParameterProperties> {
@@ -60,7 +63,7 @@ export class Parameter extends Metadata<PR & EdrParameterProperties> {
 	id: string | undefined;
 	key: string;
 	unit: Unit | undefined;
-	categoryEncoding?: Map<string, number[]>;
+	categoryEncoding?: CategoryEncoding;
 	properties: EdrParameterProperties & Record<string, unknown>;
 
 	constructor(pr: PR, key: string) {
@@ -81,12 +84,7 @@ export class Parameter extends Metadata<PR & EdrParameterProperties> {
 		this.id = id;
 		this.key = key;
 		if (unit) this.unit = new Unit(unit);
-		if (categoryEncoding) {
-			this.categoryEncoding = new Map();
-			Object.entries(categoryEncoding)
-				.map(([key, val]) => [key, Array.isArray(val) ? val : [val]] as const)
-				.forEach(([key, val]) => this.categoryEncoding?.set(key, val));
-		}
+		if (categoryEncoding) this.categoryEncoding = new CategoryEncoding(categoryEncoding);
 		this.observedProperty = new ObservedProperty(observedProperty, this.categoryEncoding);
 		this.properties = properties;
 	}
@@ -96,12 +94,9 @@ export class Parameter extends Metadata<PR & EdrParameterProperties> {
 			type: this.type,
 			observedProperty: this.observedProperty?.toJSON(),
 			unit: this.observedProperty.categories ? undefined : this.unit?.toJSON(),
-			label: this.label.size ? Object.fromEntries(this.label) : undefined,
-			description: this.description.size ? Object.fromEntries(this.description) : undefined,
-			categoryEncoding: this.categoryEncoding
-				? Object.fromEntries(this.categoryEncoding?.entries())
-				: undefined,
-
+			label: this.label.size ? this.label.toJSON() : undefined,
+			description: this.description.size ? this.description.toJSON() : undefined,
+			categoryEncoding: this.categoryEncoding?.toJSON(),
 			...this.properties
 		};
 	}
@@ -132,6 +127,9 @@ export class Parameter extends Metadata<PR & EdrParameterProperties> {
 export class CategoryEncoding extends Map<string, number[]> {
 	constructor(encodings: CatEncoding) {
 		super(Object.entries(encodings).map(([key, val]) => [key, Array.isArray(val) ? val : [val]]));
+	}
+	toJSON() {
+		return Object.fromEntries(this);
 	}
 }
 

@@ -1,13 +1,7 @@
 import { defineConfig, type DefineConfigOptions } from '@svebcomponents/build';
-import { vitePreprocess } from '@sveltejs/vite-plugin-svelte';
 const conf: DefineConfigOptions = {
 	outDir: 'dist/plugin-ui/client',
-	ssrOutDir: 'dist/plugin-ui/ssr',
-	svelteConfig: {
-		preprocess: vitePreprocess(),
-		extensions: ['.svelte'],
-		compilerOptions: { css: 'injected' }
-	}
+	ssrOutDir: 'dist/plugin-ui/ssr'
 };
 export default [
 	...defineConfig({
@@ -23,6 +17,11 @@ export default [
 	...defineConfig({
 		entry: './src/lib/plugin-ui/ParameterGroup.svelte',
 		ssrEntryFileName: 'ParameterGroup-ssr',
+		...conf
+	}),
+	...defineConfig({
+		entry: './src/lib/plugin-ui/index.ts',
+		ssr: false,
 		...conf
 	}),
 	...defineConfig({

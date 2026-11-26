@@ -25,7 +25,7 @@ export interface PluginOptions<D extends Domain = Domain> extends GeoJSONSourceO
 	onRangeLoadError?: (data: PluginOptions<D>['data']) => void;
 }
 
-interface SourceDiff<D extends Domain = Domain> {
+export interface CoverageJSONSourceDiff<D extends Domain = Domain> {
 	/**
 	 * A list of coverage uuids to remove
 	 */

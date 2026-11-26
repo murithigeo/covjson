@@ -77,17 +77,17 @@ You can also reproject your domain, coverage, coveragecollection
 ```ts
 // Use another .referencing array or use an object
 dom.reproject({
-    crs: {
-        id: "EPSG:327237",
-    },
-    vrs: {
-        id: "EPSG:5714",
-        fn: (v) => v, // Provide a custom converter function or it will be inferred from the .id property and data loaded by @murithigeo/uriproj
-    },
-    trs: {
-        calendar: "",
-        timeScale: "",
-    },
+	crs: {
+		id: 'EPSG:327237'
+	},
+	vrs: {
+		id: 'EPSG:5714',
+		fn: (v) => v // Provide a custom converter function or it will be inferred from the .id property and data loaded by @murithigeo/uriproj
+	},
+	trs: {
+		calendar: '',
+		timeScale: ''
+	}
 });
 ```
 
@@ -187,5 +187,32 @@ import {Parameter} from "@murithigeo/covjson/core"
 </script>
 <covjson-parameter parameter={new Parameter({...},"key")} color={{default:"red"}} ...>
 </covjson-parameter>
+
+```
+
+##### Options
+
+```js
+// Colors
+let colors={
+	FOO:{
+		default:"black" // The color to use for all splines etc.
+		[x:string]:string // If the parameter is categorical, define a color for each category. Falls back to "default"
+	}
+}
+
+let selected=["FOO"] // Only show these parameters
+
+let labels={
+	title:{
+		key:"id" // Use a prop on the Coverage
+	}
+	,title:{
+		value:"This is the title" // Use a literal
+	},
+
+	z:{title:"Pressure",unit:"hPa"} // Provide context to the z dimension
+}
+
 
 ```

@@ -13,7 +13,7 @@ import { assign } from 'ndarray-ops';
 import { cartesianProduct } from './utils.js';
 import { TilesetNotFound } from './error.js';
 import { isUndefined } from './domain/utils.js';
-import type { DataValue, Indices, RangeOptions } from './types.js';
+import type { DataValue, RangeIndices, RangeOptions } from './types.js';
 
 export class Range<T extends DataValue = DataValue, Nd extends NdArray = NdArray> {
 	dataType: 'string' | 'float' | 'integer';
@@ -70,7 +70,7 @@ export class Range<T extends DataValue = DataValue, Nd extends NdArray = NdArray
 			.map((name) => indices.get(name) ?? 0)
 			.map((v, i) => (v < 0 ? 0 : v >= this.shape[i] ? this.shape[i] - 1 : v));
 	}
-	_nameNormalizedIndices(indices: number[]): Exclude<Indices, number[]> {
+	_nameNormalizedIndices(indices: number[]): Exclude<RangeIndices, number[]> {
 		return new Map(this.axisNames.map((an, i) => [an, indices[i]]));
 	}
 
@@ -139,7 +139,7 @@ export class Range<T extends DataValue = DataValue, Nd extends NdArray = NdArray
 			this.axisNames.map((_, i) => combo[i])
 		);
 	}
-	async get(indices: Indices, cb?: (range: Range) => void): Promise<T | null> {
+	async get(indices: RangeIndices, cb?: (range: Range) => void): Promise<T | null> {
 		if (!Array.isArray(indices)) indices = this._normalizeNamedIndices(indices);
 		let value = this._ndarr.get(...indices);
 		if (isUndefined(value) && this.type === 'TiledNdArray') {
