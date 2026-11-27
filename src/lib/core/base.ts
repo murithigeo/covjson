@@ -26,6 +26,7 @@ export abstract class Base<T> {
 	/**
 	 * Returns a new instance of this class using return of the toJSON method
 	 * Useful for when you want a "unique" object especially when getting objects in different reprojections
+	 * Given that it may use structuredClone under the hood, this will not work with Proxy objects
 	 */
 	clone(): this {
 		const Ctor = this.constructor as new (args: T) => this;

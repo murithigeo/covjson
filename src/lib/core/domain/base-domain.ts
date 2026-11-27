@@ -49,7 +49,7 @@ export abstract class BaseDomain<D extends Domain = Domain> extends Base<D> {
 		return {
 			type: this.type,
 			domainType: this.domainType,
-			axes: structuredClone({ ...this.axes }),
+			axes: JSON.parse(JSON.stringify(this.axes)),
 			referencing: this.referencing?.toJSON()
 		} as D;
 	}
