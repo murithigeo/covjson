@@ -24,9 +24,3 @@ export class TilesetNotFound extends Error {
 		super(`No tileSet for indices:${JSON.stringify(indices)} found`);
 	}
 }
-
-export class InvalidDateRepresentation extends Error {
-	constructor(expectedFormat: string, value: string) {
-		super(`Expected a date[time] string in format ${expectedFormat} but got: ${value}`);
-	}
-}

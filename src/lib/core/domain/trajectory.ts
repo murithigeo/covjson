@@ -1,20 +1,13 @@
-import { BaseDomain } from './base-domain.ts';
+import { BaseDomain } from './base-domain.js';
 import type { Trajectory as TrajDomain, Position } from 'coveragejson';
-import type { Referencing } from '../referencing.ts';
-import type { LineString } from 'geojson';
-import { isUndefined } from './utils.ts';
+import type { Referencing } from '../referencing.js';
+import type { MultiPoint } from 'geojson';
+import { isUndefined } from './utils.js';
 import nearestPointOnLine from '@turf/nearest-point-on-line';
 
-/**
- * With a moving domain, we can find the indices using time or using a reference point
- * Rework since we need to display both a line and points. Rename to trajectory since it only applies to it
- */
 export class Trajectory extends BaseDomain<TrajDomain> {
 	denormalize(): this {
 		return this;
-	}
-	constructor(domain: TrajDomain) {
-		super(domain);
 	}
 
 	get axesSize(): Map<'z' | 'composite', number> {
@@ -28,14 +21,14 @@ export class Trajectory extends BaseDomain<TrajDomain> {
 	 * @returns
 	 */
 	queryIndices(ref: Position | string | number): Map<'z' | 'composite', number> {
-		const indices = new Map().set('composite', 0).set('z', 0);
-		let composite = 0;
+		const indices = new Map().set('z', 0);
+		let composite: number;
 		if (typeof ref === 'string') composite = this.tIndex(ref);
 		else if (typeof ref === 'number') composite = this.zIndex(ref);
 		else {
 			({
 				properties: { segmentIndex: composite }
-			} = nearestPointOnLine(this.geometry, ref));
+			} = nearestPointOnLine({ ...this.geometry, type: 'LineString' }, ref));
 		}
 		indices.set('composite', composite);
 		return indices;
@@ -44,20 +37,17 @@ export class Trajectory extends BaseDomain<TrajDomain> {
 		return this.axes.composite.values.map(([, , , z]) => z).filter((v) => !isUndefined(v));
 		// if (this.axes.z) values.push(this.axes.z.values[0]); // x is single value so ignore
 	}
-	get geometry(): LineString {
+	get geometry(): MultiPoint {
 		return {
-			type: 'LineString',
+			type: 'MultiPoint',
 			coordinates: this.axes.composite.values.map(([, x, y, z]) => {
 				if (isUndefined(z)) return [x, y];
 				return [x, y, z];
 			})
 		};
 	}
-	calculateAxesBounds(): this {
-		return this;
-	}
+
 	_reproject(referencing: Referencing): this {
-		super._reproject(referencing);
 		for (let i = 0; i < this.axes.composite.values.length; i++) {
 			let [t, x, y, z] = this.axes.composite.values[i];
 			t = referencing.trs(t);

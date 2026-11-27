@@ -1,0 +1,290 @@
+{
+  "schemaVersion": "2.1.0",
+  "readme": "",
+  "modules": [
+    {
+      "kind": "javascript-module",
+      "path": "src/lib/plugin-ui/Coverage.svelte",
+      "declarations": [
+        {
+          "kind": "class",
+          "name": "CovjsonCoverage",
+          "tagName": "covjson-coverage",
+          "customElement": true,
+          "members": [
+            {
+              "kind": "field",
+              "name": "coverage",
+              "type": {
+                "text": "string"
+              },
+              "attribute": "coverage",
+              "reflects": true,
+              "privacy": "public"
+            },
+            {
+              "kind": "field",
+              "name": "selected",
+              "type": {
+                "text": "string"
+              },
+              "attribute": "selected",
+              "reflects": true,
+              "privacy": "public"
+            },
+            {
+              "kind": "field",
+              "name": "colors",
+              "type": {
+                "text": "string"
+              },
+              "attribute": "colors",
+              "reflects": true,
+              "privacy": "public"
+            },
+            {
+              "kind": "field",
+              "name": "id",
+              "type": {
+                "text": "string"
+              },
+              "attribute": "id",
+              "reflects": true,
+              "privacy": "public"
+            },
+            {
+              "kind": "field",
+              "name": "axisNames",
+              "type": {
+                "text": "string"
+              },
+              "attribute": "axis-names",
+              "reflects": true,
+              "privacy": "public"
+            },
+            {
+              "kind": "field",
+              "name": "config",
+              "type": {
+                "text": "string"
+              },
+              "attribute": "config",
+              "reflects": true,
+              "privacy": "public"
+            },
+            {
+              "kind": "field",
+              "name": "formatters",
+              "type": {
+                "text": "string"
+              },
+              "attribute": "formatters",
+              "reflects": true,
+              "privacy": "public"
+            },
+            {
+              "kind": "field",
+              "name": "labels",
+              "type": {
+                "text": "string"
+              },
+              "default": "{}",
+              "attribute": "labels",
+              "reflects": true,
+              "privacy": "public"
+            }
+          ],
+          "attributes": [
+            {
+              "name": "coverage",
+              "type": {
+                "text": "string"
+              },
+              "fieldName": "coverage"
+            },
+            {
+              "name": "selected",
+              "type": {
+                "text": "string"
+              },
+              "fieldName": "selected"
+            },
+            {
+              "name": "colors",
+              "type": {
+                "text": "string"
+              },
+              "fieldName": "colors"
+            },
+            {
+              "name": "id",
+              "type": {
+                "text": "string"
+              },
+              "fieldName": "id"
+            },
+            {
+              "name": "axis-names",
+              "type": {
+                "text": "string"
+              },
+              "fieldName": "axisNames"
+            },
+            {
+              "name": "config",
+              "type": {
+                "text": "string"
+              },
+              "fieldName": "config"
+            },
+            {
+              "name": "formatters",
+              "type": {
+                "text": "string"
+              },
+              "fieldName": "formatters"
+            },
+            {
+              "name": "labels",
+              "type": {
+                "text": "string"
+              },
+              "default": "{}",
+              "fieldName": "labels"
+            }
+          ]
+        }
+      ],
+      "exports": [
+        {
+          "kind": "custom-element-definition",
+          "name": "covjson-coverage",
+          "declaration": {
+            "name": "CovjsonCoverage",
+            "module": "src/lib/plugin-ui/Coverage.svelte"
+          }
+        }
+      ]
+    },
+    {
+      "kind": "javascript-module",
+      "path": "src/lib/plugin-ui/Parameter.svelte",
+      "declarations": [
+        {
+          "kind": "class",
+          "name": "CovjsonParameter",
+          "tagName": "covjson-parameter",
+          "customElement": true,
+          "members": [
+            {
+              "kind": "field",
+              "name": "parameter",
+              "type": {
+                "text": "Parameter"
+              },
+              "attribute": "parameter",
+              "reflects": false,
+              "privacy": "public"
+            },
+            {
+              "kind": "field",
+              "name": "stats",
+              "type": {
+                "text": "RangeStatistics"
+              },
+              "attribute": "stats",
+              "reflects": false,
+              "privacy": "public"
+            },
+            {
+              "kind": "field",
+              "name": "color",
+              "type": {
+                "text": "ParameterColor"
+              },
+              "attribute": "color",
+              "reflects": false,
+              "privacy": "public"
+            }
+          ],
+          "attributes": [
+            {
+              "name": "parameter",
+              "type": {
+                "text": "Parameter"
+              },
+              "fieldName": "parameter"
+            },
+            {
+              "name": "stats",
+              "type": {
+                "text": "RangeStatistics"
+              },
+              "fieldName": "stats"
+            },
+            {
+              "name": "color",
+              "type": {
+                "text": "ParameterColor"
+              },
+              "fieldName": "color"
+            }
+          ]
+        }
+      ],
+      "exports": [
+        {
+          "kind": "custom-element-definition",
+          "name": "covjson-parameter",
+          "declaration": {
+            "name": "CovjsonParameter",
+            "module": "src/lib/plugin-ui/Parameter.svelte"
+          }
+        }
+      ]
+    },
+    {
+      "kind": "javascript-module",
+      "path": "src/lib/plugin-ui/ParameterGroup.svelte",
+      "declarations": [
+        {
+          "kind": "class",
+          "name": "CovjsonParametergroup",
+          "tagName": "covjson-parametergroup",
+          "customElement": true,
+          "members": [
+            {
+              "kind": "field",
+              "name": "data",
+              "type": {
+                "text": "ParameterGroup"
+              },
+              "attribute": "data",
+              "reflects": false,
+              "privacy": "public"
+            }
+          ],
+          "attributes": [
+            {
+              "name": "data",
+              "type": {
+                "text": "ParameterGroup"
+              },
+              "fieldName": "data"
+            }
+          ]
+        }
+      ],
+      "exports": [
+        {
+          "kind": "custom-element-definition",
+          "name": "covjson-parametergroup",
+          "declaration": {
+            "name": "CovjsonParametergroup",
+            "module": "src/lib/plugin-ui/ParameterGroup.svelte"
+          }
+        }
+      ]
+    }
+  ]
+}

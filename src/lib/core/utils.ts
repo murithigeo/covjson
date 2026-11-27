@@ -3,7 +3,7 @@
  * @author letmaik
  */
 
-import type { AxisNamesOptions } from './types';
+import type { Indices } from './types.js';
 
 /**
  * Copyright (c) 2016 The University of Reading
@@ -109,11 +109,17 @@ export type WithRequiredProperty<Type, Key extends keyof Type> = Type & {
 	[Property in Key]-?: Type[Property];
 };
 
-export function axisOptionsToList(size?: number, opts?: AxisNamesOptions): number[] {
+/**
+ * Convert {@link Indices} to a list of numbers
+ */
+export function axisOptionsToList(size: number, opts?: Indices): number[] {
 	if (!opts) return [];
 	if (opts === true) return [...Array(size).keys()];
 	if (Array.isArray(opts)) return opts;
-	const stop = opts.stop ?? size ?? 0;
-	const start = opts.start ?? 0;
-	return Array.from({ length: (stop - start) / 2 }, (_, index) => start + index * 1);
+	const { start, stop = size, step = 1 } = opts;
+	const stops = Array<number>();
+	for (let i = 0; i <= Math.floor(Math.abs(stop - start) / step); i++) {
+		stops.push(start + step * i);
+	}
+	return stops;
 }

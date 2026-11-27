@@ -1,4 +1,4 @@
-import { BaseDomain } from './base-domain.ts';
+import { BaseDomain } from './base-domain.js';
 import type {
 	Polygon as PolygonDomain,
 	PolygonSeries as PolySeriesD,
@@ -6,16 +6,11 @@ import type {
 	MultiPolygonSeries as MPs,
 	Position
 } from 'coveragejson';
-import type { Referencing } from '../referencing.ts';
+import type { Referencing } from '../referencing.js';
 import inside from 'point-in-polygon-hao';
 import type { Polygon as PolygonGeometry } from 'geojson';
-import { calcNumAxisBounds } from './utils.ts';
 
 abstract class Base<T extends PolygonDomain | PolySeriesD | MP | MPs> extends BaseDomain<T> {
-	constructor(domain: T) {
-		super(domain);
-	}
-
 	get axesSize(): Map<keyof T['axes'], number> {
 		return new Map()
 			.set('composite', this.axes.composite.values.length)
@@ -23,7 +18,6 @@ abstract class Base<T extends PolygonDomain | PolySeriesD | MP | MPs> extends Ba
 			.set('z', this.z.length);
 	}
 	_reproject(referencing: Referencing): this {
-		super._reproject(referencing);
 		for (let oi = 0; oi < this.axes.composite.values.length; oi++) {
 			for (let ii = 0; ii < this.axes.composite.values[oi].length; ii++) {
 				for (let i = 0; i < this.axes.composite.values[oi][ii].length; i++) {
@@ -61,19 +55,10 @@ abstract class Base<T extends PolygonDomain | PolySeriesD | MP | MPs> extends Ba
 		if (typeof ref === 'string') indices.set('t', this.tIndex(ref));
 		return indices;
 	}
-
-	calculateAxesBounds(): this {
-		if (this.axes.z) this.axes.z.bounds = calcNumAxisBounds(this.axes.z.values);
-
-		return this;
-	}
 }
 
 export class Polygon extends Base<PolygonDomain> {
 	denormalize(): this {
-		return this;
-	}
-	calculateAxesBounds(): this {
 		return this;
 	}
 
@@ -82,9 +67,6 @@ export class Polygon extends Base<PolygonDomain> {
 			type: 'Polygon',
 			coordinates: this.axes.composite.values[0]
 		};
-	}
-	constructor(domain: PolygonDomain) {
-		super(domain);
 	}
 }
 
@@ -92,29 +74,18 @@ export class PolygonSeries extends Base<PolySeriesD> {
 	denormalize(): this {
 		return this;
 	}
-	calculateAxesBounds(): this {
-		if (this.axes.z) {
-			this.axes.z.bounds = calcNumAxisBounds(this.axes.z.values) as [number, number];
-		}
-		return this;
-	}
+
 	get geometry(): PolygonGeometry {
 		return {
 			type: 'Polygon',
 			coordinates: this.axes.composite.values[0]
 		};
 	}
-	constructor(domain: PolySeriesD) {
-		super(domain);
-	}
 }
 
 export class MultiPolygon extends Base<MP> {
 	denormalize(): this {
 		return this;
-	}
-	constructor(domain: MP) {
-		super(domain);
 	}
 
 	get geometry(): GeoJSON.MultiPolygon {
@@ -128,9 +99,6 @@ export class MultiPolygon extends Base<MP> {
 export class MultiPolygonSeries extends Base<MPs> {
 	denormalize(): this {
 		return this;
-	}
-	constructor(domain: MPs) {
-		super(domain);
 	}
 
 	get geometry(): GeoJSON.MultiPolygon {

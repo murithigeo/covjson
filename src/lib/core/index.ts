@@ -1,18 +1,19 @@
-import { Coverage as Cov, type CoverageOptions } from './coverage.ts';
-import type { CoverageJSON, NdArray, TiledNdArray } from 'coveragejson';
-import { CoverageCollection } from './coverage-collection.ts';
-import { getDomain } from './domain/index.ts';
-import { Range, type RangeOptions } from './ranges.ts';
-export * from './coverage.ts';
-export * from './coverage-collection.ts';
-export * from './domain/index.ts';
-export * from './parameters.ts';
-export * from './referencing.ts';
-export * from './ranges.ts';
-export * from './load.ts';
-export * from './utils.ts';
-export * from './error.ts';
-export type * from './types.d.ts';
+import { Coverage } from './coverage.js';
+import type { CoverageJSON, Domain, NdArray, TiledNdArray } from 'coveragejson';
+import { CoverageCollection } from './coverage-collection.js';
+import { getDomain } from './domain/index.js';
+import { Range } from './ranges.js';
+import type { CoverageOptions, RangeOptions } from './types.js';
+export * from './coverage.js';
+export * from './coverage-collection.js';
+export * from './domain/index.js';
+export * from './parameters.js';
+export * from './referencing.js';
+export * from './ranges.js';
+export * from './load.js';
+export * from './utils.js';
+export * from './error.js';
+export type * from './types.js';
 
 export default function getCoverageJson<T extends CoverageJSON>(
 	doc: T,
@@ -24,7 +25,7 @@ export default function getCoverageJson<T extends CoverageJSON>(
 		case 'CoverageCollection':
 			return CoverageCollection.load(doc, options as CoverageOptions);
 		case 'Coverage':
-			return Cov.load(doc, options as CoverageOptions);
+			return Coverage.load(doc, options as CoverageOptions);
 		case 'NdArray':
 			return new Range(doc, options as RangeOptions);
 		case 'TiledNdArray':
@@ -32,10 +33,14 @@ export default function getCoverageJson<T extends CoverageJSON>(
 	}
 }
 
-export type DenormalizedCoverage = ReturnType<Cov['denormalize']>;
-export type Coverage = Cov | DenormalizedCoverage;
+export type DenormalizedCoverage<D extends Domain = Domain> = ReturnType<
+	Coverage<D>['denormalize']
+>;
 /**
  * A function to be called when the current indices on the coverage change.
  * For integrating UI with mapping libraries i.e. to change view of the map or to highlight the clicked axis values
  */
-export type OnIndicesChange = (coverage: Coverage, indices: Map<string, number>) => void;
+export type OnIndicesChange = (
+	coverage: Coverage | DenormalizedCoverage,
+	indices: Map<string, number>
+) => void;

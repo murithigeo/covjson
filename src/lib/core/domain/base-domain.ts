@@ -8,25 +8,25 @@ import type {
 	PolygonSeries,
 	VerticalProfile,
 	Trajectory,
-	Position,
 	RegularlySpacedAxis,
 	Section
 } from 'coveragejson';
-import { Base } from '../base.ts';
-import type { Referencing } from '../referencing.ts';
-import { indexOfNearest } from '../utils.ts';
+import { Base } from '../base.js';
+import { Referencing } from '../referencing.js';
+import { indexOfNearest } from '../utils.js';
+import type { Reference } from '../types';
 
 export abstract class BaseDomain<D extends Domain = Domain> extends Base<D> {
 	type: D['type'];
 	domainType: D['domainType'];
 	axes: D['axes'];
-	referencing: D['referencing'] | undefined;
+	referencing: Referencing | undefined;
 	constructor(domain: D) {
 		super();
 		this.type = domain.type;
 		this.domainType = domain.domainType;
 		this.axes = domain.axes;
-		this.referencing = domain.referencing;
+		this.referencing = new Referencing(domain.referencing);
 	}
 
 	/**
@@ -39,26 +39,19 @@ export abstract class BaseDomain<D extends Domain = Domain> extends Base<D> {
 	 */
 	abstract get z(): number[];
 	/**
-	 * Calculates and sets the "bounds" property of each axis in the domain
-	 * Will overwrite the property if value has been set
-	 * @todo remove mention in the types and make this an optional module because of the dependencies it requires
-	 * @param timeZone The offset or IANA TimeZone name to use for instants
-	 */
-	abstract calculateAxesBounds(timeZone?: string): this;
-	/**
 	 * Number of axis values in the domain
 	 */
 	abstract get axesSize(): Map<keyof D['axes'], number>;
 	/**
 	 * Note that this is a clone of the class's core deets
 	 */
-	toPlain(useRefs = true): D {
-		return structuredClone({
+	toJSON(): D {
+		return {
 			type: this.type,
 			domainType: this.domainType,
-			axes: this.axes,
-			referencing: useRefs ? this.referencing : undefined
-		}) as D;
+			axes: JSON.parse(JSON.stringify(this.axes)),
+			referencing: this.referencing?.toJSON()
+		} as D;
 	}
 	/**
 	 * If applicable, converts any "primitive" axis to @see {RegularlySpacedAxis}
@@ -75,17 +68,11 @@ export abstract class BaseDomain<D extends Domain = Domain> extends Base<D> {
 	 */
 	abstract get geometry(): D extends Point | PointSeries | VerticalProfile
 		? GeoJSON.Point
-		: D extends Trajectory
-			? GeoJSON.LineString
-			: D extends Polygon | PolygonSeries
-				? GeoJSON.Polygon
-				: D extends MultiPoint | MultiPointSeries | Section
-					? GeoJSON.MultiPoint
-					: GeoJSON.MultiPolygon;
-	_reproject(referencing: Referencing): this {
-		this.referencing = referencing.connections;
-		return this;
-	}
+		: D extends Polygon | PolygonSeries
+			? GeoJSON.Polygon
+			: D extends MultiPoint | MultiPointSeries | Section | Trajectory
+				? GeoJSON.MultiPoint
+				: GeoJSON.MultiPolygon;
 
 	tIndex(t: string): number {
 		return indexOfNearest(
@@ -96,9 +83,5 @@ export abstract class BaseDomain<D extends Domain = Domain> extends Base<D> {
 	zIndex(z: number): number {
 		return indexOfNearest(this.z, z);
 	}
-	abstract queryIndices(ref: Position | string | number): Map<keyof D['axes'], number>;
-	/**
-	 * We can have a method that returns boolean for boolean intersects
-	 * Another for determining which composite values intersect ie. for polygons,multipoints which are computationally expensive
-	 */
+	abstract queryIndices(ref: Reference): Map<keyof D['axes'], number>;
 }

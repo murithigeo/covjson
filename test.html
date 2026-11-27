@@ -1,0 +1,26 @@
+<!doctype html>
+<html>
+	<head>
+		<meta charset="utf-8" />
+	</head>
+	<body>
+		<script type="module">
+			import { Coverage } from './dist/core/index.js';
+			import './dist/plugin-ui/client/Coverage.js';
+			// await customElements.whenDefined('covjson-coverage');
+			const coverage = await Coverage.load(
+				'https://covjson.org/playground/coverages/multipolygon.covjson'
+			);
+
+			const el = document.createElement('covjson-coverage');
+			// el.classList.toggle('dark');
+			el.coverage = coverage.denormalize(); // set before it is connected
+			el.colors = { FOO: { default: 'blue' }, TEMP: { default: 'maroon' } };
+			el.config = { x: 't', fx: 'x' };
+			el.axisNames = { x: true, t: true };
+			el.formatters = { axis: (dt, i) => ['United Kingdom', 'Germany'][i] };
+			el.labels = { title: { value: 'This is a Coverage' } };
+			document.body.append(el);
+		</script>
+	</body>
+</html>

@@ -1,22 +1,26 @@
 <script lang="ts">
-	import type { Coverage } from '#lib/core/index.ts';
+	import { Coverage } from '#lib/core/index.js';
 	import * as Sheet from '#lib/components/ui/sheet/index.js';
 	import * as Tabs from '#lib/components/ui/tabs/index.js';
-	import DataInput from '#lib/ui/preview/input.svelte';
+	import DataInput from '../site/preview/input.svelte';
 	import { buttonVariants } from '#lib/components/ui/button/index.js';
 	import { JsonView } from '@zerodevx/svelte-json-view';
-	import ModeWatcher from '#lib/mode-watcher.svelte';
-	import Maplibre from '#lib/ui/preview/maplibre.svelte';
-	import CovJsonSource from '#lib/docs/maplibre/source.svelte';
+	import Maplibre from '../site/preview/maplibre.svelte';
+	import CovJsonSource from '../site/maplibre/source.svelte';
 	import { SymbolLayer, LineLayer, FillLayer, type LayerClickInfo } from 'svelte-maplibre';
-	import type { MaplibrePlugin, MaplibrePluginOptions } from '#lib/plugin-maplibre/index.ts';
-	import type { Colors } from '#lib/ui/coverage/types.d.ts';
-	import CoverageCpt from '#lib/ui/coverage/coverage-cpt.svelte';
-	import { makeCoverageIndicesReactive } from '#lib/ui/coverage/ctx.svelte.ts';
+	import type { MaplibrePlugin, MaplibrePluginOptions } from '#lib/plugin-maplibre/index.js';
+	import type { Colors } from '#lib/plugin-ui/types.d.js';
+	import CoverageComponent from '#lib/plugin-ui/Coverage.svelte';
+	import {
+		makeCoverageIndicesReactive,
+		getRandomColor
+	} from '#lib/plugin-ui/coverage/utils.svelte.js';
+	import preloads from '../site/preview/data';
 
-	let data = $state<MaplibrePluginOptions['data']>('/sample-data/grid-multi-z-t.covjson');
-	let coverages = $state<Coverage[]>([]);
+	let data = $state<MaplibrePluginOptions['data']>(preloads['Grid Tiled']);
+	let coverages = $state<Array<Coverage>>([]);
 
+	let colors = $state<Colors>({});
 	const handleLayerEvent = (e: LayerClickInfo, source: MaplibrePlugin) => {
 		const covs = source.getCoveragesFromFeatureList(e.features, e.event.lngLat);
 		updateCoverages(covs);
@@ -25,19 +29,6 @@
 			coverages: covs
 		};
 	};
-
-	// Source - https://stackoverflow.com/a/1484514
-	// Posted by Anatoliy, modified by community. See post 'Timeline' for change history
-	// Retrieved 2026-08-20, License - CC BY-SA 3.0
-
-	function getRandomColor() {
-		const letters = '0123456789ABCDEF';
-		let color = '#';
-		for (var i = 0; i < 6; i++) {
-			color += letters[Math.floor(Math.random() * 16)];
-		}
-		return color;
-	}
 
 	function updateCoverages(covs: Coverage[], replaceAll?: boolean) {
 		if (replaceAll) coverages = covs.map((cov) => makeCoverageIndicesReactive(cov));
@@ -54,10 +45,9 @@
 			colors[k] = { default: getRandomColor() };
 		}
 	}
-	let colors = $state<Colors>({});
 </script>
 
-<div class="h-screen w-full md:grid md:grid-cols-2">
+<div class="h-screen w-full space-x-2 md:grid md:grid-cols-2">
 	<div class="h-75 md:h-full">
 		<Maplibre>
 			{@const source = 'sample-data'}
@@ -87,7 +77,7 @@
 					<LineLayer
 						{source}
 						filter={['in', ['get', 'domainType'], ['literal', ['Grid', 'Section', 'Trajectory']]]}
-						paint={{ 'line-color': 'red', 'line-width': 0.4 }}
+						paint={{ 'line-color': 'black', 'line-width': 0.4 }}
 					></LineLayer>
 					<SymbolLayer
 						id="point-based-coverages"
@@ -120,15 +110,13 @@
 	<div class="space-y-2 overflow-y-auto">
 		<Sheet.Root>
 			<Sheet.Trigger class={buttonVariants({ variant: 'outline' })}>Load Data</Sheet.Trigger>
-			<Sheet.Content class="gap-2 "
+			<Sheet.Content class="gap-2"
 				><Sheet.Header
 					><Sheet.Title>Load CoverageJSON</Sheet.Title>
-					<Sheet.Description>
-						<ModeWatcher />
-					</Sheet.Description></Sheet.Header
+					<Sheet.Description>Ranges are not supported</Sheet.Description></Sheet.Header
 				>
 				<div class="h-screen gap-2 overflow-auto">
-					<Tabs.Root value="url" class="px-4">
+					<Tabs.Root value="url" class="px-4" orientation="horizontal">
 						<Tabs.List>
 							<Tabs.Trigger value="file">File</Tabs.Trigger>
 							<Tabs.Trigger value="json">JSON</Tabs.Trigger>
@@ -151,7 +139,17 @@
 			</Sheet.Content>
 		</Sheet.Root>
 		{#each coverages as coverage (coverage.uuid)}
-			<CoverageCpt {coverage} {colors} />
+			<CoverageComponent
+				{coverage}
+				{colors}
+				formatters={{
+					axis: (dt, i) => {
+						return ['Germany'][i];
+					}
+				}}
+				config={{ x: 't' }}
+				axisNames={{ x: true, z: true, t: true }}
+			></CoverageComponent>
 		{/each}
 	</div>
 </div>

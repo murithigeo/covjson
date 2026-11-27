@@ -1,23 +1,20 @@
 import type { BBox, Feature, MultiPolygon, Polygon } from 'geojson';
-import type { Grid as GridDomain, Position, WithBounds } from 'coveragejson';
-import type { Referencing } from '../referencing.ts';
-import { BaseDomain } from './base-domain.ts';
+import type { Grid as GridDomain, WithBounds } from 'coveragejson';
+import type { Referencing } from '../referencing.js';
+import { BaseDomain } from './base-domain.js';
 import combine from '@turf/combine';
 import {
 	denormalizeNumAxis,
 	normalizeNumAxis,
 	numAxisIsNormalized,
 	calcNumAxisBounds,
-	calcStrAxisBounds,
 	isUndefined
-} from './utils.ts';
+} from './utils.js';
 import bboxPolygon from '@turf/bbox-polygon';
-import { indexOfNearest } from '../utils.ts';
+import { indexOfNearest } from '../utils.js';
+import type { Reference } from '../types';
 
 export class Grid extends BaseDomain<GridDomain> {
-	constructor(domain: GridDomain) {
-		super(domain);
-	}
 	/**
 	 * Normalize axes individually
 	 */
@@ -27,7 +24,6 @@ export class Grid extends BaseDomain<GridDomain> {
 	}
 
 	_reproject(referencing: Referencing): this {
-		super._reproject(referencing);
 		const [xvals, yvals] = [this.x, this.y];
 		const xIsNormalized = numAxisIsNormalized(this.axes.x);
 		const yIsNormalized = numAxisIsNormalized(this.axes.y);
@@ -74,15 +70,7 @@ export class Grid extends BaseDomain<GridDomain> {
 		if (!this.axes.z) return [];
 		return denormalizeNumAxis(this.axes.z).values;
 	}
-	calculateAxesBounds(timeZone?: string) {
-		if ('values' in this.axes.x) this.axes.x.bounds = calcNumAxisBounds(this.axes.x.values);
-		if ('values' in this.axes.y) this.axes.y.bounds = calcNumAxisBounds(this.axes.y.values);
-		if (this.axes.z && 'values' in this.axes.z) {
-			this.axes.z.bounds = calcNumAxisBounds(this.axes.z.values);
-		}
-		if (this.axes.t) this.axes.t.bounds = calcStrAxisBounds(this.axes.t.values, timeZone);
-		return this;
-	}
+
 	normalize() {
 		this.#normalize('x');
 		this.#normalize('y');
@@ -100,6 +88,7 @@ export class Grid extends BaseDomain<GridDomain> {
 		this.axes.x = denormalizeNumAxis(this.axes.x);
 		this.axes.y = denormalizeNumAxis(this.axes.y);
 		if (this.axes.z) this.axes.z = denormalizeNumAxis(this.axes.z);
+		//@ts-expect-error compat issue
 		return this;
 	}
 	get geometry(): MultiPolygon {
@@ -149,7 +138,7 @@ export class Grid extends BaseDomain<GridDomain> {
 		return this.bboxes.map((bbox) => bboxPolygon(bbox));
 	}
 
-	queryIndices(ref: Position | string | number): Map<'x' | 'y' | 'z' | 't', number> {
+	queryIndices(ref: Reference): Map<'x' | 'y' | 'z' | 't', number> {
 		const indices = new Map().set('x', 0).set('y', 0).set('z', 0).set('t', 0);
 		let zRef = typeof ref === 'number' ? ref : undefined;
 		if (Array.isArray(ref)) {

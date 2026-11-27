@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { Range } from './ranges.ts';
+import { Range } from './ranges.js';
 
 describe('Simple NdArray', () => {
 	const ndarr = new Range({
@@ -15,8 +15,8 @@ describe('Simple NdArray', () => {
 		expect(await ndarr.get(new Map().set('x', 2).set('y', 1))).toBe(null);
 	});
 	it('.normalizedNamedIndices: Missing indices are set to 0 and indices are set to [0,...[shape[i]]', () => {
-		expect(ndarr.normalizeNamedIndices(new Map().set('x', 4).set('y', 0))).toEqual([0, 0, 0, 2]);
-		expect(ndarr.normalizeNamedIndices(new Map().set('x', 3).set('y', -1))).toEqual([0, 0, 0, 2]);
+		expect(ndarr._normalizeNamedIndices(new Map().set('x', 4).set('y', 0))).toEqual([0, 0, 0, 2]);
+		expect(ndarr._normalizeNamedIndices(new Map().set('x', 3).set('y', -1))).toEqual([0, 0, 0, 2]);
 	});
 
 	it('.totalSize: Is product of shape', () => {
@@ -50,30 +50,17 @@ describe('TiledNdArray', () => {
 	});
 
 	it('.tileEffort', () => {
-		expect(ndarr.tileSetEffort(ndarr.tileSets![0])).toBe(12);
+		expect(ndarr._tileSetEffort(ndarr.tileSets![0])).toBe(12);
 	});
 	describe('.intersects', () => {
 		it('Matches all tileSets for 0,0,1', () => {
-			expect(ndarr.intersects([0, 0, 1]).length).toBe(3);
+			expect(ndarr._intersects([0, 0, 1]).length).toBe(3);
 		});
 		it('matches two tileSets for 1,5,10', () => {
-			expect(ndarr.intersects([0, 4, 9]).length).toBe(2);
+			expect(ndarr._intersects([0, 4, 9]).length).toBe(2);
 		});
 		it('matches one tileSet for 2,5,10', () => {
-			expect(ndarr.intersects([1, 4, 9]).length).toBe(1);
+			expect(ndarr._intersects([1, 4, 9]).length).toBe(1);
 		});
-	});
-});
-
-describe('Statistics', () => {
-	const ndarr = new Range({
-		type: 'NdArray',
-		dataType: 'float',
-		axisNames: ['t', 'z', 'y', 'x'],
-		shape: [1, 1, 2, 3],
-		values: [0.5, 0.6, 0.4, 0.6, 0.2, null]
-	});
-	it('.max', () => {
-		expect(ndarr.mean).toBeCloseTo(0.3833);
 	});
 });

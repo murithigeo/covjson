@@ -1,7 +1,6 @@
 import {
 	type Dispatcher,
 	type Evented,
-	Map as MapInstance,
 	GeoJSONSource,
 	type MapGeoJSONFeature,
 	type GeoJSONSourceDiff,
@@ -17,17 +16,24 @@ import {
 	isNdArray,
 	load,
 	Parameter,
-	isNull
+	isNull,
+	CRS84,
+	type WithRequiredProperty
 } from '#lib/core/index.js';
-import type { BasicPluginOptions, PluginOptions } from './types.js';
-import type { Domain, NdArray, Position } from 'coveragejson';
+import type { PluginOptions, CoverageJSONSourceDiff } from './types.js';
+import type { Domain, Position } from 'coveragejson';
 import { Coverage } from '#lib/core/coverage.js';
 import type { Feature } from 'geojson';
-export class MaplibrePlugin extends GeoJSONSource {
-	_coveragecollection: CoverageCollection;
-	covOptions: BasicPluginOptions;
+export class MaplibrePlugin<D extends Domain = Domain> extends GeoJSONSource {
+	_coveragecollection: CoverageCollection<D>;
 	_referencing?: Referencing;
-	constructor(id: string, options: PluginOptions, dispatcher: Dispatcher, eventedParent: Evented) {
+	options: WithRequiredProperty<PluginOptions<D>, 'onRangeLoadError'>;
+	constructor(
+		id: string,
+		options: PluginOptions<D>,
+		dispatcher: Dispatcher,
+		eventedParent: Evented
+	) {
 		super(
 			id,
 			{
@@ -39,13 +45,24 @@ export class MaplibrePlugin extends GeoJSONSource {
 			dispatcher,
 			eventedParent
 		);
-		this.covOptions = options;
+
+		this.options = {
+			...options,
+			onRangeLoadError(data) {
+				if (options.onRangeLoadError) return options.onRangeLoadError(data);
+				console.error('This plugin does not support top level NdArrays', JSON.stringify(data));
+			}
+		};
 		this._coveragecollection = new CoverageCollection({
 			type: 'CoverageCollection',
 			coverages: []
 		});
 		this.setCovData(options.data);
-		Referencing.load({ crsId: 'OGC:CRS84' }).then((d) => (this._referencing = d));
+		if (options.reproject) {
+			new Referencing()
+				.to({ crs: { id: CRS84, z: false } })
+				.then((ref) => (this._referencing = ref));
+		}
 	}
 
 	getCoveragesFromFeatureList(features: (MapGeoJSONFeature | Feature)[], point: Position | LngLat) {
@@ -55,30 +72,33 @@ export class MaplibrePlugin extends GeoJSONSource {
 		if (point instanceof LngLat) point = point.wrap().toArray();
 		return this._coveragecollection.coverages
 			.filter((cov) => featureIds.includes(cov.uuid))
-			.map((cov) => cov.calculateIndices(point));
+			.map((cov) => {
+				cov.domain.referencing = this._coveragecollection.referencing;
+				return cov.calculateIndices(point);
+			});
 	}
 
 	// todo reproject
-	async loadCovData(data: PluginOptions['data']): Promise<CoverageCollection> {
-		let x: Exclude<PluginOptions['data'], string>;
-		if (typeof data === 'string') {
-			x = await load<CoverageJSON.CoverageJSON>(data).then((doc) => {
-				if (isNdArray(doc)) throw Error(`NdArrays are not supported`);
-				return doc;
-			});
-		} else x = data;
+	async loadCovData(data: PluginOptions<D>['data']): Promise<CoverageCollection<D>> {
+		if (typeof data !== 'object') {
+			const _data = await load<CoverageJSON.CoverageJSON>(data);
+			if (isNdArray(_data)) throw this.options.onRangeLoadError(this.options.data);
+			data = _data as Exclude<PluginOptions<D>['data'], string>;
+		}
 
-		switch (x.type) {
+		switch (data.type) {
 			case 'Domain':
-				x = new Coverage({ type: 'Coverage', domain: x, ranges: {} });
+				data = new Coverage<D>({ type: 'Coverage', domain: data, ranges: {} });
+			// eslint-disable-next-line no-fallthrough
 			case 'Coverage':
-				x = new CoverageCollection({ type: 'CoverageCollection', coverages: [x] });
+				data = new CoverageCollection({ type: 'CoverageCollection', coverages: [data] });
+			// eslint-disable-next-line no-fallthrough
 			case 'CoverageCollection':
-				if (x instanceof CoverageCollection) return x;
-				return CoverageCollection.load(x);
+				if (data instanceof CoverageCollection) return data;
+				return CoverageCollection.load<D>(data);
 		}
 	}
-	async setCovData(data: PluginOptions['data']) {
+	async setCovData(data: PluginOptions<D>['data']) {
 		this._coveragecollection = new CoverageCollection({
 			type: 'CoverageCollection',
 			coverages: []
@@ -95,18 +115,18 @@ export class MaplibrePlugin extends GeoJSONSource {
 					});
 				data.coverages[i] = cov;
 			}
-			if (!this.covOptions.reproject || !this._referencing) return data;
+			if (!this._referencing) return data;
 			return await data.reproject(this._referencing);
 		});
 
 		this.setData(this._coveragecollection.featurecollection);
-		this.covOptions?.onData?.(this._coveragecollection);
+		this.options?.onData?.(this._coveragecollection);
 	}
 	/**
 	 * Adapted closely to GeoJSON's source
 	 * @todo call the GeoJSON.updateData method
 	 */
-	async updateCovData(diff: SourceDiff): Promise<void> {
+	async updateCovData(diff: CoverageJSONSourceDiff<D>): Promise<void> {
 		const geojsonDiff: GeoJSONSourceDiff = { add: [], update: [], remove: [] };
 		if (diff.add) {
 			for (let cov of diff.add) {
@@ -132,12 +152,12 @@ export class MaplibrePlugin extends GeoJSONSource {
 				const cov = this._coveragecollection.coverages[idx];
 				if (update.newDomain) {
 					if (typeof update.newDomain === 'string') {
-						update.newDomain = await load<Domain>(update.newDomain);
+						update.newDomain = await load<D>(update.newDomain);
 					}
 					if (!('clone' in update.newDomain)) {
 						update.newDomain = getDomain(update.newDomain);
 					}
-					cov.domain = update.newDomain as InferDomainClass;
+					cov.domain = update.newDomain as InferDomainClass<D>;
 					geojsonFeatureDiff.newGeometry = cov.domain.geometry;
 				}
 				geojsonFeatureDiff.addOrUpdateProperties = [];
@@ -169,41 +189,7 @@ export class MaplibrePlugin extends GeoJSONSource {
 				this._coveragecollection.coverages[idx] = cov;
 			}
 			this.updateData(geojsonDiff);
-			this.covOptions.onData?.(this._coveragecollection);
+			this.options.onData?.(this._coveragecollection);
 		}
 	}
-}
-
-interface SourceDiff {
-	/**
-	 * A list of coverage uuids to remove
-	 */
-	remove?: string[];
-	/**
-	 * Add coverages
-	 */
-	add?: (Coverage | CoverageJSON.Coverage)[];
-	/**
-	 *
-	 */
-	update?: CoverageDiff[];
-}
-
-interface CoverageDiff {
-	/**
-	 * The uuid of the coverage
-	 */
-	uuid: string;
-	/**
-	 * The new Domain
-	 */
-	newDomain?: Domain | InferDomainClass | string;
-	/**
-	 *
-	 */
-	addOrUpdate?: {
-		parameters?: Record<string, CoverageJSON.Parameter | Parameter>;
-		ranges?: Record<string, Range | string | NdArray>;
-		properties?: Record<string, unknown>[];
-	};
 }

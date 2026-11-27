@@ -1,30 +1,23 @@
 import type { Coverage as CRG, Domain, NdArray, Position } from 'coveragejson';
-import { Base, type ReferenceArgument } from './base.ts';
-import { Parameter, ParameterGroup } from './parameters.ts';
-import { BaseDomain, getDomain } from './domain/index.ts';
-import { load } from './load.ts';
-import type { InferDomainClass } from './domain/types.d.ts';
-import { Referencing } from './referencing.ts';
-import { Range, type RangeOptions } from './ranges.ts';
+import { Base } from './base.js';
+import { Parameter, ParameterGroup } from './parameters.js';
+import { BaseDomain, getDomain, isUndefined } from './domain/index.js';
+import { load } from './load.js';
+import type { InferDomainClass } from './domain/types.js';
+import { Referencing } from './referencing.js';
+import { Range } from './ranges.js';
 import { nanoid } from 'nanoid';
-import { axisOptionsToList, cartesianProduct } from './utils.ts';
+import { axisOptionsToList, cartesianProduct } from './utils.js';
 import type { Feature } from 'geojson';
-import type { CoverageProperties, GetDataOptions, QueryOptions } from './types.d.ts';
+import type {
+	CoverageOptions,
+	CoverageProperties,
+	DataRow,
+	GetDataOptions,
+	QueryOptions,
+	Reference
+} from './types.js';
 
-/**
- * Add a function to forcibly set each ranges minMax externally
- */
-export interface CoverageOptions {
-	/**
-	 * Options to be applied to each ndarray
-	 */
-	ranges?: RangeOptions;
-	/**
-	 * The preferred language of any parameters
-	 * @see {I18N} for more details
-	 */
-	language?: string;
-}
 export class Coverage<D extends Domain = Domain> extends Base<CRG<D>> {
 	/**
 	 * Remote NdArrays.
@@ -158,7 +151,7 @@ export class Coverage<D extends Domain = Domain> extends Base<CRG<D>> {
 	/**
 	 * Return a dictionary of axes which intersect with POI, elevation or time
 	 */
-	queryIndices(ref: Position | string | number) {
+	queryIndices(ref: Reference) {
 		const indices: Map<string, number> = this.domain.queryIndices(ref);
 		for (const [axisName, index] of indices) {
 			if (!this.axesSize.has(axisName)) indices.delete(axisName);
@@ -178,19 +171,17 @@ export class Coverage<D extends Domain = Domain> extends Base<CRG<D>> {
 	/**
 	 * @todo add explicit types that it returns {ranges:Record<string,NdArray>}
 	 */
-	toPlain(): CRG<D> {
+	toJSON(): CRG<D> {
 		//@ts-expect-error domainType conflict upstream
 		return structuredClone({
 			type: this.type,
-			domain: this.domain.toPlain(),
+			domain: this.domain.toJSON(),
 			ranges: this.ranges
 				.entries()
-				.reduce((l, [k, v]) => ({ ...l, [k]: typeof v === 'string' ? v : v.toPlain() }), {}),
+				.reduce((l, [k, v]) => ({ ...l, [k]: typeof v === 'string' ? v : v.toJSON() }), {}),
 			domainType: this.domain.domainType,
-			parameters: this.parameters
-				.entries()
-				.reduce((l, r) => ({ ...l, [r[0]]: r[1].toPlain() }), {}),
-			parameterGroups: this.parameterGroups.map((v) => v.toPlain())
+			parameters: this.parameters.entries().reduce((l, r) => ({ ...l, [r[0]]: r[1].toJSON() }), {}),
+			parameterGroups: this.parameterGroups.map((v) => v.toJSON())
 		});
 	}
 	_reproject(referencing: Referencing): this {
@@ -200,16 +191,18 @@ export class Coverage<D extends Domain = Domain> extends Base<CRG<D>> {
 	/**
 	 * Returns the domain's referencing property
 	 */
-	get referencing() {
+	get referencing(): Referencing | undefined {
 		return this.domain.referencing;
 	}
-	/**
-	 *
-	 * @param ref The reference to get data for
-	 * @param rangeIds The parameter IDs to get data for. Should be in uppercase
-	 */
-	async getData(ref: ReferenceArgument, options: GetDataOptions = {}): Promise<DataRow> {
-		if (!ref) ref = this.indices;
+
+	set referencing(referencing: Referencing) {
+		this.domain.referencing = referencing;
+	}
+	async getData(
+		ref: Reference | Map<string, number>,
+		options: GetDataOptions = {}
+	): Promise<DataRow> {
+		if (isUndefined(ref)) ref = this.indices;
 		if (!(ref instanceof Map)) ref = this.queryIndices(ref);
 		options.ranges = options.ranges || [...this.ranges.keys()];
 
@@ -245,11 +238,9 @@ export class Coverage<D extends Domain = Domain> extends Base<CRG<D>> {
 	}
 
 	/**
-	 *
-	 * @param ref The reference. Can be a Map of computed indices or a Position
-	 * @returns
+	 * Load multiple values at once
 	 */
-	query(ref: ReferenceArgument, options: QueryOptions): Promise<DataRow[]> {
+	query(ref: Reference | Map<string, number>, options: QueryOptions): Promise<DataRow[]> {
 		options.axisNames = options.axisNames || {};
 		const consider = this.axesSize
 			.entries()
@@ -269,12 +260,3 @@ export class Coverage<D extends Domain = Domain> extends Base<CRG<D>> {
 		return Promise.all(rows);
 	}
 }
-
-export type DataValue = string | number | null;
-export type DataRow<T extends DataValue = DataValue> = Record<string, T | null> & {
-	t?: number;
-	z?: number;
-	x?: number;
-	y?: number;
-	composite?: number;
-};

@@ -1,4 +1,4 @@
-import { BaseDomain } from './base-domain.ts';
+import { BaseDomain } from './base-domain.js';
 import type {
 	MultiPointSeries as MpsD,
 	MultiPoint as MpD,
@@ -7,41 +7,12 @@ import type {
 	Position2D,
 	WithBounds
 } from 'coveragejson';
-import { Referencing } from '../referencing.ts';
+import { Referencing } from '../referencing.js';
 import type { MultiPoint as MultiPointGeometry } from 'geojson';
-import {
-	calcStrAxisBounds,
-	calc2dTupleAxisBounds,
-	calcNumAxisBounds,
-	isUndefined,
-	denormalizeNumAxis
-} from './utils.ts';
+import { isUndefined, denormalizeNumAxis } from './utils.js';
 import nearestPointOnLine from '@turf/nearest-point-on-line';
 
 abstract class Base<T extends MpD | MpsD> extends BaseDomain<T> {
-	constructor(domain: T) {
-		super(domain);
-	}
-
-	calculateAxesBounds(timeZone?: string): this {
-		if (this.axes.t) this.axes.t.bounds = calcStrAxisBounds(this.axes.t.values, timeZone);
-		const xyBounds = calc2dTupleAxisBounds(this.axes.composite.values);
-		const zBounds = calcNumAxisBounds(
-			this.axes.composite.values.map(([, , z]) => (isUndefined(z) ? 0 : z))
-		);
-		this.axes.composite.bounds = [];
-		for (let i = 0; i < this.axes.composite.values.length; i++) {
-			const lower = xyBounds[2 * i];
-			const upper = xyBounds[2 * i + 1];
-			if (this.axes.composite.values[i][2] !== undefined) {
-				lower[2] = zBounds[2 * i];
-				upper[2] = zBounds[2 * i + 1];
-			}
-			//@ts-expect-error 2D Pos/3D Pos Error
-			this.axes.composite.bounds.push(lower, upper);
-		}
-		return this;
-	}
 	get z(): number[] {
 		return this.axes.composite.values.map(([, , z]) => z).filter((v) => v !== undefined);
 	}
@@ -53,7 +24,6 @@ abstract class Base<T extends MpD | MpsD> extends BaseDomain<T> {
 		return new Map().set('composite', this.axes.composite.values.length).set('t', this.t.length);
 	}
 	_reproject(referencing: Referencing): this {
-		super._reproject(referencing);
 		for (let i = 0; i < this.axes.composite.values.length; i++) {
 			let [x, y, z] = this.axes.composite.values[i];
 			[x, y] = referencing.crs([x, y]);
@@ -79,7 +49,7 @@ abstract class Base<T extends MpD | MpsD> extends BaseDomain<T> {
 			} = nearestPointOnLine({ ...this.geometry, type: 'LineString' }, ref));
 			[, , zRef] = ref;
 		}
-
+		if (!isUndefined(zRef)) composite = this.zIndex(zRef);
 		if (typeof ref === 'string') composite = this.tIndex(ref);
 		return indices.set('composite', composite);
 	}
@@ -107,19 +77,11 @@ export class MultiPointSeries extends Base<MpsD> {
 			coordinates: this.axes.composite.values
 		};
 	}
-
-	constructor(domain: MpsD) {
-		super(domain);
-	}
 }
 
 export class Section extends BaseDomain<SectionDomain> {
 	get t() {
 		return this.axes.composite.values.map(([t]) => t);
-	}
-
-	calculateAxesBounds(timeZone?: string): this {
-		throw new Error('Method not implemented.');
 	}
 
 	denormalize(): Omit<this, 'axes'> & {
@@ -134,6 +96,7 @@ export class Section extends BaseDomain<SectionDomain> {
 		};
 	} {
 		this.axes.z = denormalizeNumAxis(this.axes.z);
+		//@ts-expect-error compat issue
 		return this;
 	}
 	get axesSize(): Map<'z' | 'composite', number> {
@@ -163,5 +126,19 @@ export class Section extends BaseDomain<SectionDomain> {
 			type: 'MultiPoint',
 			coordinates: this.axes.composite.values.map(([, x, y]) => [x, y])
 		};
+	}
+	_reproject(referencing: Referencing): this | Promise<this> {
+		for (let i = 0; i < this.axes.composite.values.length; i++) {
+			const [t, x, y] = this.axes.composite.values[i];
+			this.axes.composite.values[i] = [referencing.trs(t), ...referencing.crs([x, y])];
+		}
+		if ('values' in this.axes.z) {
+			this.axes.z.values = this.axes.z.values.map((v) => referencing.vrs(v));
+		} else {
+			[this.axes.z.start, this.axes.z.stop] = [this.axes.z.start, this.axes.z.stop].map((v) =>
+				referencing.vrs(v)
+			);
+		}
+		return this;
 	}
 }

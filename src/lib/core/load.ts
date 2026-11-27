@@ -1,11 +1,11 @@
-import { Exception } from './error.ts';
+import { Exception } from './error.js';
 /**
  * Helper function to load CoverageJSON documents within this application
  * Expects resolved documents to be JSON
  */
 export async function load<T>(url: string, abortController?: AbortController): Promise<T> {
-  const res = await fetch(url, { signal: abortController?.signal });
-  if (!res.ok) throw new Exception(res);
-  const data = await res.json();
-  return data;
+	const res = await fetch(url, { signal: abortController?.signal });
+	if (!res.ok) throw new Exception(res);
+	const data = await res.json();
+	return data;
 }
