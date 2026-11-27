@@ -5,10 +5,6 @@ import type { MultiPoint } from 'geojson';
 import { isUndefined } from './utils.js';
 import nearestPointOnLine from '@turf/nearest-point-on-line';
 
-/**
- * With a moving domain, we can find the indices using time or using a reference point
- * Rework since we need to display both a line and points. Rename to trajectory since it only applies to it
- */
 export class Trajectory extends BaseDomain<TrajDomain> {
 	denormalize(): this {
 		return this;

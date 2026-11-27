@@ -37,10 +37,7 @@ export class Range<T extends DataValue = DataValue, Nd extends NdArray = NdArray
 		this._ndarr = ndarray(new Array(this.totalSize), ndarr.shape);
 
 		if (ndarr.type === 'TiledNdArray') this.tileSets = ndarr.tileSets;
-		else {
-			this.shape = [ndarr.values.length];
-			this._appendRange(this.shape, Array(this.shape.length).fill(0), ndarr);
-		}
+		else this._appendRange(this.shape, Array(this.shape.length).fill(0), ndarr);
 	}
 
 	get values(): [T | null, ...(T | null)[]] {
@@ -68,7 +65,13 @@ export class Range<T extends DataValue = DataValue, Nd extends NdArray = NdArray
 		if (!this.axisNames.length) return [0];
 		return this.axisNames
 			.map((name) => indices.get(name) ?? 0)
-			.map((v, i) => (v < 0 ? 0 : v >= this.shape[i] ? this.shape[i] - 1 : v));
+			.map((v, i) => {
+				if (v < 0) v = 0;
+				const shape = this.shape[i];
+				if (v >= shape) v = shape - 1;
+				indices.set([...this.axisNames][i], v); // Modify map so that data has correct indices
+				return v;
+			});
 	}
 	_nameNormalizedIndices(indices: number[]): Exclude<RangeIndices, number[]> {
 		return new Map(this.axisNames.map((an, i) => [an, indices[i]]));

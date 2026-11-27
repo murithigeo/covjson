@@ -24,8 +24,6 @@ describe('Clone: The clone method returns a completely different object', () => 
 });
 
 describe('reproject: Actually works', async () => {
-	// const referencing = new Referencing();
-	// const referencing = await Referencing.load({ crsId: 'EPSG:32737' }, []);
 	describe('Point', async () => {
 		const utmPoint = await point.clone().reproject({ crs: { id: 'EPSG:32737' } });
 		it('returns a clone', () => {

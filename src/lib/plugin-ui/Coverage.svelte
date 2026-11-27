@@ -179,14 +179,7 @@
 		if (key in coverage) return coverage[key as keyof typeof coverage];
 		return coverage.properties[key];
 	});
-	let axisLabels = $derived.by(() => {
-		const _labels = { ...labels };
-		const defs = getAxisLabels(domain);
-		for (const an in axesSize) {
-			if (!_labels[an]) _labels[an] = defs[an];
-		}
-		return _labels;
-	});
+	let axisLabels = $derived({ ...getAxisLabels(domain), ...labels });
 </script>
 
 <Card.Root {id}>

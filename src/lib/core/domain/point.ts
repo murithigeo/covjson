@@ -50,9 +50,6 @@ export class Point extends Base<PointD> {
 	denormalize(): this {
 		return this;
 	}
-	constructor(domain: PointD) {
-		super(domain);
-	}
 
 	get geometry(): PointGeometry {
 		return {
@@ -72,10 +69,6 @@ export class PointSeries extends Base<PSeriesD> {
 			coordinates: [this.axes.x.values[0], this.axes.y.values[0]]
 		};
 	}
-
-	constructor(domain: PSeriesD) {
-		super(domain);
-	}
 }
 
 export class VerticalProfile extends Base<VertProfDomain> {
@@ -87,8 +80,6 @@ export class VerticalProfile extends Base<VertProfDomain> {
 	}
 
 	_reproject(referencing: Referencing): this {
-		super._reproject(referencing);
-
 		[this.axes.x.values[0], this.axes.y.values[0]] = referencing.crs([
 			this.axes.x.values[0],
 			this.axes.y.values[0]

@@ -45,12 +45,12 @@ export abstract class BaseDomain<D extends Domain = Domain> extends Base<D> {
 	/**
 	 * Note that this is a clone of the class's core deets
 	 */
-	toJSON(useRefs = true): D {
+	toJSON(): D {
 		return {
 			type: this.type,
 			domainType: this.domainType,
-			axes: { ...this.axes },
-			referencing: useRefs ? [...(this.referencing?.toJSON() || [])] : undefined
+			axes: structuredClone({ ...this.axes }),
+			referencing: this.referencing?.toJSON()
 		} as D;
 	}
 	/**

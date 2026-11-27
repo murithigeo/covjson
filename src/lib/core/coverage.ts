@@ -191,10 +191,13 @@ export class Coverage<D extends Domain = Domain> extends Base<CRG<D>> {
 	/**
 	 * Returns the domain's referencing property
 	 */
-	get referencing() {
+	get referencing(): Referencing | undefined {
 		return this.domain.referencing;
 	}
 
+	set referencing(referencing: Referencing) {
+		this.domain.referencing = referencing;
+	}
 	async getData(
 		ref: Reference | Map<string, number>,
 		options: GetDataOptions = {}

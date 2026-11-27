@@ -15,7 +15,7 @@ describe('Referencing', async () => {
 		}
 	);
 	it('Expect that the resulting collection has a defined referencing object whose length is 3', () => {
-		expect(v0.referencing?.length).toBe(2);
+		expect(v0.referencing?.length).toBe(3);
 	});
 });
 

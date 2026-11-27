@@ -77,10 +77,6 @@ export class MultiPointSeries extends Base<MpsD> {
 			coordinates: this.axes.composite.values
 		};
 	}
-
-	constructor(domain: MpsD) {
-		super(domain);
-	}
 }
 
 export class Section extends BaseDomain<SectionDomain> {

@@ -11,10 +11,6 @@ import inside from 'point-in-polygon-hao';
 import type { Polygon as PolygonGeometry } from 'geojson';
 
 abstract class Base<T extends PolygonDomain | PolySeriesD | MP | MPs> extends BaseDomain<T> {
-	constructor(domain: T) {
-		super(domain);
-	}
-
 	get axesSize(): Map<keyof T['axes'], number> {
 		return new Map()
 			.set('composite', this.axes.composite.values.length)
@@ -72,9 +68,6 @@ export class Polygon extends Base<PolygonDomain> {
 			coordinates: this.axes.composite.values[0]
 		};
 	}
-	constructor(domain: PolygonDomain) {
-		super(domain);
-	}
 }
 
 export class PolygonSeries extends Base<PolySeriesD> {
@@ -88,17 +81,11 @@ export class PolygonSeries extends Base<PolySeriesD> {
 			coordinates: this.axes.composite.values[0]
 		};
 	}
-	constructor(domain: PolySeriesD) {
-		super(domain);
-	}
 }
 
 export class MultiPolygon extends Base<MP> {
 	denormalize(): this {
 		return this;
-	}
-	constructor(domain: MP) {
-		super(domain);
 	}
 
 	get geometry(): GeoJSON.MultiPolygon {
@@ -112,9 +99,6 @@ export class MultiPolygon extends Base<MP> {
 export class MultiPolygonSeries extends Base<MPs> {
 	denormalize(): this {
 		return this;
-	}
-	constructor(domain: MPs) {
-		super(domain);
 	}
 
 	get geometry(): GeoJSON.MultiPolygon {
