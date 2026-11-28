@@ -9,7 +9,7 @@ import type {
 	DataRow
 } from '#lib/core/index.js';
 import type { Domain } from 'coveragejson';
-import type { BrushDomainType, ChartState } from 'layerchart';
+import type { ChartState } from 'layerchart';
 
 export interface RangeStatistics extends Pick<EdrParameterProperties, 'data-type'> {
 	/**
@@ -161,7 +161,6 @@ export type AxesSize = Map<Axis, number>;
 export type DataViewProps = Required<Pick<CoverageProps, 'axisNames' | 'colors' | 'config'>> & {
 	labels: Partial<Record<string, Record<'unit' | 'title', string>>>;
 	view: View;
-	xDomain?: BrushDomainType;
 	resolver: AxisResolver;
 	colors: Colors;
 	parameter: Parameter | string;
@@ -185,7 +184,7 @@ export interface TooltipProps {
 	labels: DataViewProps['labels'];
 	colors: Colors;
 	series: Axis | undefined;
-	context: ChartState;
+	context: ChartState<DataRow>;
 	tooltip: Tooltip;
 	/**
 	 * The current active parameter

@@ -119,7 +119,7 @@
 		if (series) {
 			props.legend = true;
 			delete props.data;
-			const indices = axisOptionsToList(axesSize.get(series), axisNames[series]);
+			const indices = axisOptionsToList(axesSize.get(series)!, axisNames[series]);
 			const bySeries = Object.groupBy(data, (i) => i[series]!);
 			const getLabel = (idx: number): string => {
 				let label = resolver(series, idx, 'chart').toString();

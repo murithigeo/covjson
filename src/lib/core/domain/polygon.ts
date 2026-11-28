@@ -1,4 +1,4 @@
-import { BaseDomain } from './base-domain.js';
+import { BaseDomain } from './base-domain.ts';
 import type {
 	Polygon as PolygonDomain,
 	PolygonSeries as PolySeriesD,
@@ -6,10 +6,11 @@ import type {
 	MultiPolygonSeries as MPs,
 	Position
 } from 'coveragejson';
-import type { Referencing } from '../referencing.js';
+import type { Referencing } from '../referencing.ts';
 import inside from 'point-in-polygon-hao';
 import type { Polygon as PolygonGeometry } from 'geojson';
-
+import type { GraduatedIndices, Indices } from '../types';
+import intersects from '@turf/boolean-intersects';
 abstract class Base<T extends PolygonDomain | PolySeriesD | MP | MPs> extends BaseDomain<T> {
 	get axesSize(): Map<keyof T['axes'], number> {
 		return new Map()
@@ -54,6 +55,34 @@ abstract class Base<T extends PolygonDomain | PolySeriesD | MP | MPs> extends Ba
 		}
 		if (typeof ref === 'string') indices.set('t', this.tIndex(ref));
 		return indices;
+	}
+	_constraintsFromBbox({
+		polygon
+	}: {
+		polygon: PolygonGeometry;
+		z: GraduatedIndices | undefined;
+	}): Record<string, Indices> {
+		const results: Record<string, number[]> = {};
+
+		results.composite = [];
+		for (let i = 0; i < this.axes.composite.values.length; i++) {
+			if (!intersects(polygon, { type: 'Polygon', coordinates: this.axes.composite.values[i] })) {
+				continue;
+			}
+			results.composite.push(i);
+		}
+
+		return results;
+	}
+
+	_applySubset(indices: Map<string, Set<number>>): this | undefined {
+		const { composite, t } = Object.fromEntries(indices);
+		if (!composite.size) return undefined;
+
+		this.axes.composite.values = this.axes.composite.values.filter((_, i) => composite.has(i));
+		if (this.axes.t) this.axes.t.values = this.axes.t.values.filter((_, i) => t.has(i));
+
+		return this;
 	}
 }
 

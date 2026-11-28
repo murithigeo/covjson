@@ -1,9 +1,10 @@
 import { describe, it, expect } from 'vitest';
-import { Coverage } from './coverage.js';
+import { Coverage } from './coverage.ts';
 
-describe('Reprojections', async () => {
-	const cov = await Coverage.load('https://covjson.org/playground/coverages/grid-tiled.covjson');
-	const clone = await cov.clone().reproject({ crs: { id: 'EPSG:32738' } });
+const coverage = await Coverage.load('https://covjson.org/playground/coverages/grid-tiled.covjson');
+
+describe('.reproject', async () => {
+	const clone = await coverage.clone().reproject({ crs: { id: 'EPSG:32738' } });
 	it('Replaces the connection object', () => {
 		expect(
 			clone.domain.referencing?.find((e) => e.coordinates.some((el) => ['x', 'y'].includes(el)))
@@ -16,9 +17,7 @@ describe('Reprojections', async () => {
 });
 
 describe('Ranges: High load tests', async () => {
-	const cov = await Coverage.load<CoverageJSON.Grid>(
-		'https://covjson.org/playground/coverages/grid-tiled.covjson'
-	);
+	const cov = coverage.clone();
 	it('Loaded Tiled Ranges are persisted in the map', async () => {
 		await cov.getData(new Map().set('x', 0));
 
@@ -38,7 +37,7 @@ describe('Ranges: High load tests', async () => {
 	describe('.query', async () => {
 		const data = await cov.query(cov.indices, { axisNames: { x: { start: 1 }, y: true, t: [1] } });
 		it('axisNames: true/false config', () => {
-			expect(new Set(data.map((d) => d.y)).size).toBe(cov.domain.axesSize.get('y'));
+			expect(new Set(data.map((d) => d.y)).size).toBe(cov.axesSize.get('y'));
 		});
 		it('axisNames: start/stop config', () => {
 			expect([...new Set(data.map((d) => d.x))].sort()).toEqual([1, 2, 3, 4, 5, 6, 7, 8, 9]);
@@ -50,13 +49,17 @@ describe('Ranges: High load tests', async () => {
 	});
 });
 
-describe('GeoJSON Mappings', async () => {
-	const cov = await Coverage.load('https://covjson.org/playground/coverages/grid-tiled.covjson');
-	it.skip('the properties object is the class itself', () => {
+describe('.feature', async () => {
+	it('the properties object is the class itself', () => {
 		// Maplibre refused?
-		expect(cov.feature.properties).toBeInstanceOf({
+		expect(coverage.feature.properties).toMatchObject({
 			domainType: 'Grid',
-			uuid: cov.uuid
+			uuid: coverage.uuid
 		});
 	});
+});
+
+describe('.subsetting', () => {
+	it('does not overwrite if cloned', () => {});
+	it('gets the correct data', () => {});
 });

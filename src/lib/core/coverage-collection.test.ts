@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
-import { CoverageCollection, load } from './index.js';
+import { CoverageCollection, load } from './index.ts';
 import type { CoverageCollection as CovColl } from 'coveragejson';
-import { Coverage } from './coverage.js';
+import { Coverage } from './coverage.ts';
 const data = load<CovColl>('https://covjson.org/playground/coverages/point-collection.covjson');
 
 describe('Referencing', async () => {

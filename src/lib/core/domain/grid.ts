@@ -1,7 +1,7 @@
 import type { BBox, Feature, MultiPolygon, Polygon } from 'geojson';
 import type { Grid as GridDomain, WithBounds } from 'coveragejson';
-import type { Referencing } from '../referencing.js';
-import { BaseDomain } from './base-domain.js';
+import type { Referencing } from '../referencing.ts';
+import { BaseDomain } from './base-domain.ts';
 import combine from '@turf/combine';
 import {
 	denormalizeNumAxis,
@@ -9,15 +9,12 @@ import {
 	numAxisIsNormalized,
 	calcNumAxisBounds,
 	isUndefined
-} from './utils.js';
+} from './utils.ts';
 import bboxPolygon from '@turf/bbox-polygon';
-import { indexOfNearest } from '../utils.js';
-import type { Reference } from '../types';
-
+import { axisOptionsToList, cartesianProduct, indexOfNearest } from '../utils.ts';
+import type { GraduatedIndices, Indices, Reference } from '../types';
+import intersects from '@turf/boolean-intersects';
 export class Grid extends BaseDomain<GridDomain> {
-	/**
-	 * Normalize axes individually
-	 */
 	#normalize(axisName: 'x' | 'y' | 'z') {
 		if (!this.axes[axisName]) return;
 		this.axes[axisName] = normalizeNumAxis(this.axes[axisName]);
@@ -156,5 +153,48 @@ export class Grid extends BaseDomain<GridDomain> {
 			.set('y', this.y.length)
 			.set('t', this.t.length)
 			.set('z', this.z.length);
+	}
+	_constraintsFromBbox({
+		polygon,
+		z
+	}: {
+		polygon: Polygon;
+		z: GraduatedIndices | undefined;
+	}): Record<string, Indices> {
+		const results: Record<string, number[]> = {};
+
+		const within = cartesianProduct(this.x, this.y)
+			.filter((coordinates) => intersects(polygon, { type: 'Point', coordinates }))
+			.flat();
+		let { x = [], y = [] } = Object.groupBy(within, (item, i) => (i % 2 === 0 ? 'x' : 'y'));
+		if (!x.length) x = [this.x[0]];
+		if (!y.length) y = [this.y[0]];
+
+		results.x = x.map((v) => this.x.indexOf(v));
+		results.y = y.map((v) => this.y.indexOf(v));
+		results.z = axisOptionsToList(this.axesSize.get('z'), z);
+		results.t = axisOptionsToList(this.axesSize.get('t'), true);
+		return results;
+	}
+
+	_applySubset(indices: Map<string, Set<number>>): this | undefined {
+		const { x, y } = Object.fromEntries(indices);
+		if (!x.size || !y.size) return undefined;
+
+		this.axes.x = denormalizeNumAxis(this.axes.x);
+		this.axes.y = denormalizeNumAxis(this.axes.y); // Remember to use old bounds
+		if (this.axes.z) this.axes.z = denormalizeNumAxis(this.axes.z);
+		if (!this.axes.x.bounds) this.axes.x.bounds = calcNumAxisBounds(this.axes.x.values);
+		if (!this.axes.y.bounds) this.axes.y.bounds = calcNumAxisBounds(this.axes.y.values);
+
+		this.axes.x.values = this.axes.x.values.filter((_, i) => x.has(i));
+		const xBoundIdx = [...x].flatMap((v) => [v, 2 * v + 1]);
+		this.axes.x.bounds = this.axes.x.bounds.filter((_, i) => xBoundIdx.includes(i));
+
+		this.axes.y.values = this.axes.y.values.filter((_, i) => y.has(i));
+		const yBoundIdx = [...y].flatMap((v) => [v, 2 * v + 1]);
+		this.axes.y.bounds = this.axes.y.bounds.filter((_, i) => yBoundIdx.includes(i));
+
+		return this;
 	}
 }

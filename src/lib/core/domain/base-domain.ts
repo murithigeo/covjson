@@ -11,10 +11,11 @@ import type {
 	RegularlySpacedAxis,
 	Section
 } from 'coveragejson';
-import { Base } from '../base.js';
-import { Referencing } from '../referencing.js';
-import { indexOfNearest } from '../utils.js';
-import type { Reference } from '../types';
+import { Base } from '../base.ts';
+import { Referencing } from '../referencing.ts';
+import { axisOptionsToList, bboxToPolygon, indexOfNearest } from '../utils.ts';
+import type { Indices, Reference } from '../types';
+import type { BBox } from 'geojson';
 
 export abstract class BaseDomain<D extends Domain = Domain> extends Base<D> {
 	type: D['type'];
@@ -84,4 +85,28 @@ export abstract class BaseDomain<D extends Domain = Domain> extends Base<D> {
 		return indexOfNearest(this.z, z);
 	}
 	abstract queryIndices(ref: Reference): Map<keyof D['axes'], number>;
+	subset(constraints: BBox | Record<string, Indices>): this | undefined {
+		if (Array.isArray(constraints)) {
+			constraints = this._constraintsFromBbox(bboxToPolygon(constraints));
+		}
+		return this._applySubset(this._parseConstraints(constraints));
+	}
+	_parseConstraints(constraints: Record<string, Indices>): Map<string, Set<number>> {
+		const _constraints = new Map<string, Set<number>>();
+		for (const [axisName, size] of this.axesSize) {
+			// Handles 0D axes and invalid keys
+			if (!size) continue;
+			let constraint = constraints[axisName as string] ?? true;
+
+			constraint = axisOptionsToList(size, constraint);
+			if (!constraint.length) constraint = [0]; // Dont lose all info
+			_constraints.set(axisName as string, new Set(constraint));
+		}
+
+		for (const k in constraints) {
+			if (!this.axesSize.has(k as keyof D['axes'])) _constraints.delete(k);
+		}
+		return _constraints;
+	}
+	abstract _applySubset(constraints: Map<string, Set<number>>): this | undefined;
 }

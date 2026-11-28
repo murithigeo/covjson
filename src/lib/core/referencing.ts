@@ -4,7 +4,7 @@ import type {
 	Position2D
 } from 'coveragejson';
 import { uriproj, load, toURI, proj4, get } from '@murithigeo/uriproj';
-import { isUndefined, toGeoJsonCoordinate } from './domain/utils.js';
+import { isUndefined, toGeoJsonCoordinate } from './domain/utils.ts';
 
 export const CRS84 = toURI('OGC:CRS84');
 

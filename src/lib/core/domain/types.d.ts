@@ -1,9 +1,9 @@
-import { Grid } from './grid.js';
-import { Trajectory } from './trajectory.js';
-import { MultiPoint, MultiPointSeries, Section } from './multipoint.js';
-import { Point, PointSeries } from './point.js';
-import { Polygon, PolygonSeries, MultiPolygon, MultiPolygonSeries } from './polygon.js';
-import { VerticalProfile } from './point.js';
+import { Grid } from './grid.ts';
+import { Trajectory } from './trajectory.ts';
+import { MultiPoint, MultiPointSeries, Section } from './multipoint.ts';
+import { Point, PointSeries } from './point.ts';
+import { Polygon, PolygonSeries, MultiPolygon, MultiPolygonSeries } from './polygon.ts';
+import { VerticalProfile } from './point.ts';
 import type {
 	Domain,
 	Point as P,

@@ -1,17 +1,17 @@
 import type { Domain, CoverageCollection as CovColl, Coverage as CRG } from 'coveragejson';
-import { Parameter, ParameterGroup } from './parameters.js';
-import { Coverage } from './coverage.js';
-import { Referencing } from './referencing.js';
-import { Base } from './base.js';
-import type { FeatureCollection } from 'geojson';
-import type { InferDomainClass } from './domain/types.js';
+import { Parameter, ParameterGroup } from './parameters.ts';
+import { Coverage } from './coverage.ts';
+import { Referencing } from './referencing.ts';
+import { Base } from './base.ts';
+import type { BBox, FeatureCollection } from 'geojson';
+import type { InferDomainClass } from './domain/types.ts';
 import type {
 	CoverageOptions,
 	CoverageProperties,
 	GetDataOptions,
 	QueryOptions,
 	Reference
-} from './types.js';
+} from './types.ts';
 
 export class CoverageCollection<D extends Domain = Domain> extends Base<CovColl<D>> {
 	type: 'CoverageCollection';
@@ -74,12 +74,13 @@ export class CoverageCollection<D extends Domain = Domain> extends Base<CovColl<
 			options
 		);
 	}
-	denormalize() {
+	denormalize(): this {
 		for (const coverage of this.coverages) coverage.denormalize();
 		return this;
 	}
 	normalize() {
 		for (const coverage of this.coverages) coverage.normalize();
+		return this;
 	}
 
 	async _reproject(referencing: Referencing): Promise<this> {
@@ -90,7 +91,6 @@ export class CoverageCollection<D extends Domain = Domain> extends Base<CovColl<
 		}
 		return this;
 	}
-	// Add referencing memeber behavior
 	toJSON(): CovColl<D> {
 		return {
 			type: this.type,
@@ -101,7 +101,7 @@ export class CoverageCollection<D extends Domain = Domain> extends Base<CovColl<
 				.entries()
 				.reduce((l, [id, param]) => ({ ...l, [id]: param.toJSON() }), {}),
 			parameterGroups: this.parameterGroups.map((e) => e.toJSON()),
-			referencing: this.referencing
+			referencing: this.referencing.toJSON()
 		};
 	}
 	get featurecollection(): FeatureCollection<
@@ -147,15 +147,31 @@ export class CoverageCollection<D extends Domain = Domain> extends Base<CovColl<
 		this.parameters = new Map([...this.parameters, ...coverage.parameters]);
 		this.coverages.push(coverage);
 	}
-	/**
-	 * Returns exactly this instance with nothing changed
-	 */
-	subsetByIndex(): this {
+	async subset(constraints: BBox): Promise<this> {
+		for (let i = 0; i < this.coverages.length; i++) {
+			const subset = await this.coverages[i].subset(constraints);
+			if (subset) this.coverages[i] = subset;
+			else this.coverages.splice(i);
+		}
 		return this;
 	}
-	subsetByBbox(): this {
-		// Call each of the coverages
+	/**
+	 * @deprecated use {@link subset} instead
+	 */
+	_applySubset() {
 		return this;
+	}
+	/**
+	 * @deprecated use {@link subset} instead
+	 */
+	_parseConstraints() {
+		return new Map();
+	}
+	/**
+	 * @deprecated use {@link subset} instead
+	 */
+	_constraintsFromBbox() {
+		return {};
 	}
 }
 

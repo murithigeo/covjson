@@ -1,5 +1,8 @@
-import { Referencing, type ReferencingOptions } from './referencing.js';
+import { Referencing, type ReferencingOptions } from './referencing.ts';
 import type { ReferenceSystemConnection } from 'coveragejson';
+import type { Indices } from './types';
+import type { BBox } from 'geojson';
+import { bboxToPolygon } from './utils.ts';
 
 export abstract class Base<T> {
 	abstract referencing: Referencing | undefined;
@@ -40,4 +43,32 @@ export abstract class Base<T> {
 	 * Get elevation (z) values within the object
 	 */
 	abstract get z(): number[];
+
+	/**
+	 * Get a smaller view of the object
+	 */
+	subset(
+		constraints: BBox | Record<string, Indices>
+	): Promise<this | undefined> | this | undefined {
+		if (Array.isArray(constraints)) {
+			constraints = this._constraintsFromBbox(bboxToPolygon(constraints));
+		}
+		return this._applySubset(this._parseConstraints(constraints));
+	}
+
+	// Add subset by time
+
+	/**
+	 *
+	 * @param constraints An object specifying which axis indices to load
+	 * Note that the elements in the return must be unique
+	 */
+	abstract _parseConstraints(constraints: Record<string, Indices>): Map<string, Set<number>>;
+	abstract _constraintsFromBbox({
+		polygon,
+		z
+	}: ReturnType<typeof bboxToPolygon>): Record<string, Indices>;
+	abstract _applySubset(
+		constraints: Map<string, Set<number>>
+	): Promise<this | undefined> | this | undefined;
 }

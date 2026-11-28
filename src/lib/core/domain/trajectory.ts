@@ -1,11 +1,39 @@
-import { BaseDomain } from './base-domain.js';
+import { BaseDomain } from './base-domain.ts';
 import type { Trajectory as TrajDomain, Position } from 'coveragejson';
-import type { Referencing } from '../referencing.js';
-import type { MultiPoint } from 'geojson';
-import { isUndefined } from './utils.js';
+import type { Referencing } from '../referencing.ts';
+import type { MultiPoint, Polygon } from 'geojson';
+import { isUndefined } from './utils.ts';
 import nearestPointOnLine from '@turf/nearest-point-on-line';
-
+import type { GraduatedIndices, Indices } from '../types';
+import intersects from '@turf/boolean-intersects';
 export class Trajectory extends BaseDomain<TrajDomain> {
+	_constraintsFromBbox({
+		polygon
+	}: {
+		polygon: Polygon;
+		z: GraduatedIndices | undefined;
+	}): Record<string, Indices> {
+		const results: Record<string, number[]> = { z: [0] };
+
+		if (this.axes.composite.values.length === 1) results.composite = [0];
+		else {
+			results.composite = [];
+			for (let i = 0; i < this.axes.composite.values.length; i++) {
+				const [, ...coordinates] = this.axes.composite.values[i];
+				if (!intersects(polygon, { type: 'Point', coordinates })) continue;
+
+				results.composite.push(i);
+			}
+		}
+		return results;
+	}
+
+	_applySubset(indices: Map<string, Set<number>>): this | undefined {
+		const { composite } = Object.fromEntries(indices);
+		if (!composite.size) return undefined;
+		this.axes.composite.values = this.axes.composite.values.filter((_, i) => composite.has(i));
+		return this;
+	}
 	denormalize(): this {
 		return this;
 	}

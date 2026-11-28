@@ -1,4 +1,4 @@
-import { Exception } from './error.js';
+import { Exception } from './error.ts';
 /**
  * Helper function to load CoverageJSON documents within this application
  * Expects resolved documents to be JSON
