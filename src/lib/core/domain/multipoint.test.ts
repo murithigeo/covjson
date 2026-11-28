@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { MultiPoint } from './multipoint.js';
+import { MultiPoint } from './multipoint.ts';
 
 const multipoint = new MultiPoint({
 	type: 'Domain',
@@ -23,5 +23,4 @@ describe('MultiPoint tests', async () => {
 			});
 		});
 	});
-	describe.skip('.collect tests');
 });

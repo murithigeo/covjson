@@ -6,7 +6,7 @@ import {
 	numListIsRegular,
 	calcNumAxisBounds,
 	tIndicesOfNearest
-} from './utils.js';
+} from './utils.ts';
 
 describe('#regularNumToValuesAxis', () => {
 	const { values } = regularNumToValuesAxis({ num: 1, start: 0, stop: 0 });

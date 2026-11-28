@@ -3,6 +3,8 @@ import type { Grid as G } from 'coveragejson';
 import { denormalizeNumAxis } from './utils';
 import { Grid } from './grid';
 import { load } from '../load';
+import { Coverage } from '../coverage';
+import { bboxToPolygon } from '../utils';
 
 const grid = await load<G>('https://covjson.org/playground/coverages/grid-domain-bng.covjson').then(
 	(domain) => new Grid(domain)
@@ -82,4 +84,21 @@ describe('BBox/Polygon Generation', () => {
 			expect(feature.bbox).toEqual(bbox);
 		}
 	);
+});
+
+describe('.subset', async () => {
+	const grid = await Coverage.load<G>(
+		'https://covjson.org/playground/coverages/grid-tiled.covjson'
+	);
+
+	it('.subsetByIndex', () => {
+		const clone = grid.clone().domain.subset({ x: [0, 1, 3] });
+		expect(clone?.axes.x).toMatchObject({ values: [-100, -77.77777777, -33.33333333] });
+		expect(clone?.axes.y).toMatchObject(denormalizeNumAxis(grid.domain.axes.y));
+	});
+	it('.subsetByBbox', () => {
+		const indices = grid.clone().domain._constraintsFromBbox(bboxToPolygon([0, -2, 42, 5]));
+		expect(indices).toMatchObject({ x: [5, 6] });
+	});
+	it.skip('.subsetByBbox:3D');
 });

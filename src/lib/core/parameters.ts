@@ -7,8 +7,8 @@ import type {
 	Unit as U,
 	CategoryEncoding as CatEncoding
 } from 'coveragejson';
-import { isNull, isUndefined } from './domain/utils.js';
-import type { EdrParameterProperties } from './types.js';
+import { isNull, isUndefined } from './domain/utils.ts';
+import type { EdrParameterProperties } from './types.ts';
 
 abstract class Metadata<T> {
 	abstract toJSON(): T;

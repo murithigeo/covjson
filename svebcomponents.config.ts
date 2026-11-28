@@ -20,11 +20,6 @@ export default [
 		...conf
 	}),
 	...defineConfig({
-		entry: './src/lib/plugin-ui/index.ts',
-		ssr: false,
-		...conf
-	}),
-	...defineConfig({
 		entry: './src/lib/core/index.ts',
 		outDir: 'dist/core',
 		ssr: false

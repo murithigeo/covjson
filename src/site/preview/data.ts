@@ -1,4 +1,4 @@
-const prefix = 'https://covjson.org/playground/coverages';
+const prefix = '/playground/coverages';
 
 const names = [
 	'Grid Categorical',

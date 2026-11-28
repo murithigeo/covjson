@@ -8,12 +8,12 @@ import type {
 } from 'coveragejson';
 import ndarray, { type NdArray as NdArr } from 'ndarray';
 import { parseTemplate } from 'url-template';
-import { load } from './load.js';
+import { load } from './load.ts';
 import { assign } from 'ndarray-ops';
-import { cartesianProduct } from './utils.js';
-import { TilesetNotFound } from './error.js';
-import { isUndefined } from './domain/utils.js';
-import type { DataValue, RangeIndices, RangeOptions } from './types.js';
+import { cartesianProduct } from './utils.ts';
+import { TilesetNotFound } from './error.ts';
+import { isUndefined } from './domain/utils.ts';
+import type { DataValue, RangeIndices, RangeOptions } from './types.ts';
 
 export class Range<T extends DataValue = DataValue, Nd extends NdArray = NdArray> {
 	dataType: 'string' | 'float' | 'integer';

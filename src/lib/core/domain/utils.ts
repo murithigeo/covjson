@@ -1,5 +1,5 @@
 import type { Domain, RegularlySpacedAxis, Position, DomainTypes } from 'coveragejson';
-import { indicesOfNearest } from '../utils.js';
+import { indicesOfNearest } from '../utils.ts';
 /**
  * Programmatically determine the "domainType" of a domain if the property has not been set
  * Very shallow checker

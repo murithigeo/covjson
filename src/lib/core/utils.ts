@@ -1,9 +1,11 @@
 /**
- * @see https://github.com/Reading-eScience-Centre/covutils/blob/master/src/array.js
+ * @see https://github.com/Reading-eScience-Centre/covutils/blob/master/src/array.ts
  * @author letmaik
  */
 
-import type { Indices } from './types.js';
+import type { BBox } from 'geojson';
+import type { Indices } from './types.ts';
+import bboxPolygon from '@turf/bbox-polygon';
 
 /**
  * Copyright (c) 2016 The University of Reading
@@ -112,14 +114,24 @@ export type WithRequiredProperty<Type, Key extends keyof Type> = Type & {
 /**
  * Convert {@link Indices} to a list of numbers
  */
-export function axisOptionsToList(size: number, opts?: Indices): number[] {
+export function axisOptionsToList(size?: number, opts?: Indices): number[] {
 	if (!opts) return [];
 	if (opts === true) return [...Array(size).keys()];
 	if (Array.isArray(opts)) return opts;
-	const { start, stop = size, step = 1 } = opts;
+	const { start, stop = size ?? 0, step = 1 } = opts;
 	const stops = Array<number>();
 	for (let i = 0; i <= Math.floor(Math.abs(stop - start) / step); i++) {
 		stops.push(start + step * i);
 	}
 	return stops;
+}
+
+export function bboxToPolygon(bbox: BBox) {
+	let z: Exclude<Indices, number[] | boolean> | undefined = undefined;
+	if (bbox.length === 6) {
+		z = { start: bbox[2], stop: bbox[5] };
+		bbox.splice(bbox[2]);
+		bbox.splice(bbox[5]);
+	}
+	return { polygon: bboxPolygon(bbox as BBox).geometry, z };
 }

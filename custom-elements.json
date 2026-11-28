@@ -205,6 +205,17 @@
               "attribute": "color",
               "reflects": false,
               "privacy": "public"
+            },
+            {
+              "kind": "field",
+              "name": "showTitle",
+              "type": {
+                "text": "boolean"
+              },
+              "default": "true",
+              "attribute": "show-title",
+              "reflects": true,
+              "privacy": "public"
             }
           ],
           "attributes": [
@@ -228,6 +239,14 @@
                 "text": "ParameterColor"
               },
               "fieldName": "color"
+            },
+            {
+              "name": "show-title",
+              "type": {
+                "text": "boolean"
+              },
+              "default": "true",
+              "fieldName": "showTitle"
             }
           ]
         }

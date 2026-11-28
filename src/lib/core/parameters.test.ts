@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { Symbol, Unit, Parameter, ParameterGroup, Category, I18N } from './parameters.js';
+import { Symbol, Unit, Parameter, ParameterGroup, Category, I18N } from './parameters.ts';
 
 describe('I18N', () => {
 	describe('.query', () => {

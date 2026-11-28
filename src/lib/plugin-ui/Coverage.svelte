@@ -1,5 +1,10 @@
 <svelte:options customElement="covjson-coverage" />
 
+<script lang="ts" module>
+	export type { CoverageProps } from './types';
+	// Show referencing info in footer
+</script>
+
 <script lang="ts" generics="D extends Domain=Domain">
 	import DataView from './coverage/data-view.svelte';
 	import { ChartColumnIcon, TableIcon, VariableIcon } from '@lucide/svelte';
@@ -9,11 +14,11 @@
 	import type {
 		Tooltip,
 		Colors,
-		CoverageProps,
 		View,
 		Data,
 		Axis,
-		RangeStatistics
+		RangeStatistics,
+		CoverageProps
 	} from './types.js';
 	import { ChartGroup } from 'layerchart';
 	import {

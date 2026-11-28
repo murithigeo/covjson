@@ -1,4 +1,4 @@
-import type { Point as PointGeometry } from 'geojson';
+import type { Point as PointGeometry, Polygon } from 'geojson';
 import type {
 	Point as PointD,
 	PointSeries as PSeriesD,
@@ -6,10 +6,11 @@ import type {
 	VerticalProfile as VertProfDomain,
 	WithBounds
 } from 'coveragejson';
-import type { Referencing } from '../referencing.js';
-import { BaseDomain } from './base-domain.js';
-import { denormalizeNumAxis, isUndefined, normalizeNumAxis, numAxisIsNormalized } from './utils.js';
-
+import type { Referencing } from '../referencing.ts';
+import { BaseDomain } from './base-domain.ts';
+import { denormalizeNumAxis, isUndefined, normalizeNumAxis, numAxisIsNormalized } from './utils.ts';
+import type { GraduatedIndices, Indices } from '../types';
+import intersects from '@turf/boolean-intersects';
 abstract class Base<D extends PointD | PSeriesD | VertProfDomain> extends BaseDomain<D> {
 	_reproject(referencing: Referencing): this {
 		[this.axes.x.values[0], this.axes.y.values[0]] = referencing.crs([
@@ -43,6 +44,39 @@ abstract class Base<D extends PointD | PSeriesD | VertProfDomain> extends BaseDo
 	}
 	get axesSize(): Map<keyof D['axes'], number> {
 		return new Map().set('x', 1).set('y', 1).set('t', this.t.length).set('z', this.z.length);
+	}
+
+	_constraintsFromBbox({
+		polygon,
+		z
+	}: {
+		polygon: Polygon;
+		z: GraduatedIndices | undefined;
+	}): Record<string, Indices> {
+		const results: Record<string, Indices> = {};
+		let within = false;
+		if (intersects(polygon, this.geometry)) within = true;
+
+		//todo partially account for vert profile
+		if (within && z && this.axes.z) {
+			within &&= this.z[0] >= z.start;
+			if (!isUndefined(z.stop)) within &&= this.z[0] <= z.stop;
+		}
+		results.x = results.y = results.z = within;
+
+		return results;
+	}
+
+	_applySubset(indices: Map<string, Set<number>>): this | undefined {
+		const { x, y, z, t } = Object.fromEntries(indices);
+		if (!x.size || !y.size || !z.size) return undefined;
+
+		if (this.axes.t) this.axes.t.values = this.axes.t.values.filter((_, i) => t.has(i));
+		if (this.axes.z) {
+			this.axes.z = denormalizeNumAxis(this.axes.z);
+			this.axes.z.values = this.axes.z.values.filter((_, i) => z.has(i));
+		}
+		return this;
 	}
 }
 

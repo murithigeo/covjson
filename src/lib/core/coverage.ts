@@ -1,39 +1,76 @@
 import type { Coverage as CRG, Domain, NdArray, Position } from 'coveragejson';
-import { Base } from './base.js';
-import { Parameter, ParameterGroup } from './parameters.js';
-import { BaseDomain, getDomain, isUndefined } from './domain/index.js';
-import { load } from './load.js';
-import type { InferDomainClass } from './domain/types.js';
-import { Referencing } from './referencing.js';
-import { Range } from './ranges.js';
+import { Base } from './base.ts';
+import { Parameter, ParameterGroup } from './parameters.ts';
+import { BaseDomain, getDomain, isUndefined } from './domain/index.ts';
+import { load } from './load.ts';
+import type { InferDomainClass } from './domain/types.ts';
+import { Referencing } from './referencing.ts';
+import { Range } from './ranges.ts';
 import { nanoid } from 'nanoid';
-import { axisOptionsToList, cartesianProduct } from './utils.js';
-import type { Feature } from 'geojson';
+import { axisOptionsToList, cartesianProduct } from './utils.ts';
+import type { Feature, Polygon } from 'geojson';
 import type {
 	CoverageOptions,
 	CoverageProperties,
 	DataRow,
 	GetDataOptions,
+	GraduatedIndices,
+	Indices,
 	QueryOptions,
 	Reference
-} from './types.js';
+} from './types.ts';
 
 export class Coverage<D extends Domain = Domain> extends Base<CRG<D>> {
-	/**
-	 * Remote NdArrays.
-	 * Resolved when their keys are first fetched
-	 */
-	_ranges: Map<string, string>;
-	/**
-	 * All keys in ranges & _ranges
-	 */
-	rangeIds: string[];
-
-	get t() {
-		return this.domain.t;
+	_parseConstraints(constraints: Record<string, Indices>) {
+		return this.domain._parseConstraints(constraints);
 	}
-	get z(): number[] {
-		return this.domain.z;
+	_constraintsFromBbox(v: {
+		polygon: Polygon;
+		z: GraduatedIndices | undefined;
+	}): Record<string, Indices> {
+		return this.domain._constraintsFromBbox(v);
+	}
+	async _applySubset(constraints: Map<string, Set<number>>): Promise<this | undefined> {
+		const domain = this.domain.clone()._applySubset(constraints);
+		if (!domain) return undefined;
+		this.domain = domain as InferDomainClass<D>;
+
+		// The indices we are keeping
+		const entries = constraints
+			.entries()
+			.toArray()
+			.sort(([, a], [, b]) => a.size - b.size);
+
+		// Get all combos for the values we are keeping
+		const combos = cartesianProduct(...entries.map(([, idx]) => [...idx]));
+		const product = combos.map((idx) => new Map(idx.map((v, i) => [entries[i][0], v])));
+
+		// Build a new index mapping
+		const mapping = new Map<string, Map<number, number>>();
+		for (const [axisName, indices] of constraints) {
+			mapping.set(axisName, new Map([...indices].map((v, i) => [v, i])));
+		}
+		for (const [id, range] of this.ranges) {
+			const ndarr = new Range({
+				type: 'NdArray',
+				shape: entries.map(([, v]) => v.size),
+				axisNames: entries.map(([an]) => an),
+				dataType: range.dataType,
+				values: []
+			});
+
+			for (const indices of product) {
+				const value = await range.get(indices);
+				const idx = indices
+					.entries()
+					.map(([axisName, idx]) => mapping.get(axisName)!.get(idx)!)
+					.toArray();
+				ndarr._ndarr.set(...idx, value as number);
+			}
+
+			this.ranges.set(id, ndarr);
+		}
+		return this;
 	}
 	type: 'Coverage';
 	id?: string | undefined;
@@ -82,6 +119,22 @@ export class Coverage<D extends Domain = Domain> extends Base<CRG<D>> {
 		this.uuid = nanoid();
 		this.indices = new Map(Object.keys(this.domain.axes).map((k) => [k, 0]));
 		this.options = options;
+	}
+	/**
+	 * Remote NdArrays.
+	 * Resolve during data fetch to avoid cb hell
+	 */
+	_ranges: Map<string, string>;
+	/**
+	 * All keys in ranges & _ranges
+	 */
+	rangeIds: string[];
+
+	get t() {
+		return this.domain.t;
+	}
+	get z(): number[] {
+		return this.domain.z;
 	}
 
 	static async resolve<T extends Domain>(coverage: CRG<T | string>): Promise<CRG<T>> {

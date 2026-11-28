@@ -1,6 +1,6 @@
-import { Point, PointSeries } from './point.js';
+import { Point, PointSeries } from './point.ts';
 import { describe, it, expect } from 'vitest';
-import { load } from '../load.js';
+import { load } from '../load.ts';
 import type { Coverage, Point as P, PointSeries as Ps } from 'coveragejson';
 
 const point = await load<Coverage<P>>(

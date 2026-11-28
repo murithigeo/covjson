@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { Range } from './ranges.js';
+import { Range } from './ranges.ts';
 
 describe('Simple NdArray', () => {
 	const ndarr = new Range({
